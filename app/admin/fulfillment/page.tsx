@@ -49,6 +49,7 @@ function formatXof(n: number): string {
 }
 
 export default function JokoFulfillmentQueuePage() {
+  const [view, setView] = useState<"active" | "outcomes">("active");
   const [items, setItems] = useState<FulfillmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function JokoFulfillmentQueuePage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/fulfillment", { credentials: "include" });
+      const res = await fetch(`/api/admin/fulfillment?view=${view}`, { credentials: "include" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !Array.isArray(json.items)) {
         setError(json.error ?? "Could not load the fulfillment queue.");
@@ -69,7 +70,7 @@ export default function JokoFulfillmentQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     const scheduled = window.setTimeout(() => { void load(); }, 0);
@@ -93,6 +94,8 @@ export default function JokoFulfillmentQueuePage() {
         return;
       }
       await load();
+    } catch {
+      setError("Could not confirm the update. Reload the queue before trying again.");
     } finally {
       setBusyId(null);
     }
@@ -113,6 +116,8 @@ export default function JokoFulfillmentQueuePage() {
         return;
       }
       await load();
+    } catch {
+      setError("Could not confirm the update. Reload the queue before trying again.");
     } finally {
       setBusyId(null);
     }
@@ -134,6 +139,8 @@ export default function JokoFulfillmentQueuePage() {
         return;
       }
       await load();
+    } catch {
+      setError("Could not confirm the update. Reload the queue before trying again.");
     } finally {
       setBusyId(null);
     }
@@ -157,6 +164,15 @@ export default function JokoFulfillmentQueuePage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-4">
+        <div className="flex gap-2" role="group" aria-label="Fulfillment queue view">
+          {(["active", "outcomes"] as const).map((nextView) => (
+            <button key={nextView} type="button" aria-pressed={view === nextView} disabled={loading || busyId !== null}
+              onClick={() => { if (nextView !== view) { setLoading(true); setItems([]); setError(null); setView(nextView); } }}
+              className="rounded-full border border-border px-4 py-2 text-sm aria-pressed:bg-deep-green aria-pressed:text-white disabled:opacity-50">
+              {nextView === "active" ? "Active orders" : "Recent outcomes"}
+            </button>
+          ))}
+        </div>
         {loading ? <p role="status" className="text-sm text-muted">Loading fulfillment orders…</p> : null}
         {error ? (
           <div role="alert" className="text-red-700 text-sm">
@@ -166,7 +182,7 @@ export default function JokoFulfillmentQueuePage() {
         ) : null}
 
         {items.length === 0 && !error && !loading ? (
-          <p className="text-sm text-muted">No orders currently awaiting Joko Fulfillment pickup or delivery.</p>
+          <p className="text-sm text-muted">{view === "active" ? "No orders currently awaiting Joko Fulfillment pickup or delivery." : "No recent failed, returned or cancelled fulfillment orders."}</p>
         ) : null}
 
         <ul className="space-y-3">
@@ -216,7 +232,7 @@ export default function JokoFulfillmentQueuePage() {
                       Mark returned
                     </button>
                   ) : null}
-                  {item.status !== "cancelled" ? (
+                  {["awaiting_pickup", "picked_up", "in_transit", "delivered"].includes(item.status) ? (
                     <button
                       type="button"
                       disabled={busyId === item.id}

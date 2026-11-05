@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-05",
+  "runtimeCommit": "1d99e1f3fc9c67560259278856a97994d96a7793",
+  "runId": 42090314071,
+  "jobId": 127466310610,
+  "url": "https://github.com/mbayangxo/Kebu/actions/runs/42090314071",
+  "conclusion": "success",
+  "postgres": "17.6",
+  "shopJourneyPassed": 1,
+  "existingRaceChecksPassed": 30,
+  "skipped": 0,
+  "databasesCleaned": true,
+  "limitations": [
+    "isolated native PostgreSQL fixture; no managed Supabase Auth or provider settlement",
+    "shop fixture substitutes commit_shop_checkout; no stock or gift-card reservation acceptance",
+    "precedes later server status and outcomes-view changes"
+  ]
+}

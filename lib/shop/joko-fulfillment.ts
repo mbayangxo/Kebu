@@ -90,6 +90,7 @@ export async function createJokoFulfillmentCartOrder(
  */
 export async function listOpenFulfillmentOrders(
   admin: SupabaseClient,
+  view: "active" | "outcomes" = "active",
 ): Promise<
   | { ok: true; items: (FulfillmentOrderRow & { order_number: string | null; customer_name: string | null })[] }
   | { ok: false; error: string }
@@ -99,8 +100,8 @@ export async function listOpenFulfillmentOrders(
     .select(
       "id, order_id, project_id, shipping_option_id, commission_xof, status, note, created_at, updated_at, shop_orders(order_number, customer_name)",
     )
-    .in("status", ["awaiting_pickup", "picked_up", "in_transit", "delivered"])
-    .order("created_at", { ascending: true })
+    .in("status", view === "outcomes" ? ["failed_delivery", "returned", "cancelled"] : ["awaiting_pickup", "picked_up", "in_transit", "delivered"])
+    .order("created_at", { ascending: view === "active" })
     .limit(200);
   if (error) {
     return { ok: false, error: error.message };
@@ -118,6 +119,16 @@ export async function listOpenFulfillmentOrders(
   return { ok: true, items };
 }
 
+// Preserve the existing UI's permitted outcomes, including its explicit cancel
+// action after delivery. The separate commercial rule for that outcome is open.
+const NEXT_FULFILLMENT_STATUSES: Record<JokoFulfillmentStatus, readonly JokoFulfillmentStatus[]> = {
+  awaiting_pickup: ["picked_up", "failed_delivery", "cancelled"],
+  picked_up: ["in_transit", "failed_delivery", "cancelled"],
+  in_transit: ["delivered", "failed_delivery", "cancelled"],
+  delivered: ["returned", "cancelled"],
+  failed_delivery: [], returned: [], cancelled: [],
+};
+
 /** Admin-only status transition — the real-world step a Kebu ops person just completed by hand. */
 export async function transitionFulfillmentStatus(
   admin: SupabaseClient,
@@ -126,10 +137,23 @@ export async function transitionFulfillmentStatus(
   if (!JOKO_FULFILLMENT_STATUSES.includes(opts.status)) {
     return { ok: false, error: "Invalid fulfillment status." };
   }
+  const { data: current, error: readError } = await admin.from("shop_fulfillment_orders")
+    .select("status").eq("id", opts.id).maybeSingle();
+  if (readError) return { ok: false, error: readError.message };
+  if (!current) return { ok: false, error: "Fulfillment order not found." };
+  const currentStatus = current.status as JokoFulfillmentStatus;
+  if (!JOKO_FULFILLMENT_STATUSES.includes(currentStatus) ||
+      (opts.status !== currentStatus && !NEXT_FULFILLMENT_STATUSES[currentStatus].includes(opts.status))) {
+    return { ok: false, error: "This fulfillment status change is not allowed. Reload the queue." };
+  }
+  if (opts.status === currentStatus && opts.note === undefined) return { ok: true };
   const patch: Record<string, unknown> = { status: opts.status, updated_by: opts.updatedBy };
   if (opts.note !== undefined) patch.note = opts.note?.slice(0, 500) ?? null;
-  const { error } = await admin.from("shop_fulfillment_orders").update(patch).eq("id", opts.id);
+  // Compare-and-set: a stale operator must reload instead of overwriting progress.
+  const { data: updated, error } = await admin.from("shop_fulfillment_orders")
+    .update(patch).eq("id", opts.id).eq("status", currentStatus).select("id").maybeSingle();
   if (error) return { ok: false, error: error.message };
+  if (!updated) return { ok: false, error: "Fulfillment status changed. Reload the queue before trying again." };
   return { ok: true };
 }
 

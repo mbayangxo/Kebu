@@ -1,7 +1,7 @@
 {
   "date": "2026-11-05",
   "environment": "isolated local PGlite 0.5.10 and mocked transport boundary tests; not hosted QA",
-  "passed": 24,
+  "passed": 32,
   "failed": 0,
   "skipped": 0,
   "success": true,
@@ -89,6 +89,43 @@
         },
         {
           "title": "fulfillment read failure states does not tell a seller missing schema means no fulfillment orders",
+          "status": "passed"
+        },
+        {
+          "title": "fulfillment outcome queue makes terminal orders retrievable for the existing refund action without crowding the active queue",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "suite": "shop/fulfillment-status.test.ts",
+      "cases": [
+        {
+          "title": "admin fulfillment transition guards rejects backward transitions before writing",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards rejects skipping physical steps and reopening terminal outcomes",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards advances with a condition on the previously observed status",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards reports a lost race instead of pretending the update happened",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards does not report success for a nonexistent order",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards permits an idempotent retry without resetting the row",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards preserves the existing admin return and cancellation actions",
           "status": "passed"
         }
       ]

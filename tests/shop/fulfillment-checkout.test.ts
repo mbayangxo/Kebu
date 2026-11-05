@@ -50,3 +50,23 @@ describe("fulfillment read failure states", () => {
     await expect(listFulfillmentOrdersForProject(unavailableDb(), "project")).rejects.toThrow(/does not exist/);
   });
 });
+
+describe("fulfillment outcome queue", () => {
+  it("makes terminal orders retrievable for the existing refund action without crowding the active queue", async () => {
+    const inStatus = vi.fn();
+    const sort = vi.fn();
+    const query = {
+      select: () => query,
+      in: (key: string, values: string[]) => { inStatus(key, values); return query; },
+      order: (key: string, direction: unknown) => { sort(key, direction); return query; },
+      limit: async () => ({ data: [], error: null }),
+    };
+    const client = { from: () => query } as unknown as SupabaseClient;
+    await listOpenFulfillmentOrders(client, "outcomes");
+    expect(inStatus).toHaveBeenLastCalledWith("status", ["failed_delivery", "returned", "cancelled"]);
+    expect(sort).toHaveBeenLastCalledWith("created_at", { ascending: false });
+    await listOpenFulfillmentOrders(client);
+    expect(inStatus).toHaveBeenLastCalledWith("status", ["awaiting_pickup", "picked_up", "in_transit", "delivered"]);
+    expect(sort).toHaveBeenLastCalledWith("created_at", { ascending: true });
+  });
+});
