@@ -1,0 +1,81 @@
+# KEBU full-scope closeout register
+
+Updated November 5, 2026 (America/New_York). **Open; not a launch certificate.**
+
+The user explicitly retained the full KEBU scope. This register sequences the work; it does not remove products or requirements to make a smaller release look complete. Preserve the [99 recovered requirement groups](KEBU-RECOVERED-REQUEST-AUDIT.md), all [25 Creative OS acceptance groups](product/KEBU-STUDIO-CREATIVE-OS-ACCEPTANCE.md), and later accepted work. Those detailed requirements remain binding; the workstreams below are not substitutes for their individual acceptance cases. Historical preferences, unapproved suggestions and separate ecosystem companies must not silently become new KEBU commitments.
+
+## How an item closes
+
+Every item needs an exact source commit, applicable requirement/case IDs, environment, command or ordinary-user journey, observed result, evidence location and remaining limitations. A source path or passing unit test is not hosted acceptance. An expected environment skip is still missing evidence for that layer. No completion percentage is inferred from code or test counts. Closed items reopen only for a reproduced regression, changed requirement or new evidence.
+
+Statuses: **Open** (remaining work); **Candidate** (repair exists, verification incomplete); **Blocked** (named prerequisite); **Verified locally** (bounded test scope only); **Closed** (all applicable acceptance complete). No whole-product row is Closed at this checkpoint. Engineering owns reproduction, repairs and test evidence. The founder owns access, commercial-policy/content decisions and spending approvals; engineering prepares concrete review material rather than asking the founder to supervise every commit.
+
+## Source baseline and actual checks
+
+- Complete native checkout recovered from `147d9c70ef561f29446440d59e626ff5c76a1909`, including Claude's consolidated/audited `f510ff13e7bddc059fb4a3f0346328807acfd141` and the May motion work. Preserve original Git authors and all unrelated local files.
+- `workspace:check` fetched authoritative `8fb56648a87a4ea0bc617e159aaf7536cc8f9122`: **56 ahead / zero behind**. The feature line is not integrated into the authoritative branch; a feature push must not be described as integration.
+- Remote [CI 41977690074](https://github.com/mbayangxo/Kebu/actions/runs/41977690074) on the baseline fails during TypeScript with `Reached heap limit ... heap out of memory` near 2 GiB. Later gates are skipped, not passed.
+- Candidate repair: the required CI job uses the same 6144 MiB Node heap limit already used by the generation, Studio and platform workflows. Include existing `feature-*`, `fix-*`, `audit-*` and `consolidation-*` branch naming patterns in required CI. No gate or test is removed.
+- Full-checkout local validation is recorded in the dated evidence below. This supersedes reliance on the earlier partial renderer restoration for local coverage, but not its historical results.
+- No new hosted write, migration, payment, email, deployment, worker activation or paid resource is authorized merely by this source checkpoint. The previously authorized preview attempt was rejected by Vercel with HTTP 402 `resource_creation_blocked`. The new work branch disables automatic Vercel deployments.
+
+## Workstreams and closing evidence
+
+| ID / priority | Retained area | Current finding and next closure requirement | Owner / dependency |
+| --- | --- | --- | --- |
+| REL01 / P0 | Source and integration | **Open.** Preserve Claude consolidation and May changes; obtain green exact-source checks, review and reconcile into the authoritative line without overwriting concurrent work. | Engineering; expected-head integration |
+| REL02 / P0 | Required CI | **Candidate.** Repair the reproduced heap failure and branch coverage; verify remote TypeScript, lint, tests and production build all execute on the same commit. Local and remote are separate evidence. | Engineering |
+| SEC01 / P0 | Dependencies | **Open.** Fresh `npm audit --json` reports 15 vulnerable package nodes: 1 critical, 4 high, 10 moderate. Triage runtime exposure and upgrade compatible packages, then rerun functional gates and audit. Never use `npm audit fix --force` to downgrade framework packages or conceal alerts. | Engineering; maintainer advisories |
+| DAT01 / P0 | Schema, hosted QA and recovery | **Blocked hosted / open local.** Fresh+upgrade migration tests, data preservation, schema/grant parity, actual GoTrue/PostgREST sessions, wrong-user denial, backup restoration and rollback. Keep QA-only tests pointed at designated QA; never substitute production or weaken their guards. | Engineering; founder restores existing QA access |
+| ACC01 / P0 | Account, Kebu ID and teams | **Open acceptance.** Signup/login/logout/recovery, personal/business transitions, owner/team role matrix, session revocation, privacy controls and data ownership must survive refresh and cross-user tests. Kebu business identity is not KA ID. | Engineering; real QA sessions |
+| BUI01 / P0 | Builder, sites, domains and publishing | **Open acceptance.** Ordinary new-user create → edit on phone/desktop → save → reopen → preview → publish → update/rollback; preserve authored geometry/content and undo; verify slow/offline/conflict/error paths and custom-domain ownership. Retain all detailed Builder requirements. | Engineering; hosted/domain verification |
+| MAY01 / P0 | May Lècor | **Open.** Preserve actual saved project and recovery snapshot. Finish every intended page, real media, navigation/contact, Behance scene choreography, masks/reveals and visitor/editor parity at phone/tablet/desktop with reduced motion. Legacy fixture is not the full saved site; apply acceptance on the actual legacy/native path in use. | Engineering; founder content/design approval; reachable preview |
+| STU01 / P0 | Studio / Creative OS | **Open.** Retain COS01–COS25 individually. Complete direct/rich text, object/group transforms, frames, brand styles, pages, timeline/audio/video/captions, versions, collaboration, offline recovery and actual exports through ordinary controls, persistence and responsive acceptance. Historical bounded tests do not close entire groups. | Engineering; detailed COS register; real media and hosted sessions |
+| COM01 / P0 | Checkout, ledger, refunds and payouts | **Open acceptance.** Bind provider/session/amount/currency; retries/duplicates/races; stock; refund-after-payout handling; seller statements; account isolation. Commission deduction is already in consolidated source—do not rebuild the old integration gap. Full-order refund recording is bookkeeping after an actual manual refund, not a provider refund API. | Engineering; approved policies and provider sandbox/merchant access |
+| COM02 / P0 | Fulfillment and operations | **Open defect.** Paid-order fulfillment inserts can fail without durable recovery, and missing-table reads can appear as a healthy empty queue. Add observable reconciliation/retry and truthful setup errors, then reproduce paid-order recovery and exactly-once commission effects. Code does not dispatch or deliver parcels. | Engineering; actual delivery operators for live acceptance |
+| EXC01 / P1 | Kebu Exchange / Aesthetics | **Open.** Retain apps, agents, workflows, skills, services and creative assets in the scope map. Establish which kinds are implemented before coding. Prove creator publish → buyer purchase → private entitlement/download/use → creator balance; licensing/provenance, moderation, revocation/refunds and supplier/buyer onboarding. | Engineering; creator licenses, commercial policies, providers |
+| MAI01 / P1 | Mail and business domains | **Implemented paths; acceptance open.** Mail is not "not started." Verify internal/external send, receive, attachments, forwarding, bounce/suppression, retry/reputation and business roles on a verified domain. No real inbox delivery claim without a real send/receive test. Preserve Claude's Mail work. | Engineering; provider/domain credentials and approved test recipients |
+| SUP01 / P1 | Help, admin, security and failure feeds | **Open acceptance.** Own-request threads and team replies, guest/account context, delivery failures, admin permissions, actionable incidents and event retention. Read-on-load feeds are not push/email alerting. Verify important failed transactions reach an operator. | Engineering; support operations and delivery provider |
+| SEA01 / P1 | Search, Directory and discovery | **Open.** Retain all implemented modes. Prove actual crawl/index/rank, source attribution, result relevance and country filters, complete index enumeration/pagination, stale cleanup under concurrency, refresh/retry/failure behavior and a supported scheduler. A UI or mode count does not establish a complete engine. | Engineering; data sources and authorized scheduler |
+| YAN01 / P1 | Yande and editable generation | **Local evidence; hosted open.** Shared gateway, brief/direction approval, approved media, native editable output, all-page inspection, bounded repair, quota/cost, interruption recovery, fenced workers and undo/save/reopen. Verify actual provider output quality separately from fixture transport. | Engineering; approved model credentials/budget and worker activation |
+| WRK01 / P1 | Work, Liguey, Rooms and collaboration | **Open.** Task/work lifecycle, applicant/employer journeys, real permissions, applications/evidence, notifications, concurrent sessions and English/French/Wolof. Liguey's SAFA integration remains blocked until its real contract exists; do not fabricate it. | Engineering; integration contract and language review |
+| NET01 / P1 | Network, community and Reach | **Open.** Real profiles/submission/moderation, consent, discovery/contact, fan membership/posting, abuse controls, cross-user privacy and useful business distribution. Verify actual shared data flows; do not conflate separate ecosystem companies. | Engineering; moderation/content operations |
+| OPP01 / P1 | Opportunity and economic tools | **Open.** Preserve standalone Opportunity OS explore versus Kebu's personalized for-you service. Real opportunities/provenance/freshness, eligibility and entitlement enforcement, applications/saved progress and explainable matching; no invented opportunities, funding or guaranteed outcomes. Audit recovered requirement IDs individually. | Engineering; genuine data sources and service contracts |
+| BIZ01 / P1 | Business operations, analytics and billing | **Open.** Roles, events/invoices/records, real site/shop measurements, useful actions, plans/allowances/fees, invoices/cancellation and consistent country/currency rules. Verify current approved pricing before changing it; stale memory is not authority. | Engineering; founder commercial decisions and billing provider |
+| LIB01 / P1 | Library, files, fonts and ownership | **Open.** Upload/storage/ACLs, retries/folders/versions/trash/restore, source preservation, licensed font loading and exports with correct rights. Preserve both curated licensed and original type-foundry work without treating specimens as a finished type family. | Engineering; licensed assets and real storage acceptance |
+| INF01 / P1 | Shared infrastructure and low-data operation | **Open.** Backups/restore, durable jobs/retries/idempotency, logs/monitoring, tenant isolation, offline/reconnect conflicts, low-bandwidth performance and understandable support errors across products. Verify hosted packaged Chromium independently of local browser tests. | Engineering; QA and supervised hosted activation |
+| DEV01 / sequenced after foundations | Developers, agencies and corporate adoption | **Scope retained; capabilities unverified.** Inventory existing APIs, identity/permissions, runtime/hosting, integrations, distribution and procurement/security documentation before implementing gaps. Finish dependable first-party products first; sequencing is not deletion. | Engineering; real developer/corporate trials |
+| MAP01 / scope audit | Maps, Property, scoring and remaining recovered groups | **Not certified.** Preserve every accepted item in the recovered requirement audit and its product specification. Identify actual implementation and individual dependencies; do not infer navigation, verified property or trustworthy scores from a route shell. Original "future" preferences are not silently promoted to launch blockers. | Engineering; product/data/provider contracts as applicable |
+
+## Commercial/content decisions that need founder input
+
+Prepare concrete options and recommendations before asking; batch related decisions.
+
+1. Fulfillment's current defaults waive commission on cancelled/failed delivery but retain it after returns; confirm charges, failed-attempt costs, partial refunds, payout timing and recovery of refunded money after a seller has been paid.
+2. Confirm approved May release media, contact/listening destinations and final visual acceptance. Demo media is not automatically approved artist-release content.
+3. Confirm current pricing/licensing and provider merchant arrangements. Code configuration does not prove a negotiated payout API contract exists.
+
+## External blockers, kept separate from source defects
+
+- Vercel team creation block: existing preview authorization stands, but no payment/upgrade or alternate paid hosting is approved here.
+- Designated Supabase QA (`skqnxyaeimvbyrmdfzvk`): restore access through the owning account/connection. No new QA project, production substitution, reset or schema rollout is approved here.
+- Actual payment/email/model providers: obtain approved credentials/contracts without posting secrets in chat; use explicit sandbox/test flows first. Code cannot establish live success without observing it.
+- Physical fulfillment, support, moderation and licensed content require real people/assets. Software must truthfully expose their state.
+
+## Execution and stopping rules
+
+Work in dependency order: source/CI/security → data/auth foundations → persistence and money → product journeys → provider/hosted acceptance → supervised rollout. Retain all scope while finishing one repair at a time. Add no unrelated feature batch. A newly discovered failure gets one evidence-linked entry rather than another competing checklist.
+
+The user need not stay awake to witness commands. Ask only for genuinely unavailable access, approved content/commercial choices, paid resources or consequential release decisions. Do not imply that work runs between chat turns unless an actual background task exists.
+
+## Dated execution evidence
+
+### November 5 — CI and baseline recovery
+
+Full native checkout and dependency installation succeeded. The larger heap allowed complete-repository TypeScript and lint to execute; lint reports zero errors and 358 warnings. Full Vitest baseline reports **6,902 passed / 465 skipped**, across **458 passed / 59 skipped files**. These skips are not SQL/RLS/hosted acceptance. The full baseline production build also passed. This establishes local baseline coverage on the recovered complete checkout; it does not turn skipped or hosted checks into passes.
+
+Dependency audit against the existing lockfile reproduced the remote installation warning: 15 package-node alerts, including Next 16.3.5, sharp and Zod. Maintainer advisories include [Next image optimization](https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw) and [Next typed-array cache handling](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr); a vulnerable dependency version is not evidence that KEBU was exploited. Remediation must be tested before release.
+
+### November 5 — dependency repair candidate
+
+Updated Next and its matching ESLint configuration from 16.3.5 to 16.4.5, and Zod to the advisory-patched 4.6.6. Selected compatible lockfile updates resolve sharp 0.35.5, Vite 8.3.6, Vitest 4.1.12 and source-map-js 1.2.2. No force upgrade/downgrade or test exclusions were used. The [official Next 16.4.5 release](https://github.com/vercel/next.js/releases/tag/v16.4.5) is a security release. A fresh full CI run and audit on the changed dependency set are in progress; do not certify the candidate from the earlier baseline results.

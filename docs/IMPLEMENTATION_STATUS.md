@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## November 5 — full-scope closeout in progress
+
+The complete native checkout preserves Claude consolidation/audit plus May motion source. The reproduced GitHub CI heap failure is addressed by a 6144 MiB Node heap matching existing specialized workflows; required branch naming coverage is expanded. Full local baseline passes TypeScript, lint (zero errors / 358 warnings), 6,902 tests with 465 explicit skips and production build. This is not hosted acceptance. A fresh dependency audit found runtime/development advisories; compatible remediation and fresh exact-source checks are in progress. All product areas and externally blocked acceptance remain in [the closeout register](KEBU_CLOSEOUT_REGISTER.md). No production migration, deployment, provider activation or spending occurred.
+
 ## November 5 — May Behance opening motion, source candidate
 
 Opening collage choreography and sticky progress are adjusted against the accessible Behance Vimeo walkthrough. Eighteen focused geometry/motion/subscription tests, TypeScript and lint (26 warnings) pass on the restored renderer dependency graph. The combined run encountered a generated Next/Turbopack font-module failure; the standalone production build passed after clearing generated `.next` output. This remains a partial source restoration, not whole-repository acceptance. This is a partial source restoration, not full-repository CI. Browser comparison of the changed renderer, remaining longread scenes, and hosted application are **awaiting evidence**. No saved project data or deployment changed. See [scope, evidence and remaining acceptance](audits/KEBU_MAY_BEHANCE_MOTION_2026-11-05.md).

@@ -1,5 +1,9 @@
 # Kebu — current development state
 
+## November 5 — full-scope closeout
+
+Use [the closeout register](KEBU_CLOSEOUT_REGISTER.md) for current blockers, retained product scope and closing evidence. The user retained the full scope; no product was removed to declare a smaller release complete. Source recovery now includes a complete native checkout of the consolidated/audited work and May motion changes. The CI heap repair and dependency review are in progress on `work/kebu-closeout-nov05`; this is not authoritative-branch integration or hosted acceptance. Dated entries below remain historical evidence.
+
 This is the current status entry point. Older dated handoffs and audits are historical evidence, not current readiness claims.
 
 ## One development line
