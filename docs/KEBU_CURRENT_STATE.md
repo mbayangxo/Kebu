@@ -2,7 +2,7 @@
 
 ## November 5 — full-scope closeout
 
-Use [the closeout register](KEBU_CLOSEOUT_REGISTER.md) for current blockers, retained product scope and closing evidence. The user retained the full scope; no product was removed to declare a smaller release complete. Source recovery now includes a complete native checkout of the consolidated/audited work and May motion changes. The CI heap repair and dependency review are in progress on `work/kebu-closeout-nov05`; this is not authoritative-branch integration or hosted acceptance. Dated entries below remain historical evidence.
+Use [the closeout register](KEBU_CLOSEOUT_REGISTER.md) for current blockers, retained product scope and closing evidence. The user retained the full scope; no product was removed to declare a smaller release complete. Source recovery now includes a complete native checkout of the consolidated/audited work and May motion changes. Runtime `ed1b595a850a29c44843f096d64b8951ae31783d` passes full local and remote CI (6,902 tests / 465 explicit skips), native PostgreSQL30/30 and a zero-alert production dependency audit. The shared authoritative branch includes the reviewed consolidated history, May motion, CI repair and compatible dependency updates; the follow-up only records evidence. Eight moderate development lint-chain alerts, full product journeys and hosted acceptance remain open. Read the canonical remote head rather than using old feature tips. Dated entries below remain historical evidence.
 
 This is the current status entry point. Older dated handoffs and audits are historical evidence, not current readiness claims.
 

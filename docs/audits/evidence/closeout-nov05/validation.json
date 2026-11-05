@@ -1,0 +1,74 @@
+{
+  "source_commit": "ed1b595a850a29c44843f096d64b8951ae31783d",
+  "local_node": "24.22.1",
+  "scope": "complete native checkout; hosted and browser acceptance remain separate",
+  "command": "NODE_OPTIONS=--max-old-space-size=6144 npm run ci",
+  "exit_code": 0,
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 358
+  },
+  "vitest": {
+    "passed": 6902,
+    "skipped": 465,
+    "files_passed": 458,
+    "files_skipped": 59
+  },
+  "build": "passed",
+  "migration_hygiene": {
+    "canonical_timestamps": 125,
+    "result": "passed"
+  },
+  "dependency_alerts_before": {
+    "critical": 1,
+    "high": 4,
+    "moderate": 10
+  },
+  "dependency_alerts_after": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 8
+  },
+  "production_dependency_alerts_after": 0,
+  "lockfile_sha256": "a1d35e0ed7cdc3e260773aacbe1de818f9b2b129a250c576fc08e97631c1593b",
+  "remote_ci": {
+    "run": 41981675030,
+    "status": "completed",
+    "conclusion": "success",
+    "typecheck": "passed",
+    "lint": {
+      "errors": 0,
+      "warnings": 358
+    },
+    "tests": {
+      "passed": 6902,
+      "skipped": 465
+    },
+    "production_build": "passed",
+    "static_pages": 234
+  },
+  "remote_native_postgres": {
+    "run": 41981674872,
+    "result": "success",
+    "postgres": "17.6",
+    "unique_cases": 10,
+    "required_iterations": 3,
+    "passed": 30,
+    "skipped": 0,
+    "databases_cleaned": true
+  },
+  "hosted_acceptance": "not performed",
+  "deployment": "not performed",
+  "notes": [
+    "Development alerts all trace to minimatch 10.2.6 beneath TypeScript ESLint; no incompatible forced override or Next downgrade was applied.",
+    "Local passing tests do not replace the explicit skipped SQL/RLS/hosted cases."
+  ],
+  "qa_access_recheck": {
+    "project": "skqnxyaeimvbyrmdfzvk",
+    "operation": "get_project",
+    "result": "permission denied",
+    "hosted_query_or_write": false
+  },
+  "followup": "Documentation/evidence-only checkpoint descends from this tested runtime; no application/dependency/workflow changes after these results."
+}

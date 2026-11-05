@@ -1,4 +1,12 @@
-# Claude / Codex shared checkpoint — October 28, 2026
+# Claude / Codex shared checkpoint
+
+## November 5 — full-scope closeout and reconciled source
+
+Fetch `origin/work/kebu-completion-audit-oct13` before editing. Its reviewed source includes Claude consolidation/audit through `f510ff13`, May motion through `147d9c70`, and tested runtime `ed1b595a850a29c44843f096d64b8951ae31783d`, followed only by documentation/evidence. No history was rewritten. Full local and remote CI41981675030 pass (6,902 tests / 465 skips, zero lint errors / 358 warnings, successful 234-page build); native PostgreSQL41981674872 passes30/30 with zero skips. Next/eslint-config-next16.4.5, Zod4.6.6 and compatible security lock updates leave zero production dependency alerts, with eight moderate development lint-chain alerts still open.
+
+Use [the one closeout register](../KEBU_CLOSEOUT_REGISTER.md) for the retained99 requirement groups, all25 Creative OS groups, ownership, commercial decisions and exact evidence. Full KEBU scope remains. Fresh existing-QA access is permission-denied; Vercel remains blocked on its last observed fair-use result. Hosted/product acceptance is not inferred from CI. No production migration, promotion, provider activation, payment or other paid resource occurred.
+
+## Historical checkpoint — October 28, 2026
 
 Use only `origin/work/kebu-completion-audit-oct13` in `mbayangxo/Kebu` as the integration base. Fetch it, preserve local work, and merge it into your own feature branch before editing. Read this handoff, WORKSPACE_CONTINUITY.md and the newest completion-sweep audit. Run `npm run workspace:check`. Report exact pushed branch/commit and test results; do not treat chat summaries or old branch names as current source.
 
