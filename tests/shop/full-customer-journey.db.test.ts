@@ -10,6 +10,7 @@
  * Every migration this consolidation touches, applied in the real order.
  * Required env var: DATABASE_URL (admin postgres:// URL). Self-skips otherwise.
  */
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -113,6 +114,7 @@ describe.skipIf(SKIP)("Full Shop customer journey, chained end-to-end (real Post
       await c.query(`ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS payment_status text DEFAULT 'unpaid'`);
       await c.query(`ALTER TABLE public.shop_orders ADD CONSTRAINT shop_orders_payment_status_check CHECK (payment_status IS NULL OR payment_status IN ('unpaid', 'awaiting_payment', 'paid', 'failed'))`);
       await c.query(sql("docs/migrations-to-apply/068_shop_payment_ledger.sql"));
+      await c.query(sql("docs/migrations-to-apply/069_shipping_corridor_quotes.sql"));
       await c.query(`CREATE OR REPLACE FUNCTION public.commit_shop_checkout(p_order_id uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$`);
       await c.query(`REVOKE ALL ON FUNCTION public.commit_shop_checkout(uuid) FROM PUBLIC, anon, authenticated`);
       await c.query(`GRANT EXECUTE ON FUNCTION public.commit_shop_checkout(uuid) TO service_role`);
@@ -125,6 +127,7 @@ describe.skipIf(SKIP)("Full Shop customer journey, chained end-to-end (real Post
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));
       await c.query(sql("supabase/migrations/20261104030000_shop_seller_balance_fulfillment_deduction.sql"));
       await c.query(sql("supabase/migrations/20261104040000_shop_refunds_and_fulfillment_outcomes.sql"));
+      await c.query(sql("supabase/migrations/20261105185404_shop_order_fulfillment_atomic.sql"));
 
       await c.query(`GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role`);
       await c.query(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated`);
@@ -153,21 +156,21 @@ describe.skipIf(SKIP)("Full Shop customer journey, chained end-to-end (real Post
   it("drives the whole journey: paid order (incl. duplicate webhook) → balance → Joko pickup → delivery → commission nets out → unauthorized changes rejected → refund → balance zero", async () => {
     // 1. Checkout: a real order, subtotal 10,000 + the 1,000 XOF Joko shipping option = 11,000.
     const reference = `journey_${Math.random().toString(36).slice(2)}`;
-    const order = await pool.query(
-      `INSERT INTO public.shop_orders (project_id, product_name, customer_name, customer_phone, payment_status, payment_provider, provider_reference, amount_xof)
-       VALUES ($1, 'Journey product', 'Journey buyer', '70000099', 'awaiting_payment', 'paystack', $2, 11000)
-       RETURNING id`,
-      [projectId, reference],
-    );
-    const orderId = order.rows[0].id;
-    // The seller opted this order into Joko Fulfillment at checkout time — same real
-    // record the checkout path (lib/shop/cart-order.ts) creates when a buyer picks a
-    // joko_fulfillment shipping option. Commission is on the 10,000 subtotal, not
-    // the 1,000 shipping fee itself: 15% of 10,000 = 1,500.
+    const orderId = randomUUID();
+    const checkoutPayload = JSON.stringify({ id: orderId, project_id: projectId, product_name: "Journey product",
+      customer_name: "Journey buyer", customer_phone: "70000099", amount_xof: 11000,
+      shipping_amount_xof: 1000, shipping_option_id: shippingOptionId });
+    const checkouts = await Promise.all([0, 1].map(() => pool.query(
+      `SELECT public.create_shop_order_with_fulfillment($1::jsonb, 1500) AS result`,
+      [checkoutPayload],
+    )));
+    expect(checkouts.map((result: { rows: { result: { id: string } }[] }) => result.rows[0].result.id)).toEqual([orderId, orderId]);
+    expect((await pool.query(`SELECT count(*)::int AS n FROM public.shop_fulfillment_orders WHERE order_id=$1`, [orderId])).rows[0].n).toBe(1);
+    // The atomic checkout never accepts client payment state. The real server
+    // payment initiation records its provider reference separately afterward.
     await pool.query(
-      `INSERT INTO public.shop_fulfillment_orders (order_id, project_id, shipping_option_id, commission_xof, status)
-       VALUES ($1, $2, $3, 1500, 'awaiting_pickup')`,
-      [orderId, projectId, shippingOptionId],
+      `UPDATE public.shop_orders SET payment_status='awaiting_payment', payment_provider='paystack', provider_reference=$2 WHERE id=$1`,
+      [orderId, reference],
     );
 
     // 2. Payment confirmation via the real atomic RPC — and a duplicate delivery of

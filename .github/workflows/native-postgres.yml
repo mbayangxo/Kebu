@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/native-postgres.yml"
       - "tests/creative-core/**"
+      - "tests/shop/**"
+      - "lib/shop/**"
       - "lib/create/**"
       - "supabase/migrations/**"
       - "package-lock.json"
@@ -60,6 +62,20 @@ jobs:
               tests/creative-core/native-postgres-cleanup.local.test.ts \
               --reporter=default --reporter=json --outputFile="native-postgres-results-${iteration}.json"
           done
+      - name: Atomic Shop checkout through payment, fulfillment and refund
+        env:
+          DATABASE_URL: postgresql://postgres:kebu_disposable_ci_only@127.0.0.1:5432/kebu_qa
+        run: |
+          npx vitest run tests/shop/full-customer-journey.db.test.ts --reporter=default --reporter=json --outputFile=shop-journey-results.json
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const report = JSON.parse(readFileSync('shop-journey-results.json', 'utf8'));
+          assert.equal(report.success, true);
+          assert.equal(report.numPassedTests, 1);
+          assert.equal(report.numPendingTests, 0);
+          assert.equal(report.numFailedTests, 0);
+          JS
       - name: Require all ten cases in every run and confirm database cleanup
         run: |
           node --input-type=module <<'JS'
@@ -79,7 +95,7 @@ jobs:
           try {
             const version = (await db.query('show server_version')).rows[0].server_version;
             assert.match(version, /^17\.6(?:\D|$)/);
-            const leftovers = await db.query("select datname from pg_database where starts_with(datname, '_kebutest_publish_') or starts_with(datname, '_kebutest_experience_')");
+            const leftovers = await db.query("select datname from pg_database where starts_with(datname, '_kebutest_publish_') or starts_with(datname, '_kebutest_experience_') or starts_with(datname, '_kebtest_full_journey_')");
             assert.deepEqual(leftovers.rows, []);
             console.log(JSON.stringify({ postgres: version, uniqueCases: 10, requiredIterations: 3, passed: 30, skipped: 0, databasesCleaned: true }));
           } finally { await db.end(); }

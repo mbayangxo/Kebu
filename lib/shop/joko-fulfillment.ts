@@ -57,38 +57,28 @@ export type FulfillmentOrderRow = {
   updated_at: string;
 };
 
-function tableMissing(message: string | undefined): boolean {
-  return Boolean(message?.includes("does not exist") || message?.includes("schema cache"));
-}
-
-/**
- * Best-effort: called after a shop order is successfully inserted, only when
- * the chosen shipping option is fulfillment_type = 'joko_fulfillment'. Never
- * throws — an order that was already paid for must not be rolled back
- * because this bookkeeping insert failed; the gap is instead visible as a
- * missing ops-queue row an admin can reconcile by hand.
- */
-export async function recordJokoFulfillmentOrder(
+/** Atomic checkout only: no fallback to a non-transactional order insert. */
+export async function createJokoFulfillmentCartOrder(
   admin: SupabaseClient,
-  opts: {
-    orderId: string;
-    projectId: string;
-    shippingOptionId: string;
-    commissionXof: number;
-  },
-): Promise<void> {
+  order: Record<string, unknown>,
+  commissionXof: number,
+): Promise<{
+  data: { id: string; order_number: string | null; gift_public_id: string | null } | null;
+  error: { message: string } | null;
+}> {
   try {
-    const { error } = await admin.from("shop_fulfillment_orders").insert({
-      order_id: opts.orderId,
-      project_id: opts.projectId,
-      shipping_option_id: opts.shippingOptionId,
-      commission_xof: Math.max(0, Math.round(opts.commissionXof)),
+    const { data, error } = await admin.rpc("create_shop_order_with_fulfillment", {
+      p_order: { ...order, id: order.id ?? crypto.randomUUID() },
+      p_commission_xof: commissionXof,
     });
-    if (error && !tableMissing(error.message)) {
-      console.warn(JSON.stringify({ event: "joko_fulfillment.record_failed", orderId: opts.orderId, error: error.message }));
+    if (error || !data || typeof data.id !== "string") {
+      console.error(JSON.stringify({ event: "shop.fulfillment_checkout_failed", code: error?.code ?? "invalid_response" }));
+      return { data: null, error: { message: "Pickup and delivery checkout is unavailable. Please try again later." } };
     }
+    return { data, error: null };
   } catch {
-    /* best-effort — see function doc */
+    console.error(JSON.stringify({ event: "shop.fulfillment_checkout_failed", code: "transport_error" }));
+    return { data: null, error: { message: "Pickup and delivery checkout is unavailable. Please try again later." } };
   }
 }
 
@@ -113,7 +103,6 @@ export async function listOpenFulfillmentOrders(
     .order("created_at", { ascending: true })
     .limit(200);
   if (error) {
-    if (tableMissing(error.message)) return { ok: true, items: [] };
     return { ok: false, error: error.message };
   }
   const items = (data ?? []).map((row) => {
@@ -156,7 +145,6 @@ export async function listFulfillmentOrdersForProject(
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) {
-    if (tableMissing(error.message)) return [];
     throw new Error(error.message);
   }
   return (data ?? []) as FulfillmentOrderRow[];

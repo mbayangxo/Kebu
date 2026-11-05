@@ -50,22 +50,30 @@ function formatXof(n: number): string {
 
 export default function JokoFulfillmentQueuePage() {
   const [items, setItems] = useState<FulfillmentItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/admin/fulfillment", { credentials: "include" });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(json.error ?? "Could not load the fulfillment queue.");
-      return;
+    try {
+      const res = await fetch("/api/admin/fulfillment", { credentials: "include" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(json.items)) {
+        setError(json.error ?? "Could not load the fulfillment queue.");
+        return;
+      }
+      setError(null);
+      setItems(json.items);
+    } catch {
+      setError("Could not connect to the fulfillment queue. Please retry.");
+    } finally {
+      setLoading(false);
     }
-    setError(null);
-    setItems(Array.isArray(json.items) ? json.items : []);
   }, []);
 
   useEffect(() => {
-    void load();
+    const scheduled = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(scheduled);
   }, [load]);
 
   async function advance(item: FulfillmentItem) {
@@ -149,9 +157,15 @@ export default function JokoFulfillmentQueuePage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-4">
-        {error ? <p className="text-red-700 text-sm">{error}</p> : null}
+        {loading ? <p role="status" className="text-sm text-muted">Loading fulfillment orders…</p> : null}
+        {error ? (
+          <div role="alert" className="text-red-700 text-sm">
+            <p>{error}</p>
+            <button type="button" disabled={loading} onClick={() => { setLoading(true); void load(); }} className="mt-2 underline disabled:opacity-50">Retry loading orders</button>
+          </div>
+        ) : null}
 
-        {items.length === 0 && !error ? (
+        {items.length === 0 && !error && !loading ? (
           <p className="text-sm text-muted">No orders currently awaiting Joko Fulfillment pickup or delivery.</p>
         ) : null}
 

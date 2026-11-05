@@ -12,7 +12,7 @@ import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { SHOP_PAYMENT_PREFERENCES } from "@/lib/create/site-commerce";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
 import { resolveShippingOptionForOrder } from "@/lib/shop/shipping-options";
-import { computeJokoFulfillmentCommissionXof, recordJokoFulfillmentOrder } from "@/lib/shop/joko-fulfillment";
+import { computeJokoFulfillmentCommissionXof, createJokoFulfillmentCartOrder } from "@/lib/shop/joko-fulfillment";
 import {
   giftColumnsForInsert,
   giftWhatsAppSuffix,
@@ -401,16 +401,24 @@ export async function createCartOrder(opts: {
     insertOrder.shipping_quote_version = shippingQuote.quoteVersion;
   }
 
-  const { data: order, error } = await opts.admin
-    .from("shop_orders")
-    .insert(insertOrder)
-    .select("id, order_number, gift_public_id")
-    .single();
+  const { data: order, error } = shippingOption?.fulfillmentType === "joko_fulfillment"
+    ? await createJokoFulfillmentCartOrder(
+        opts.admin,
+        insertOrder,
+        computeJokoFulfillmentCommissionXof(subtotalBeforeShippingXof ?? 0, shippingOption.commissionBps),
+      )
+    : await opts.admin
+        .from("shop_orders")
+        .insert(insertOrder)
+        .select("id, order_number, gift_public_id")
+        .single();
 
   if (error || !order) {
     return {
       ok: false,
-      error: error?.message?.includes("does not exist")
+      error: shippingOption?.fulfillmentType === "joko_fulfillment"
+        ? "Pickup and delivery checkout is unavailable. Please try again later."
+        : error?.message?.includes("does not exist")
         ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql."
         : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
           ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
@@ -441,19 +449,6 @@ export async function createCartOrder(opts: {
   const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
   if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
     /* order header exists — items optional until migration applied */
-  }
-
-  if (shippingOption?.fulfillmentType === "joko_fulfillment") {
-    const commissionXof = computeJokoFulfillmentCommissionXof(
-      subtotalBeforeShippingXof ?? 0,
-      shippingOption.commissionBps,
-    );
-    await recordJokoFulfillmentOrder(opts.admin, {
-      orderId: order.id,
-      projectId: opts.projectId,
-      shippingOptionId: shippingOption.id,
-      commissionXof,
-    });
   }
 
   if (giftCard && giftCardAmount > 0) {
