@@ -81,15 +81,50 @@ runs, or (b) a real deployed instance (preview or production) to drive a browser
 (c) a local PostgREST + GoTrue stack stood up alongside the test Postgres (heavier than this
 sandbox currently sets up, but not impossible in a differently-provisioned environment).
 
-## 5. The one browser dependency that's a separate, smaller gap
+## 5. `@sparticuz/chromium` — investigated fully on 2026-11-05, the package itself is not the real blocker
 
-`@sparticuz/chromium` — declared in `package.json`, not present in `node_modules` in this
-environment. This affects the real runtime path `lib/generation/browser.ts`'s `inspectCandidate()`
-takes on Vercel (`await import("@sparticuz/chromium")`), used for AI-generation visual review.
-**Correction to an earlier report**: `tests/generation/browser-configuration.test.ts` itself does
-NOT fail from this gap — re-run fresh on commit `f510ff13` and it passes 2/2; the function it
-tests (`browserConfiguration()`) only ever calls `require.resolve` inside a try/catch that
-returns `null` on failure, by design, and the unit test never forces the real runtime import path.
-The actual gap only matters if `inspectCandidate()` itself is ever exercised on Vercel without
-the package installed — not reproduced by any current test. **To unblock** (if ever needed): add
-`@sparticuz/chromium` to `node_modules` in whichever environment runs that code path.
+`@sparticuz/chromium` is declared in `package.json` (`140.0.0`), pinned in `package-lock.json`
+with a real `resolved` URL and `integrity` hash, and genuinely absent from `node_modules` in this
+sandbox. Downloaded the exact tarball the lockfile points to and verified its SHA-512 matches
+the lockfile's `integrity` field exactly — **it is a legitimate, resolvable, lockfile-correct
+dependency, not a broken or corrupted one.** It's simply never been installed in this container
+(along with its two unique transitive deps, `follow-redirects` and `tar-fs`) — most likely
+because it's a 66MB package (a brotli-compressed Chromium binary built specifically for AWS
+Lambda/AL2023, per its own `bin/chromium.br` + `bin/al2023.tar.br`) that a smaller sandbox image
+would have reason to exclude. Confirmed it's genuinely installable here (`npm info` resolves it,
+a verified-by-hash manual tarball extraction succeeds) — this is a capacity/provisioning choice
+for this container, not a network or platform-compatibility failure.
+
+**The more important finding: the package was never actually the thing blocking any current
+test.** `inspectCandidate()`'s real browser-launch runtime path (`lib/generation/browser.ts:60`)
+has a second, general-purpose way to get a Chromium executable that has nothing to do with
+`@sparticuz/chromium` at all — `CREATIVE_CHROMIUM_EXECUTABLE_PATH`, which `browserConfiguration()`
+checks before ever touching the Vercel-only sparticuz branch. Pointed it at this environment's
+own pre-installed Playwright Chromium (`/opt/pw-browsers/chromium`) and used it to actually run
+`tests/generation/browser.local.test.ts` — a complete, real, Playwright-driven integration suite
+for this exact code path that had **never been confirmed to execute at all**: it silently always
+hit `describe.skipIf(!origin||!executable)` (0 of 7 sub-tests ever ran, no failure visible,
+nothing in any sweep report) because nobody had ever documented the companion dev-server setup
+it needs.
+
+Standing up that companion dev server and working through its actual error responses (not
+guessing) surfaced a real, previously-undocumented requirement: `requireUser()`
+(`lib/create/auth.ts:13`) needs `NEXT_PUBLIC_SUPABASE_ANON_KEY` set, which nothing about this
+test or `@sparticuz/chromium` had ever mentioned — without it, a request this test expects to
+fail with 401 was failing with 503 instead, for an unrelated reason. Setting it took the suite
+from 0/7 executing to 1/7 passing outright, with the full env-var recipe now documented as a
+header comment directly in `tests/generation/browser.local.test.ts` so this doesn't have to be
+rediscovered again. Two sub-tests remain genuinely failing past that point, for reasons that are
+now specific and diagnosable (not "never ran"): a timeout waiting on a client-set `window`
+property whose upstream fetch depends on this test's own in-process REST fixture answering within
+a 15s window, and a disabled submit button whose `loaded`/`configured` gating hasn't been traced
+to its root condition yet. Documented precisely, with file:line references, in that same header
+comment.
+
+**To fully close this out:** (a) if `@sparticuz/chromium`'s own Lambda-specific binary ever needs
+testing specifically (as opposed to the general browser-automation logic, which the
+`CREATIVE_CHROMIUM_EXECUTABLE_PATH` path already proves works), that can only be meaningfully
+done on real Vercel/Lambda infrastructure — its binary is built for AL2023 and isn't a generic
+Linux Chromium; (b) the two remaining `browser.local.test.ts` failures need another pass tracing
+the specific timeout causes named above, now that the suite actually runs and reports real
+signal instead of silently skipping.
