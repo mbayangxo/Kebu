@@ -4,6 +4,16 @@ Updated November 5, 2026 (America/New_York). **Open; not a launch certificate.**
 
 The user explicitly retained the full KEBU scope. This register sequences the work; it does not remove products or requirements to make a smaller release look complete. Preserve the [99 recovered requirement groups](KEBU-RECOVERED-REQUEST-AUDIT.md), all [25 Creative OS acceptance groups](product/KEBU-STUDIO-CREATIVE-OS-ACCEPTANCE.md), and later accepted work. Those detailed requirements remain binding; the workstreams below are not substitutes for their individual acceptance cases. Historical preferences, unapproved suggestions and separate ecosystem companies must not silently become new KEBU commitments.
 
+## November 5 Claude review and next closure order
+
+Claude's `1f8a69b` and `c1fef28` tighten the audit and document QA requirements; the adapter change is a preservation comment, not a new runtime integration. The real-video branch `9e16484` is already an ancestor of the shared checkpoint and must not be integrated twice.
+
+- **Verified current generation evidence:** shared runtime `3ddd1797` passed all seven browser cases and all 73 generation checks, without skips, in [run 41982722295](https://github.com/mbayangxo/Kebu/actions/runs/41982722295). Use `scripts/verify-generation-local.mjs`; the manual setup failures retained in the QA notes are historical observations, not reproduced current application defects. Fixture authentication is not managed hosted QA.
+- **Studio candidate correction:** [run 41982722556](https://github.com/mbayangxo/Kebu/actions/runs/41982722556) actually passed 80 browser cases with zero skipped, unexpected or flaky cases, then failed because the workflow expected 78. Correct the wrapper to 80 while retaining every test and zero-failure checks. Fresh workflow acceptance remains pending until its new run finishes.
+- **Local review verification:** adapter and generation browser-configuration suites: 3 files, 182 tests passed. This bounded check does not replace the full required CI or hosted acceptance.
+- **Finish next:** reproduce and repair fulfillment missing-table/error handling and durable reconciliation; preserve existing commission/refund accounting. Then complete actual account, role, shop, order, refund, support and saved-project journeys against the designated QA environment. Continue the retained product acceptance matrix rather than adding unrelated features.
+- **External prerequisites:** restore access to the existing QA project and unblock an authorized Vercel preview. No production stand-in, paid upgrade, hosted migration or provider activation is implied. Real payment/mail delivery and May's actual saved-project animation acceptance remain separately open.
+
 ## How an item closes
 
 Every item needs an exact source commit, applicable requirement/case IDs, environment, command or ordinary-user journey, observed result, evidence location and remaining limitations. A source path or passing unit test is not hosted acceptance. An expected environment skip is still missing evidence for that layer. No completion percentage is inferred from code or test counts. Closed items reopen only for a reproduced regression, changed requirement or new evidence.

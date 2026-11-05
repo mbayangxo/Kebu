@@ -3,6 +3,23 @@
  *
  * Phase 1: contract types, schemas, validators.
  * Phase 2: IR → WebsiteDefinition compiler, capability negotiation, gap report.
+ *
+ * STATUS (2026-11): Not integrated. Zero production callers — grep of
+ * `lib/create/*`, `app/components/create/*`, `app/create/*` confirms the
+ * Builder/SiteRenderer never calls into this module at runtime. The only
+ * non-test consumer outside this module's own `tests/adapter/*` suite is
+ * `tests/create/phase3b-capabilities.test.ts`, which imports
+ * `normalizeIRMotionSpecs` to check a data-contract SHAPE match against the
+ * real `lib/create/editor-definition` builder — it does not exercise this
+ * adapter from inside any live code path.
+ *
+ * Preserved as-is pending a confirmed product requirement (a plausible fit
+ * is an external-design-import pipeline — e.g. Figma-style aesthetic spec →
+ * Kebu site — but no such feature is scheduled or documented anywhere in
+ * `docs/`). Do not wire this into Builder, Studio, or anywhere else, and do
+ * not delete it, without that confirmation first. See
+ * docs/audits/KEBU_CONSOLIDATION_COMPLETION_REGISTER_2026-11-04.md §2 for
+ * the full evidence trail behind this status.
  */
 
 // Versions

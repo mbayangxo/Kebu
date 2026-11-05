@@ -1,3 +1,61 @@
+/**
+ * CURRENT VERIFIED FOLLOW-UP (2026-11-05): use scripts/verify-generation-local.mjs.
+ * On shared runtime 3ddd1797, GitHub Actions run 41982722295 executed this file's
+ * seven browser cases successfully and the complete 73-case generation gate with
+ * zero failures/skips. The manual-run failures documented below are historical
+ * investigation results, not established defects on that current shared runtime.
+ * This remains isolated fixture Auth/REST/SQL evidence, not managed hosted QA.
+ *
+ * This suite drives a real Chromium browser against a real Next.js dev server for the
+ * AI-generation review pipeline (inspectCandidate / the preview+approve+accept UI). It
+ * requires a SEPARATE dev server process (not the vitest process) to be running first,
+ * with its own env vars — vi.stubEnv() in beforeAll only affects this test process, not
+ * that separate server. Until 2026-11-05 this had never been confirmed to actually run:
+ * it silently always took the describe.skipIf(!origin||!executable) branch (0/7 tests
+ * executed, no failure, nothing visible) because nobody had ever documented what the
+ * companion dev server needs.
+ *
+ * Real recipe, verified working on 2026-11-05 (got from 0/7 executing to 1/7 passing,
+ * with the other 6 failing on real, specific, now-diagnosed application behavior rather
+ * than "never ran" — see the two still-open findings below):
+ *
+ *   # 1. Start a second process — a real dev server, with all six of these set:
+ *   CREATIVE_PREVIEW_SECRET=<any string >= 32 chars, matching the value this file
+ *     stubs in beforeAll ("isolated-preview-signing-secret-123456789")>
+ *   CREATIVE_GENERATION_APP_URL=<that server's own origin, e.g. http://127.0.0.1:38201>
+ *   CREATIVE_CHROMIUM_EXECUTABLE_PATH=<a real local Chromium binary — this is the
+ *     general-purpose escape hatch browserConfiguration() takes specifically to AVOID
+ *     needing @sparticuz/chromium outside Vercel; @sparticuz/chromium is a Lambda/
+ *     Vercel-specific binary and is not the blocker for this test>
+ *   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:38429  (this file's own in-process proxy,
+ *     started in beforeAll on this fixed port — stands in for Supabase's REST API)
+ *   NEXT_PUBLIC_SUPABASE_ANON_KEY=<any non-empty, non-"placeholder" string — required by
+ *     requireUser() in lib/create/auth.ts:13, not previously documented anywhere; this
+ *     was the specific gap that made "private preview rejects..." always fail with 503
+ *     instead of the expected 401, even with every other var above correctly set>
+ *   SUPABASE_SERVICE_ROLE_KEY=<any non-empty, non-"placeholder" string — required by
+ *     createServiceClient() in lib/opportunity/admin.ts:6>
+ *
+ *   # 2. Then, in this process:
+ *   KEBU_GENERATION_PREVIEW_ORIGIN=<same origin as CREATIVE_GENERATION_APP_URL above>
+ *   KEBU_CHROMIUM_EXECUTABLE_PATH=<same executable path as above>
+ *   npx vitest run tests/generation/browser.local.test.ts
+ *
+ * Two real, specific failures remain open past that point (not blocked by any missing
+ * package or missing env var — genuine application behavior to debug further):
+ *   - "actual browser detects failure..." times out in inspectCandidate() at
+ *     lib/generation/browser.ts:60 waiting for window.__kebuGenerationCheck. The client
+ *     component that sets it (app/components/generation/candidate-preview.tsx:19) fetches
+ *     /api/generation/preview/[id] itself — that fetch's success depends on this file's
+ *     own proxy correctly answering both the REST row lookup AND the
+ *     claim_creative_generation_access RPC for a freshly-created run id within the
+ *     15s window; not yet isolated which side times out.
+ *   - "user can submit, approve..." times out waiting for the "Start request" button to
+ *     become enabled (app/components/generation/generation-workbench.tsx:98 — disabled
+ *     while `!loaded || !configured || busy || prompt.trim().length < 8`; the prompt text
+ *     in this test is 35 chars, so it's `loaded` or `configured` not resolving true, not
+ *     the character-count guard).
+ */
 import { createServer,type Server } from "node:http";
 import { mkdirSync,writeFileSync } from "node:fs";
 import { resolve } from "node:path";
