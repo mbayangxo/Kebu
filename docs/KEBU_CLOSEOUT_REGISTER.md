@@ -4,6 +4,10 @@ Updated November 5, 2026 (America/New_York). **Open; not a launch certificate.**
 
 The user explicitly retained the full KEBU scope. This register sequences the work; it does not remove products or requirements to make a smaller release look complete. Preserve the [99 recovered requirement groups](KEBU-RECOVERED-REQUEST-AUDIT.md), all [25 Creative OS acceptance groups](product/KEBU-STUDIO-CREATIVE-OS-ACCEPTANCE.md), and later accepted work. Those detailed requirements remain binding; the workstreams below are not substitutes for their individual acceptance cases. Historical preferences, unapproved suggestions and separate ecosystem companies must not silently become new KEBU commitments.
 
+## November 6 — team invitation follow-up
+
+The scoped invite fix adapts Claude's branch: a duplicate membership insert is recoverable only if rereading the exact business and user confirms an active membership. The response uses the stored role; a mismatched email remains denied. Targeted service tests pass. This does not close concurrent revocation versus acceptance, two-user hosted QA or the broader team role matrix. All 99 recovered requirements and 25 Studio acceptance groups remain tracked.
+
 ## November 5 — full audit follow-up
 
 Use the [completion audit and build queue](audits/KEBU_FULL_COMPLETION_AUDIT_2026-11-05.md) for the current requirement matrix and Claude branch dispositions. It covers 99 recovered groups, 25 Studio acceptance groups and 95 remote heads. Historical permission-denied findings below have been superseded for the designated QA project: the approved [hosted database smoke](audits/KEBU_QA_COMMERCE_VERIFICATION.md) passed, while actual hosted application and provider acceptance remain open.
