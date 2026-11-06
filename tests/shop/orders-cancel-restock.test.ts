@@ -1,13 +1,14 @@
 /**
- * app/api/projects/[id]/orders/route.ts PATCH: the stock-restore guard on
- * cancellation checks `action === "status" && status === "cancelled"` with
- * no check that the order wasn't *already* cancelled — unlike its sibling
- * disjunct, which does check `existing.status !== "cancelled"`. A replayed
- * or double-submitted cancel request (same order, same action) re-enters
- * that first branch every time and restores stock again, inflating
- * stock_qty beyond what was ever actually decremented. This reproduces it
- * by calling PATCH twice with an identical cancel payload and proves
- * restoreProductStock fires exactly once.
+ * app/api/projects/[id]/orders/route.ts PATCH, cancellation path: now calls the
+ * real atomic RPC cancel_shop_order_atomic (migration 20261106070000) instead of
+ * fulfillShopOrder + a separate restoreProductStock call. The RPC itself is what
+ * actually makes concurrent cancel requests safe (proven under two independent
+ * real PostgreSQL sessions in tests/shop/orders-cancel-concurrency.native.local.test.ts);
+ * this file keeps testing the same real-world guarantee this test originally
+ * caught a regression in — that a replayed/duplicate cancel request never
+ * restores stock twice — at the fast, no-database, route-handler level, mocking
+ * the RPC with the same idempotent-on-already-cancelled semantics the real
+ * function implements.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
@@ -17,8 +18,7 @@ const ORDER_ID = "11111111-1111-4111-8111-111111111111";
 const PRODUCT_ID = "22222222-2222-4222-8222-222222222222";
 const order: Order = { id: ORDER_ID, project_id: "project-1", status: "contacted", product_id: PRODUCT_ID, quantity: 2 };
 
-const restoreProductStock = vi.fn().mockResolvedValue(undefined);
-const fulfillShopOrder = vi.fn();
+const cancelRpc = vi.fn();
 
 function query(table: string) {
   type Chain = {
@@ -43,7 +43,7 @@ function query(table: string) {
   return chain;
 }
 const db = { from: (table: string) => query(table) };
-const admin = { from: (table: string) => query(table) };
+const admin = { from: (table: string) => query(table), rpc: (...args: unknown[]) => cancelRpc(...args) };
 
 vi.mock("@/lib/create/auth", () => ({
   requireUser: async () => ({ supabase: db, user: { id: "merchant-1", email: "m@example.com" } }),
@@ -54,9 +54,8 @@ vi.mock("@/lib/shop/shop-project-access", () => ({
   assertShopProjectAccess: async () => ({ project: { id: "project-1", owner_id: "merchant-1" }, via: "owner", db }),
 }));
 vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: () => admin }));
-vi.mock("@/lib/shop/stock", () => ({ restoreProductStock: (...args: unknown[]) => restoreProductStock(...args) }));
 vi.mock("@/lib/shop/fulfillment", () => ({
-  fulfillShopOrder: (...args: unknown[]) => fulfillShopOrder(...args),
+  fulfillShopOrder: vi.fn(),
   SHOP_ORDER_FULFILL_STATUSES: ["new", "contacted", "fulfilled", "cancelled", "archived"],
 }));
 vi.mock("@/lib/shop/carriers", () => ({ SHOP_CARRIERS: [] }));
@@ -69,19 +68,22 @@ function request(body: unknown): NextRequest {
   }) as unknown as NextRequest;
 }
 
-describe("shop order cancellation — stock-restore replay safety", () => {
+describe("shop order cancellation — stock-restore replay safety (route level, RPC mocked)", () => {
+  let restoreCalls = 0;
+
   beforeEach(() => {
     order.status = "contacted";
-    restoreProductStock.mockClear();
-    fulfillShopOrder.mockReset().mockImplementation(async () => {
-      order.status = "cancelled"; // the real fulfillShopOrder would persist this
-      return {
-        ok: true,
-        order: { ...order },
-        whatsappHref: null,
-        emailed: false,
-        smsSent: false,
-      };
+    restoreCalls = 0;
+    cancelRpc.mockReset().mockImplementation(async () => {
+      // Mirrors cancel_shop_order_atomic's real idempotent-on-already-cancelled
+      // behavior: the status transition and the stock restoration happen
+      // together, exactly once, no matter how many times this is called.
+      if (order.status === "cancelled") {
+        return { data: [{ ok: true, found: true, already_cancelled: true, restored: false, order_row: { ...order } }], error: null };
+      }
+      order.status = "cancelled";
+      restoreCalls += 1;
+      return { data: [{ ok: true, found: true, already_cancelled: false, restored: true, order_row: { ...order } }], error: null };
     });
   });
 
@@ -93,8 +95,9 @@ describe("shop order cancellation — stock-restore replay safety", () => {
     await PATCH(request(body), { params });
     await PATCH(request(body), { params }); // duplicate submission / webhook-style retry
 
-    expect(restoreProductStock).toHaveBeenCalledTimes(1);
-    expect(restoreProductStock).toHaveBeenCalledWith(admin, PRODUCT_ID, 2);
+    expect(cancelRpc).toHaveBeenCalledTimes(2);
+    expect(cancelRpc).toHaveBeenCalledWith("cancel_shop_order_atomic", { p_order_id: ORDER_ID, p_project_id: "project-1" });
+    expect(restoreCalls).toBe(1);
   });
 
   it("still restores stock on the first genuine cancellation", async () => {
@@ -103,6 +106,6 @@ describe("shop order cancellation — stock-restore replay safety", () => {
     const res = await PATCH(request({ orderId: ORDER_ID, action: "status", status: "cancelled" }), { params });
 
     expect(res.status).toBe(200);
-    expect(restoreProductStock).toHaveBeenCalledTimes(1);
+    expect(restoreCalls).toBe(1);
   });
 });
