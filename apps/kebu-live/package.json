@@ -1,0 +1,26 @@
+{
+  "name": "kebu-live",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "bundle": "expo export --platform ios --platform android"
+  },
+  "dependencies": {
+    "@config-plugins/react-native-webrtc": "14.0.0",
+    "@livekit/react-native": "3.1.0",
+    "@livekit/react-native-expo-plugin": "1.1.0",
+    "@livekit/react-native-webrtc": "150.1.1",
+    "@supabase/supabase-js": "2.119.0",
+    "expo": "~55.0.0",
+    "expo-crypto": "55.0.19",
+    "expo-dev-client": "~55.0.0",
+    "expo-secure-store": "~55.0.0",
+    "livekit-client": "2.23.0",
+    "react": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-safe-area-context": "5.6.2",
+    "react-native-url-polyfill": "4.0.0"
+  }
+}

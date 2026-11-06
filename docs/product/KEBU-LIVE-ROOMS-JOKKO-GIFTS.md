@@ -1,6 +1,6 @@
 # KEBU Live Rooms and JOKKO gifts
 
-Captured November 6, 2026. Status: requirement captured, implementation open.
+Captured November 6, 2026. Status: first QA-only native source candidate. See the [KEBU Live app and release checklist](../../apps/kebu-live/README.md). Public discovery and one-host media are implemented in source; hosted streaming and store publication are unverified. Gifting currently uses an isolated JOKKO sandbox, with test CAURIS and no real-wallet access.
 
 KEBU Live Rooms are separate from [private project meetings](KEBU-ROOMS-LIVE-PROJECT-MEETINGS.md). People can browse and enter public rooms without joining a work team. Hosts can also choose private access; private rooms are not listed publicly. Live hosts can stream, invite speakers, and manage chat, mute, removal and reporting. Joining never grants project, file, or team access.
 
