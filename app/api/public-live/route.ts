@@ -2,9 +2,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { joinGrant, signMediaToken } from "@/lib/live/media";
 
 import { sandboxGift } from "@/lib/live/gifts";
+import { builtinAccess, builtinsEnabled } from "@/lib/live/app-access";
 
 export const runtime = "nodejs";
-const qaOrigin = "https://skqnxyaeimvbyrmdfzvk.supabase.co";
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const reasons = ["harassment", "sexual_content", "violence", "spam", "other"];
 const select = "id,title,created_at,expires_at";
@@ -16,12 +16,14 @@ function media() {
   return url && /^wss:\/\/[^/?#]+\/?$/.test(url) && key && secret ? { url, key, secret } : null;
 }
 function enabled() {
-  return process.env.KEBU_PUBLIC_LIVE_QA === "true" && process.env.VERCEL_ENV !== "production"
-    && process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") === qaOrigin && media();
+  return builtinsEnabled() && media();
 }
 
 export async function GET() {
   if (!enabled()) return json({ error: "Live Rooms is not available in this environment." }, 503);
+  const access = await builtinAccess("live-rooms");
+  if (access.error) return json({ error: "Could not verify your Live Rooms installation." }, 503);
+  if (!access.installed) return json({ error: "Add Live Rooms from the KEBU App Store first." }, 403);
   const db = createAdminClient();
   const { data, error } = await db.from("kebu_live_broadcasts").select(select).is("ended_at", null)
     .gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(40);
@@ -31,11 +33,17 @@ export async function GET() {
 export async function POST(request: Request) {
   const config = enabled();
   if (!config) return json({ error: "Live Rooms is not available in this environment." }, 503);
+  const origin = request.headers.get("origin");
+  if (request.headers.get("sec-fetch-site") === "cross-site"
+      || (origin && origin !== new URL(request.url).origin)) return json({ error: "Invalid origin." }, 403);
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return json({ error: "JSON required." }, 415);
+  }
+  const { user, installed, error: accessError } = await builtinAccess("live-rooms");
+  if (accessError) return json({ error: "Could not verify your Live Rooms installation." }, 503);
+  if (!user) return json({ error: "Sign in with KEBU to continue." }, 401);
+  if (!installed) return json({ error: "Add Live Rooms from the KEBU App Store first." }, 403);
   const db = createAdminClient();
-  const bearer = request.headers.get("authorization")?.match(/^Bearer ([^\s]{1,4096})$/i)?.[1];
-  if (!bearer) return json({ error: "Sign in with KEBU to continue." }, 401);
-  const { data: { user } } = await db.auth.getUser(bearer);
-  if (!user || user.is_anonymous) return json({ error: "Sign in with KEBU to continue." }, 401);
   const reader = request.body?.getReader();
   if (!reader) return json({ error: "Invalid request." }, 400);
   const parts: Uint8Array[] = [];
