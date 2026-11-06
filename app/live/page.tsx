@@ -10,10 +10,9 @@ export default async function LivePage() {
   if (!user) redirect("/login?next=/live");
   if (!installed && !error) redirect("/app-store");
   return <AppShell title="Live Rooms">
-    <main className="mx-auto max-w-4xl space-y-6 px-5 py-10">
-      <Link className="underline" href="/app-store">KEBU App Store</Link>
-      <h1 className="text-4xl font-bold">Live Rooms</h1>
-      {error ? <p role="alert">Could not verify your Live Rooms installation. Try again.</p> : <LiveRooms />}
+    <main className="mx-auto max-w-6xl space-y-5 px-4 py-7 sm:px-7 sm:py-10">
+      <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-[#5c5348] hover:underline" href="/app-store">← KEBU App Store</Link>
+      {error ? <p role="alert" className="rounded-xl border border-red-200 bg-white p-4">Could not verify your Live Rooms installation. Try again.</p> : <LiveRooms />}
     </main>
   </AppShell>;
 }
