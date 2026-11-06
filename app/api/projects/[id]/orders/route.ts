@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
-import { restoreProductStock } from "@/lib/shop/stock";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import {
   fulfillShopOrder,
@@ -308,6 +307,57 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid status." }, { status: 400 });
   }
 
+  // Cancellation takes a separate, atomic path: the status transition and stock
+  // restoration both happen inside one database function (cancel_shop_order_atomic),
+  // holding a row lock across both steps. This is what actually makes concurrent
+  // cancel requests for the same order safe -- two requests that each read the
+  // order's status via a plain SELECT before either commits (the old failure mode)
+  // can no longer both see "not yet cancelled" and both restore stock, because the
+  // row lock serializes them: whichever commits first performs the transition and
+  // restores stock exactly once, and the other sees status already = 'cancelled'
+  // once unblocked and does nothing. See migration 20261106070000.
+  if (action === "status" && status === "cancelled") {
+    const admin = createServiceClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+    }
+    const { data, error } = await admin.rpc("cancel_shop_order_atomic", {
+      p_order_id: orderId,
+      p_project_id: projectId,
+    });
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { ok: boolean; found: boolean; already_cancelled: boolean; restored: boolean; order_row: Record<string, unknown> | null }
+      | undefined;
+    if (error || !row?.ok || !row.found || !row.order_row) {
+      return NextResponse.json(
+        {
+          error: error?.message?.includes("cancel_shop_order_atomic")
+            ? "Apply migration 20261106070000_cancel_shop_order_atomic.sql."
+            : "Order not found.",
+        },
+        { status: error?.message?.includes("cancel_shop_order_atomic") ? 503 : 404 },
+      );
+    }
+
+    logCreate("shop.order_fulfill", {
+      userId: user.id,
+      projectId,
+      orderId,
+      action: "status",
+      status: "cancelled",
+      emailed: false,
+      smsSent: false,
+    });
+
+    return NextResponse.json({
+      order: row.order_row,
+      whatsappHref: null,
+      emailed: false,
+      smsSent: false,
+      carriers: SHOP_CARRIERS,
+    });
+  }
+
   const { data: existing } = await db
     .from("shop_orders")
     .select("id, status, product_id, quantity")
@@ -337,28 +387,6 @@ export async function PATCH(req: Request, { params }: Params) {
       { error: result.error },
       { status: result.status ?? 500 },
     );
-  }
-
-  // Restore stock only on the transition into cancelled, never on a request
-  // that merely asks for it again -- a duplicate submission or client retry
-  // of the exact same cancel request must not double-restore stock that was
-  // only ever decremented once.
-  if (result.order.status === "cancelled" && existing.status !== "cancelled") {
-    if (existing.product_id && existing.quantity > 0 && admin) {
-      const { data: items } = await db
-        .from("shop_order_items")
-        .select("product_id, quantity")
-        .eq("order_id", orderId);
-      if (items?.length) {
-        for (const it of items) {
-          if (it.product_id) {
-            await restoreProductStock(admin, it.product_id, it.quantity);
-          }
-        }
-      } else {
-        await restoreProductStock(admin, existing.product_id, existing.quantity);
-      }
-    }
   }
 
   logCreate("shop.order_fulfill", {
