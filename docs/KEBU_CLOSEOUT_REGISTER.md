@@ -4,6 +4,10 @@ Updated November 5, 2026 (America/New_York). **Open; not a launch certificate.**
 
 The user explicitly retained the full KEBU scope. This register sequences the work; it does not remove products or requirements to make a smaller release look complete. Preserve the [99 recovered requirement groups](KEBU-RECOVERED-REQUEST-AUDIT.md), all [25 Creative OS acceptance groups](product/KEBU-STUDIO-CREATIVE-OS-ACCEPTANCE.md), and later accepted work. Those detailed requirements remain binding; the workstreams below are not substitutes for their individual acceptance cases. Historical preferences, unapproved suggestions and separate ecosystem companies must not silently become new KEBU commitments.
 
+## November 5 — full audit follow-up
+
+Use the [completion audit and build queue](audits/KEBU_FULL_COMPLETION_AUDIT_2026-11-05.md) for the current requirement matrix and Claude branch dispositions. It covers 99 recovered groups, 25 Studio acceptance groups and 95 remote heads. Historical permission-denied findings below have been superseded for the designated QA project: the approved [hosted database smoke](audits/KEBU_QA_COMMERCE_VERIFICATION.md) passed, while actual hosted application and provider acceptance remain open.
+
 ## November 5 Claude review and next closure order
 
 Claude's `1f8a69b` and `c1fef28` tighten the audit and document QA requirements; the adapter change is a preservation comment, not a new runtime integration. The real-video branch `9e16484` is already an ancestor of the shared checkpoint and must not be integrated twice.

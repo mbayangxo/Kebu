@@ -8,6 +8,7 @@ vi.mock("@/lib/billing/subscriptions", () => ({ projectHasLiveHosting: mocks.hos
 vi.mock("@/lib/create/go-live", () => ({ goLiveWebsiteProject: mocks.publish }));
 vi.mock("@/lib/kebu-id/create-registration", () => ({ recalculateAndStoreReadiness: vi.fn() }));
 import { POST } from "@/app/api/projects/[id]/publish/route";
+import { revalidatePath } from "next/cache";
 import { replaceWebsiteDefinition } from "@/lib/create/persist-site";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
@@ -33,6 +34,11 @@ describe("no silent legacy publish/replacement fallback", () => {
     const result = await mocks.project(); result.data.document_schema_version = null;
     expect((await POST(request(), { params: Promise.resolve({ id: projectId }) }))?.status).toBe(200);
     expect(mocks.publish).toHaveBeenCalledTimes(1);
+  });
+  it("busts the 10-minute ISR cache on /sites/{subdomain} for a legacy (non-kcd-1) publish too", async () => {
+    const result = await mocks.project(); result.data.document_schema_version = null;
+    expect((await POST(request(), { params: Promise.resolve({ id: projectId }) }))?.status).toBe(200);
+    expect(revalidatePath).toHaveBeenCalledWith("/sites/local-fixture", "layout");
   });
   it("refuses whole-site replacement before deleting any KCD rows", async () => {
     const result = await replaceWebsiteDefinition({ supabase: db as unknown as SupabaseClient, user: { id: "owner" }, projectId, definition: {} as WebsiteDefinition });
