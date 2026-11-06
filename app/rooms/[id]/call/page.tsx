@@ -96,7 +96,7 @@ export default function PrivateCallPage() {
     setError(""); setBusy(true);
     let active: Session | null = null;
     try {
-      const current = await exchange("read", { call: call.id });
+      const current = await exchange("read", { call: call.id, media: true });
       if (current.ended) { setPhase("ended"); return; }
       if ((current.host && current.offer) || (!current.host && current.answer)) {
         throw new Error("This seat has already joined. End this call and start a new one.");

@@ -27,3 +27,7 @@ Disabled by default. For isolated QA, the call migration and `NEXT_PUBLIC_KEBU_P
 The focused PostgreSQL test executes the migration against synthetic identities and verifies participant-only access, a third member denied even with the link, offer/answer roles, SDP cleared on ending, and access revoked after membership removal.
 
 Verification: TypeScript passed, Rooms suite 29/29 with PGlite enabled, changed-file lint had zero errors (two pre-existing Room-page warnings), and migration hygiene passed. Chromium with fixture signaling reached the join flow but gathered no media candidates in the local sandbox; real media and screen sharing are not certified.
+
+### QA relay preparation
+
+Preview calling requires the exact designated QA Supabase origin; production is hard-disabled. For restricted networks, configure a coturn-compatible server with time-limited shared-secret authentication. Set `KEBU_ROOM_TURN_URL` and server-only `KEBU_ROOM_TURN_SECRET` on the isolated preview. The authenticated media handshake issues a short-lived credential after the database confirms participant access. The shared secret is never returned. No relay has been configured or verified yet.
