@@ -63,4 +63,32 @@ describe("Workspace work item persistence boundaries",()=>{
   const{write}=setup();await PATCH(request("PATCH",{id,visibility:"private",expectedUpdatedAt:revision}));
   expect(write.update.mock.calls[0][0]).toMatchObject({visibility:"private"});
  });
+ it("PATCH with richContent derives body server-side instead of trusting a client-sent body",async()=>{
+  const doc={type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Hello "},{type:"text",text:"world",marks:[{type:"bold"}]}]}]};
+  const{write}=setup();await PATCH(request("PATCH",{id,richContent:doc,body:"this should be ignored",expectedUpdatedAt:revision}));
+  const patch=write.update.mock.calls[0][0];
+  expect(patch.rich_content).toEqual(doc);
+  expect(patch.body).toBe("Hello world");
+ });
+ it("PATCH rejects a structurally invalid richContent instead of writing it",async()=>{
+  const{write}=setup();const response=await PATCH(request("PATCH",{id,richContent:{nope:true},expectedUpdatedAt:revision}));
+  expect(response.status).toBe(400);
+  expect(write.update).not.toHaveBeenCalled();
+ });
+ it("PATCH with richContent:null clears the rich document back to plain-text mode",async()=>{
+  const{write}=setup();await PATCH(request("PATCH",{id,richContent:null,expectedUpdatedAt:revision}));
+  expect(write.update.mock.calls[0][0].rich_content).toBeNull();
+ });
+ it("POST with richContent derives body and persists rich_content on create",async()=>{
+  const doc={type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Seeded"}]}]};
+  const{write}=setup({data:null,error:null});
+  await POST(request("POST",{id,kind:"doc",title:"Document",richContent:doc,status:"draft"}));
+  expect(write.insert).toHaveBeenCalledWith(expect.objectContaining({rich_content:doc,body:"Seeded"}));
+ });
+ it("POST rejects a structurally invalid richContent instead of creating a corrupt row",async()=>{
+  const{write}=setup({data:null,error:null});
+  const response=await POST(request("POST",{id,kind:"doc",title:"Document",richContent:"not a document",status:"draft"}));
+  expect(response.status).toBe(400);
+  expect(write.insert).not.toHaveBeenCalled();
+ });
 });
