@@ -5,7 +5,7 @@ import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
 import type { WorkItemRow } from "@/lib/work/items";
 import { StudioSaveQueue as RevisionQueue, validStudioSaveReceipt } from "@/lib/studio/save-queue";
 import { KEBU } from "@/lib/kebu-brand";
-import { richDocumentSchema, extractPlainText, plainTextToRichDocument, type RichDocument } from "@/lib/work/rich-text";
+import { richDocumentSchema, extractPlainText, plainTextToRichDocument, richDocumentToHtml, type RichDocument } from "@/lib/work/rich-text";
 import { DocumentEditor } from "./document-editor";
 
 type Draft = { body: string; savedBody: string; content: RichDocument; revision: string; status: "saved" | "pending" | "saving" | "error" | "conflict" | "offline"; error?: string; server?: WorkItemRow };
@@ -217,6 +217,17 @@ export function LibraryDocumentsPanel() {
     } catch (cause) { if (mounted.current) setError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Could not delete document. Check your connection and retry."); }
     finally { deleting.current.delete(id); if (mounted.current) setBusy(false); }
   }
+  function exportDoc(id: string, titleText: string, format: "txt" | "html") {
+    const draft = draftsRef.current[id]; if (!draft) return;
+    const content = format === "html" ? richDocumentToHtml(draft.content, titleText) : draft.body;
+    const filename = `${titleText.trim().replace(/[^\w.-]+/g, "_") || "document"}.${format}`;
+    const blob = new Blob([content], { type: format === "html" ? "text/html" : "text/plain" });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+    } finally { URL.revokeObjectURL(url); }
+  }
 
   return <div>
     <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: KEBU.border }}>
@@ -237,7 +248,7 @@ export function LibraryDocumentsPanel() {
       </section>
       <section className="min-h-[420px] min-w-0">
         {selected && selectedDraft ? <div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3"><h2 className="text-lg font-semibold">{selected.title}</h2><div className="flex gap-2"><button type="button" disabled={busy || selectedDraft.status === "saving" || selectedDraft.status === "conflict" || selectedDraft.body === selectedDraft.savedBody} onClick={() => void saveDoc(selected.id)} className="min-h-11 rounded-full border px-4 text-xs">Save document</button><button type="button" disabled={busy} onClick={() => void removeDoc(selected.id)} className="min-h-11 px-3 text-xs font-semibold text-red-700">Delete document</button></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3"><h2 className="text-lg font-semibold">{selected.title}</h2><div className="flex flex-wrap gap-2"><button type="button" disabled={busy || selectedDraft.status === "saving" || selectedDraft.status === "conflict" || selectedDraft.body === selectedDraft.savedBody} onClick={() => void saveDoc(selected.id)} className="min-h-11 rounded-full border px-4 text-xs">Save document</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "txt")} className="min-h-11 rounded-full border px-4 text-xs">Export .txt</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "html")} className="min-h-11 rounded-full border px-4 text-xs">Export .html</button><button type="button" disabled={busy} onClick={() => void removeDoc(selected.id)} className="min-h-11 px-3 text-xs font-semibold text-red-700">Delete document</button></div></div>
           <p role="status" className="mt-2 text-xs text-black/60">{({ saved: "Saved", pending: "Unsaved changes", saving: "Saving…", error: "Save failed", conflict: "Version conflict", offline: "Saved on this device" })[selectedDraft.status]}</p>
           {selectedDraft.error ? <p role="alert" className="mt-2 text-xs text-red-700">{selectedDraft.error}</p> : null}
           {selectedDraft.status === "conflict" && selectedDraft.server ? <div className="mt-3 rounded-lg border border-amber-300 p-3"><p className="text-sm">A newer version is saved elsewhere.</p><details className="my-2"><summary className="cursor-pointer text-xs">Review saved text</summary><p className="whitespace-pre-wrap text-sm">{selectedDraft.server.body}</p></details><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveConflict(selected.id, true)} className="min-h-11 rounded-full border px-4 text-xs">Keep my text</button><button type="button" onClick={() => void resolveConflict(selected.id, false)} className="min-h-11 rounded-full border px-4 text-xs">Use saved text</button></div></div> : null}
