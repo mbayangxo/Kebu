@@ -822,3 +822,30 @@ input:focus, select:focus, textarea:focus {
 @media (width > 1024px) {
   .kebu-device-hide-desktop { display: none !important; }
 }
+
+/* ── Rich-text document editor (TipTap) ──────────────────────────────────── */
+.kebu-doc-prose {
+  outline: none;
+  min-height: 420px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.kebu-doc-prose p { margin: 0 0 0.75em; }
+.kebu-doc-prose h1 { font-size: 1.5rem; font-weight: 700; margin: 1em 0 0.5em; }
+.kebu-doc-prose h2 { font-size: 1.25rem; font-weight: 700; margin: 1em 0 0.5em; }
+.kebu-doc-prose h3 { font-size: 1.0625rem; font-weight: 700; margin: 1em 0 0.5em; }
+.kebu-doc-prose ul, .kebu-doc-prose ol { margin: 0 0 0.75em; padding-left: 1.5em; }
+.kebu-doc-prose li { margin: 0.25em 0; }
+.kebu-doc-prose blockquote { margin: 0 0 0.75em; padding-left: 1em; border-left: 3px solid rgba(0,0,0,0.15); color: rgba(0,0,0,0.65); }
+.kebu-doc-prose pre { margin: 0 0 0.75em; padding: 0.75em 1em; border-radius: 10px; background: #111; color: #eee; overflow-x: auto; font-size: 0.8125rem; }
+.kebu-doc-prose code { background: rgba(0,0,0,0.06); border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.875em; }
+.kebu-doc-prose pre code { background: none; padding: 0; }
+.kebu-doc-prose a { color: #B3461C; text-decoration: underline; }
+.kebu-doc-prose hr { border: none; border-top: 1px solid rgba(0,0,0,0.12); margin: 1em 0; }
+.kebu-doc-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: rgba(0,0,0,0.35);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
