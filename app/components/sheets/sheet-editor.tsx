@@ -154,12 +154,13 @@ export function SheetEditor({ id }: { id: string }) {
         <div className="flex items-center gap-3">
           <Link href="/library?view=sheets" className="text-[9px] text-black/35">← Library</Link>
           <input
+            aria-label="Sheet title"
             value={title}
             onChange={e => { setTitle(e.target.value); }}
             onBlur={() => { void fetch("/api/library/nodes", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, title: title.trim() || "Untitled sheet" }) }); }}
             className="border-none text-[13px] font-semibold outline-none"
           />
-          <span className="text-[9px]" style={{ color: status === "error" ? KEBU.red : "rgba(10,10,10,0.35)" }}>{statusLabel[status]}</span>
+          <span role="status" className="text-[9px]" style={{ color: status === "error" ? KEBU.red : "rgba(10,10,10,0.35)" }}>{statusLabel[status]}</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={addRows} className="rounded-full border px-3 py-1 text-[9px] font-semibold" style={{ borderColor: KEBU.border }}>+50 rows</button>
@@ -169,9 +170,10 @@ export function SheetEditor({ id }: { id: string }) {
       </header>
 
       <div className="flex items-center gap-2 border-b px-4 py-1.5" style={{ borderColor: KEBU.border }}>
-        <span className="w-12 shrink-0 text-center text-[9px] font-semibold text-black/40">{activeAddress}</span>
+        <span data-testid="active-address" className="w-12 shrink-0 text-center text-[9px] font-semibold text-black/40">{activeAddress}</span>
         <span className="text-black/20">=</span>
         <input
+          aria-label="Formula bar"
           value={formulaBarValue}
           onChange={e => { setEditValue(e.target.value); setEditing(true); }}
           onKeyDown={e => {

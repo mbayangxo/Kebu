@@ -159,6 +159,7 @@ export function SheetGrid({
           return (
             <div
               key={address}
+              data-testid={`cell-${address}`}
               onMouseDown={() => { onSelect(row, col); ensureVisible(row, col); }}
               onDoubleClick={() => onStartEdit(cell?.raw ?? "")}
               className="absolute flex items-center overflow-hidden whitespace-nowrap border-b border-r px-1.5 text-[10px]"
@@ -181,6 +182,7 @@ export function SheetGrid({
         {editing ? (
           <input
             ref={inputRef}
+            aria-label="Cell editor"
             value={editValue}
             onChange={e => onChangeEditValue(e.target.value)}
             onKeyDown={handleInputKeyDown}
