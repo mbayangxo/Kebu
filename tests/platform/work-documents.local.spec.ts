@@ -15,13 +15,13 @@ async function create(page: Page, title='My document', text='Initial text') {
   await page.getByRole('button',{name:'+ New document',exact:true}).click();
   await page.getByLabel('Document title',{exact:true}).fill(title);await page.getByLabel('New document text',{exact:true}).fill(text);
   await page.getByRole('button',{name:'Create',exact:true}).click();await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
-  await expect(page.getByLabel('Document text',{exact:true})).toHaveValue(text);
+  await expect(page.getByLabel('Document text',{exact:true})).toHaveText(text);
 }
 test('create, edit without blur, SQL persistence and reload on mobile',async({page,request})=>{
   await page.setViewportSize({width:390,height:844});const errors=await setup(page,request);await create(page);
   await page.getByLabel('Document text',{exact:true}).fill('Newest mobile text');
   await expect.poll(async()=>((await state(request)).items[0]?.body)).toBe('Newest mobile text');
-  await page.reload();await page.getByRole('button',{name:/My document/}).click();await expect(page.getByLabel('Document text',{exact:true})).toHaveValue('Newest mobile text');expect(errors).toEqual([]);await page.screenshot({path:test.info().outputPath("library-mobile.png"),fullPage:true});
+  await page.reload();await page.getByRole('button',{name:/My document/}).click();await expect(page.getByLabel('Document text',{exact:true})).toHaveText('Newest mobile text');expect(errors).toEqual([]);await page.screenshot({path:test.info().outputPath("library-mobile.png"),fullPage:true});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
 test('delayed saves preserve newer typing and serialize their revisions',async({page,request})=>{
@@ -37,7 +37,7 @@ test('a second session conflict keeps local text until an explicit choice',async
   const second=await browser.newContext();try{await session(second);const remote=await second.request.get('http://127.0.0.1:38426/api/work/items?kind=doc&personal=1');const row=(await remote.json()).items[0];
   expect((await second.request.patch('http://127.0.0.1:38426/api/work/items',{data:{id:row.id,body:'Changed elsewhere',expectedUpdatedAt:row.updated_at}})).status()).toBe(200);
   await page.getByLabel('Document text',{exact:true}).fill('Keep local');await expect(page.getByRole('button',{name:'Keep my text'})).toBeVisible();
-  await expect(page.getByLabel('Document text',{exact:true})).toHaveValue('Keep local');expect((await state(request)).items[0].body).toBe('Changed elsewhere');
+  await expect(page.getByLabel('Document text',{exact:true})).toHaveText('Keep local');expect((await state(request)).items[0].body).toBe('Changed elsewhere');
   await page.getByRole('button',{name:'Keep my text'}).click();await expect.poll(async()=>((await state(request)).items[0]?.body)).toBe('Keep local');expect(errors).toEqual([]);
   }finally{await second.close();}
 });
@@ -62,13 +62,13 @@ test('offline text is recovered after reload without overwriting a newer server 
   await page.evaluate(()=>Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false}));await page.getByLabel('Document text',{exact:true}).fill('Recovered text');
   await expect(page.getByRole('status').filter({hasText:'Saved on this device'})).toBeVisible();
   const second=await browser.newContext();try{await session(second);expect((await second.request.patch('http://127.0.0.1:38426/api/work/items',{data:{id:row.id,body:'New server text',expectedUpdatedAt:row.updated_at}})).status()).toBe(200);}finally{await second.close();}
-  await page.reload();await page.getByRole('button',{name:/My document/}).click();await expect(page.getByLabel('Document text',{exact:true})).toHaveValue('Recovered text');await expect(page.getByRole('button',{name:'Use saved text'})).toBeVisible();
-  await page.getByRole('button',{name:'Use saved text'}).click();await expect(page.getByLabel('Document text',{exact:true})).toHaveValue('New server text');expect(errors).toEqual([]);
+  await page.reload();await page.getByRole('button',{name:/My document/}).click();await expect(page.getByLabel('Document text',{exact:true})).toHaveText('Recovered text');await expect(page.getByRole('button',{name:'Use saved text'})).toBeVisible();
+  await page.getByRole('button',{name:'Use saved text'}).click();await expect(page.getByLabel('Document text',{exact:true})).toHaveText('New server text');expect(errors).toEqual([]);
 });
 test('a failed deletion keeps the document and retry confirms SQL removal',async({page,request})=>{
   const errors=await setup(page,request);await create(page);page.on('dialog',dialog=>dialog.accept());let denied=true;
   await page.route('**/api/work/items?*',async route=>{if(route.request().method()==='DELETE'&&denied){denied=false;await route.fulfill({status:503,json:{error:'Temporary deletion failure'}});return;}await route.continue();});
-  await page.getByRole('button',{name:'Delete document'}).click();await expect(page.getByRole('alert').filter({hasText:'Temporary deletion failure'})).toBeVisible();await expect(page.getByLabel('Document text',{exact:true})).toHaveValue('Initial text');expect((await state(request)).items).toHaveLength(1);
+  await page.getByRole('button',{name:'Delete document'}).click();await expect(page.getByRole('alert').filter({hasText:'Temporary deletion failure'})).toBeVisible();await expect(page.getByLabel('Document text',{exact:true})).toHaveText('Initial text');expect((await state(request)).items).toHaveLength(1);
   await page.getByRole('button',{name:'Delete document'}).click();await expect.poll(async()=>((await state(request)).items.length)).toBe(0);await expect(page.getByText('No documents yet.',{exact:true})).toBeVisible();expect(errors).toEqual([]);
 });
 
@@ -93,6 +93,6 @@ test('device storage failure while offline preserves the editor and never claims
   const errors=await setup(page,request);await create(page);
   await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});Storage.prototype.setItem=function(){throw new DOMException('Fixture quota','QuotaExceededError');};});
   await page.getByLabel('Document text',{exact:true}).fill('Keep uncached text');
-  await expect(page.getByRole('status').filter({hasText:'Save failed'})).toBeVisible();await expect(page.getByRole('alert').filter({hasText:'Device storage failed'})).toBeVisible();await expect(page.getByLabel('Document text',{exact:true})).toHaveValue('Keep uncached text');
+  await expect(page.getByRole('status').filter({hasText:'Save failed'})).toBeVisible();await expect(page.getByRole('alert').filter({hasText:'Device storage failed'})).toBeVisible();await expect(page.getByLabel('Document text',{exact:true})).toHaveText('Keep uncached text');
   expect((await state(request)).items[0].body).toBe('Initial text');expect(errors).toEqual([]);
 });

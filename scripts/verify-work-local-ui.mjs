@@ -32,6 +32,8 @@ let sqlAssertions=0;
 assert.equal((await asUser(other,'update workspace_items set owner_id=$1 where id=$2 returning id',[other,item])).rows.length,1);
 await db.query('update workspace_items set owner_id=$1 where id=$2',[owner,item]);
 await db.exec(read('supabase/migrations/20261014043916_workspace_item_identity_guard.sql'));
+await db.exec(read('supabase/migrations/20261016150000_workspace_item_visibility.sql'));
+await db.exec(read('supabase/migrations/20261107040000_workspace_item_rich_content.sql').replace(/notify pgrst[^;]*;/i, ''));
 await assert.rejects(asUser(other,'update workspace_items set owner_id=$1 where id=$2',[other,item]),e=>e.code==='42501');sqlAssertions++;
 assert.equal((await asUser(other,"update workspace_items set body='Collaborative content' where id=$1 returning id",[item])).rows.length,1);sqlAssertions++;
 await assert.rejects(asUser(other,'update workspace_items set business_id=null where id=$1',[item]),e=>e.code==='42501');sqlAssertions++;
@@ -42,7 +44,7 @@ assert.equal((await asUser(other,'select id from workspace_items where id=$1',[i
 assert.equal((await asUser(other,"update workspace_items set body='Revoked' where id=$1 returning id",[item])).rows.length,0);sqlAssertions++;
 assert.equal((await asUser(owner,'select id from workspace_items where id=$1',[item])).rows.length,1);sqlAssertions++;
 await db.exec('truncate workspace_items,business_members,businesses cascade');
-const columns=new Set(['id','owner_id','business_id','room_id','kind','title','body','status','due_at','start_at','end_at','created_at','updated_at']);
+const columns=new Set(['id','owner_id','business_id','room_id','kind','title','body','rich_content','status','due_at','start_at','end_at','visibility','created_at','updated_at']);
 let queries=0, totalQueries=0;
 function identity(req) { try{const raw=(req.headers.authorization??'').split(' ')[1];const id=JSON.parse(Buffer.from(raw.split('.')[1],'base64url').toString()).sub;return [owner,other].includes(id)?id:null;}catch{return null;} }
 async function payload(req) { let body='';for await(const bytes of req)body+=bytes;return body?JSON.parse(body):{}; }
@@ -64,10 +66,12 @@ const backend=createServer(async(req,res)=>{
   const where=clauses.length?' where '+clauses.join(' and '):'';
   const raw=['POST','PATCH'].includes(req.method)?await payload(req):{};
   const row=Array.isArray(raw)?raw[0]:raw;
+  const bindValue=(key,value)=>key==='rich_content'&&value!==null?JSON.stringify(value):value;
+  const castSuffix=key=>key==='rich_content'?'::jsonb':'';
   let sql;
   if(req.method==='GET') sql=`select row_to_json(w) as row from workspace_items w${where} order by updated_at desc limit 200`;
-  else if(req.method==='POST') {const keys=Object.keys(row);if(!keys.length||keys.some(key=>!columns.has(key)))throw Error('Invalid fixture columns');const vals=keys.map(key=>{values.push(row[key]);return '$'+values.length;});sql=`insert into workspace_items(${keys.map(key=>'"'+key+'"').join(',')}) values(${vals.join(',')}) returning row_to_json(workspace_items) as row`;}
-  else if(req.method==='PATCH') {const keys=Object.keys(row);if(!keys.length||keys.some(key=>!columns.has(key)))throw Error('Invalid fixture columns');const patch=keys.map(key=>{values.push(row[key]);return `"${key}"=$${values.length}`;});sql=`update workspace_items set ${patch.join(',')}${where} returning row_to_json(workspace_items) as row`;}
+  else if(req.method==='POST') {const keys=Object.keys(row);if(!keys.length||keys.some(key=>!columns.has(key)))throw Error('Invalid fixture columns');const vals=keys.map(key=>{values.push(bindValue(key,row[key]));return '$'+values.length+castSuffix(key);});sql=`insert into workspace_items(${keys.map(key=>'"'+key+'"').join(',')}) values(${vals.join(',')}) returning row_to_json(workspace_items) as row`;}
+  else if(req.method==='PATCH') {const keys=Object.keys(row);if(!keys.length||keys.some(key=>!columns.has(key)))throw Error('Invalid fixture columns');const patch=keys.map(key=>{values.push(bindValue(key,row[key]));return `"${key}"=$${values.length}${castSuffix(key)}`;});sql=`update workspace_items set ${patch.join(',')}${where} returning row_to_json(workspace_items) as row`;}
   else if(req.method==='DELETE') sql=`delete from workspace_items${where} returning row_to_json(workspace_items) as row`;
   else {send(405,{error:'Unsupported fixture method'});return;}
   const result=await db.transaction(async tx=>{await tx.exec('set local role authenticated');await tx.query("select set_config('request.jwt.claim.sub',$1,true)",[uid]);return tx.query(sql,values);});queries++;totalQueries++;

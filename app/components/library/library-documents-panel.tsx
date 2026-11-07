@@ -8,7 +8,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import { richDocumentSchema, extractPlainText, plainTextToRichDocument, richDocumentToHtml, type RichDocument } from "@/lib/work/rich-text";
 import { DocumentEditor } from "./document-editor";
 
-type Draft = { body: string; savedBody: string; content: RichDocument; revision: string; status: "saved" | "pending" | "saving" | "error" | "conflict" | "offline"; error?: string; server?: WorkItemRow };
+type Draft = { body: string; savedBody: string; content: RichDocument; contentVersion: number; revision: string; status: "saved" | "pending" | "saving" | "error" | "conflict" | "offline"; error?: string; server?: WorkItemRow };
 
 /** The server's real source of truth for kind="doc" is rich_content; a doc never opened in the rich editor has none yet, so fall back to migrating its plain body into a minimal valid document. */
 function parseRichContent(row: WorkItemRow): RichDocument {
@@ -35,6 +35,15 @@ export function LibraryDocumentsPanel() {
   const mounted = useRef(true);
   const createId = useRef<string | null>(null);
 
+  /**
+   * TipTap only reads `content` when the editor mounts — it does not sync
+   * if the prop changes later. Bumping contentVersion forces DocumentEditor
+   * to remount (see its `docKey`) exactly when content is replaced from
+   * outside the editor itself (conflict resolution, a resync from the
+   * server); edit() below, which carries the editor's own typing back into
+   * the draft, must never bump this or every keystroke would remount it.
+   */
+  const nextVersion = (id: string) => (draftsRef.current[id]?.contentVersion ?? 0) + 1;
   const updateDraft = useCallback((id: string, next: Draft) => {
     draftsRef.current = { ...draftsRef.current, [id]: next };
     if (mounted.current) setDrafts(draftsRef.current);
@@ -66,16 +75,16 @@ export function LibraryDocumentsPanel() {
       for (const row of rows) {
         let draft = draftsRef.current[row.id];
         if (!draft) {
-          draft = { body: row.body, savedBody: row.body, content: parseRichContent(row), revision: row.updated_at, status: "saved" };
+          draft = { body: row.body, savedBody: row.body, content: parseRichContent(row), contentVersion: 0, revision: row.updated_at, status: "saved" };
           try {
             const saved = JSON.parse(localStorage.getItem(`kebu-document-v1:${data.userId}:${row.id}`) ?? "null");
             if (saved?.dirty && saved.body !== row.body && typeof saved.body === "string" && saved.body.length <= 20000 && typeof saved.revision === "string") {
               const savedContent = richDocumentSchema.safeParse(saved.content);
-              draft = { body: saved.body, savedBody: typeof saved.savedBody === "string" ? saved.savedBody : row.body, content: savedContent.success ? savedContent.data : plainTextToRichDocument(saved.body), revision: saved.revision, status: saved.revision === row.updated_at ? "pending" : "conflict", ...(saved.revision !== row.updated_at ? { server: row } : {}) };
+              draft = { body: saved.body, savedBody: typeof saved.savedBody === "string" ? saved.savedBody : row.body, content: savedContent.success ? savedContent.data : plainTextToRichDocument(saved.body), contentVersion: 0, revision: saved.revision, status: saved.revision === row.updated_at ? "pending" : "conflict", ...(saved.revision !== row.updated_at ? { server: row } : {}) };
             }
           } catch { /* A malformed device draft cannot replace authenticated server data. */ }
         } else if (draft.body === draft.savedBody) {
-          draft = { body: row.body, savedBody: row.body, content: parseRichContent(row), revision: row.updated_at, status: "saved" };
+          draft = { body: row.body, savedBody: row.body, content: parseRichContent(row), contentVersion: nextVersion(row.id), revision: row.updated_at, status: "saved" };
         } else if (draft.revision !== row.updated_at) {
           draft = { ...draft, status: "conflict", server: row };
         }
@@ -178,8 +187,8 @@ export function LibraryDocumentsPanel() {
     if (!draft || !server || !validStudioSaveReceipt(server, id)) return;
     const queue = queues.current.get(id)!; queue.reset(server.updated_at);
     const next: Draft = keepLocal
-      ? { body: draft.body, savedBody: server.body, content: draft.content, revision: server.updated_at, status: "pending" }
-      : { body: server.body, savedBody: server.body, content: parseRichContent(server), revision: server.updated_at, status: "saved" };
+      ? { body: draft.body, savedBody: server.body, content: draft.content, contentVersion: draft.contentVersion, revision: server.updated_at, status: "pending" }
+      : { body: server.body, savedBody: server.body, content: parseRichContent(server), contentVersion: nextVersion(id), revision: server.updated_at, status: "saved" };
     updateDraft(id, next); cache(id, next); setItems(current => current.map(row => row.id === id ? server : row));
     if (keepLocal) await saveDoc(id);
   }
@@ -194,7 +203,7 @@ export function LibraryDocumentsPanel() {
       if (data.code === "work_create_conflict" && validStudioSaveReceipt(data.item, id)) createId.current = null;
       if (!response.ok || !validStudioSaveReceipt(data.item, id) || data.item.body !== body || data.item.title !== title.trim() || data.item.kind !== "doc" || data.item.business_id !== (workspace?.activeBusinessId ?? null)) throw new Error(data.error || "Could not confirm creation. Retry or reload the list; your text is kept.");
       const queue = new RevisionQueue(id); queue.reset(data.item.updated_at); queues.current.set(id, queue);
-      updateDraft(id, { body: data.item.body, savedBody: data.item.body, content: parseRichContent(data.item), revision: data.item.updated_at, status: "saved" });
+      updateDraft(id, { body: data.item.body, savedBody: data.item.body, content: parseRichContent(data.item), contentVersion: 0, revision: data.item.updated_at, status: "saved" });
       setItems(current => [data.item, ...current.filter(row => row.id !== id)]); setSelectedId(id); setTitle(""); setBody(""); setCreating(false); createId.current = null;
     } catch (cause) { if (mounted.current) setError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Creation failed. Your text is kept; retry when connected."); }
     finally { if (mounted.current) setBusy(false); }
@@ -252,7 +261,7 @@ export function LibraryDocumentsPanel() {
           <p role="status" className="mt-2 text-xs text-black/60">{({ saved: "Saved", pending: "Unsaved changes", saving: "Saving…", error: "Save failed", conflict: "Version conflict", offline: "Saved on this device" })[selectedDraft.status]}</p>
           {selectedDraft.error ? <p role="alert" className="mt-2 text-xs text-red-700">{selectedDraft.error}</p> : null}
           {selectedDraft.status === "conflict" && selectedDraft.server ? <div className="mt-3 rounded-lg border border-amber-300 p-3"><p className="text-sm">A newer version is saved elsewhere.</p><details className="my-2"><summary className="cursor-pointer text-xs">Review saved text</summary><p className="whitespace-pre-wrap text-sm">{selectedDraft.server.body}</p></details><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveConflict(selected.id, true)} className="min-h-11 rounded-full border px-4 text-xs">Keep my text</button><button type="button" onClick={() => void resolveConflict(selected.id, false)} className="min-h-11 rounded-full border px-4 text-xs">Use saved text</button></div></div> : null}
-          <DocumentEditor docKey={selected.id} initialContent={selectedDraft.content} disabled={busy} onUpdate={doc => edit(selected.id, doc)} onBlur={() => void saveDoc(selected.id)} onSaveShortcut={() => void saveDoc(selected.id)} />
+          <DocumentEditor docKey={`${selected.id}:${selectedDraft.contentVersion}`} initialContent={selectedDraft.content} disabled={busy} onUpdate={doc => edit(selected.id, doc)} onBlur={() => void saveDoc(selected.id)} onSaveShortcut={() => void saveDoc(selected.id)} />
         </div> : <p className="py-20 text-center text-sm text-black/50">Select a document to start writing.</p>}
       </section>
     </div>
