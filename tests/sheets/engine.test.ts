@@ -98,4 +98,18 @@ describe("computeSheet — real HyperFormula evaluation", () => {
     const cells: SheetCells = { Z99: { raw: "1" } };
     expect(() => computeSheet(cells, 5, 5)).not.toThrow();
   });
+
+  it("marks a genuine number's display as not text, so CSV export can write it bare", () => {
+    const cells: SheetCells = { A1: { raw: "-5" }, A2: { raw: "=1-6" } };
+    const result = computeSheet(cells, 10, 5);
+    expect(result.A1).toMatchObject({ display: "-5", isText: false });
+    expect(result.A2).toMatchObject({ display: "-5", isText: false });
+  });
+
+  it("marks plain text content as text — including content that merely starts with a formula-like character", () => {
+    const cells: SheetCells = { A1: { raw: "hello" }, A2: { raw: "-not-a-number" } };
+    const result = computeSheet(cells, 10, 5);
+    expect(result.A1).toMatchObject({ display: "hello", isText: true });
+    expect(result.A2).toMatchObject({ display: "-not-a-number", isText: true });
+  });
 });

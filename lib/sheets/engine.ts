@@ -14,6 +14,14 @@ export type ComputedCell = {
   display: string;
   isFormula: boolean;
   isError: boolean;
+  /**
+   * True when `display` is HyperFormula's actual string type, not a number
+   * or boolean rendered via String(). CSV export uses this to tell a
+   * genuine negative number ("-5", safe to write bare) apart from text
+   * content that happens to start with =, +, -, or @ (which a spreadsheet
+   * application reopening the export could misparse as a formula).
+   */
+  isText: boolean;
 };
 
 const ADDRESS_RE = /^([A-Z]+)([1-9][0-9]*)$/;
@@ -83,6 +91,7 @@ export function computeSheet(cells: SheetCells, rowCount: number, columnCount: n
         display: displayValue(value),
         isFormula: cell.raw.trim().startsWith("="),
         isError: isErrorValue(value),
+        isText: typeof value === "string",
       };
     }
   } finally {

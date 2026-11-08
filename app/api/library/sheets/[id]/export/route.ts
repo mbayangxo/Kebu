@@ -7,9 +7,19 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-function csvField(value: string): string {
-  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+/**
+ * Neutralizes CSV/formula injection (OWASP CSV Injection): text content
+ * that starts with =, +, -, or @ is re-interpreted as a formula by a
+ * spreadsheet application that opens the exported file -- a shared editor
+ * (lower-trust than the owner) could otherwise plant a payload that runs
+ * when the owner exports and opens it. Only applied to genuine text
+ * (`isText`); a real negative number like "-5" is written bare so it still
+ * displays correctly.
+ */
+function csvField(value: string, isText: boolean): string {
+  const safe = isText && /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/[",\n\r]/.test(safe)) return `"${safe.replace(/"/g, '""')}"`;
+  return safe;
 }
 
 /**
@@ -64,7 +74,8 @@ export async function GET(_req: Request, { params }: Params) {
   for (let row = 0; row <= maxRow; row++) {
     const fields: string[] = [];
     for (let col = 0; col <= maxCol; col++) {
-      fields.push(csvField(computed[formatAddress(row, col)]?.display ?? ""));
+      const cell = computed[formatAddress(row, col)];
+      fields.push(csvField(cell?.display ?? "", cell?.isText ?? false));
     }
     lines.push(fields.join(","));
   }
