@@ -4,11 +4,18 @@ import { resolveSubdomainForCustomHost } from "@/lib/create/resolve-custom-domai
 import { hostOnly, MAIN_HOSTS, resolveMiddlewareRewrite } from "@/lib/create/middleware-routing";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin/admin-session";
 
-function withSecurityHeaders(response: NextResponse): NextResponse {
+const CAMERA_MIC_PATHS = [/^\/rooms\/[^/]+\/call\/?$/];
+
+function withSecurityHeaders(response: NextResponse, pathname = ""): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.headers.set(
+    "Permissions-Policy",
+    CAMERA_MIC_PATHS.some((re) => re.test(pathname))
+      ? "camera=(self), microphone=(self), geolocation=()"
+      : "camera=(), microphone=(), geolocation=()",
+  );
   const scriptPolicy =
     process.env.NODE_ENV === "production"
       ? "script-src 'self' 'unsafe-inline'"
@@ -128,7 +135,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return withDataModeCookie(request, withSecurityHeaders(await updateSession(request)));
+  return withDataModeCookie(request, withSecurityHeaders(await updateSession(request), pathname));
 }
 
 export const config = {

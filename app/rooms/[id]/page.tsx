@@ -271,9 +271,9 @@ export default function RoomPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {process.env.NEXT_PUBLIC_KEBU_PRIVATE_CALLS === "true" && room && room.room_type !== "community" && (
+              {room && room.room_type !== "community" && (
                 <Link href={`/rooms/${id}/call`} className="rounded-full border border-white/30 px-3 py-2 text-xs font-semibold">
-                  Private call
+                  Start or join call
                 </Link>
               )}
               <button
@@ -283,14 +283,6 @@ export default function RoomPage() {
                 className="cursor-not-allowed rounded-full border border-white/10 px-3 py-2 text-[8px] font-semibold text-white/30"
               >
                 Share
-              </button>
-              <button
-                type="button"
-                disabled
-                title="Calls — coming soon"
-                className="cursor-not-allowed rounded-full border border-white/10 px-4 py-2 text-[8px] font-semibold text-white/30"
-              >
-                Start a call
               </button>
             </div>
           </div>

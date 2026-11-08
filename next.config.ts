@@ -91,6 +91,18 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [...SECURITY_HEADERS, { key: "Cache-Control", value: NO_STORE }],
       },
+      // Room calls need real camera/mic access; everywhere else keeps the
+      // default lockdown. Must come after the catch-all above — Next.js
+      // applies the later matching rule's value when the same header key
+      // matches the same path from more than one entry.
+      {
+        source: "/rooms/:id/call",
+        headers: [
+          ...SECURITY_HEADERS.filter((h) => h.key !== "Permissions-Policy"),
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+          { key: "Cache-Control", value: NO_STORE },
+        ],
+      },
     ];
   },
 };
