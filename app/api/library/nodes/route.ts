@@ -7,7 +7,7 @@ import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  kind: z.enum(["folder", "link", "document", "sheet"]).default("folder"),
+  kind: z.enum(["folder", "link", "document", "sheet", "slide"]).default("folder"),
   title: z.string().trim().min(1).max(240),
   parentId: z.string().uuid().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
