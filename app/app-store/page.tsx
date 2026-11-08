@@ -1,3 +1,5 @@
+import { DeveloperCatalog } from "@/app/components/marketplace/catalog";
+import { marketplaceEnabled } from "@/lib/marketplace/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -36,9 +38,9 @@ async function change(form: FormData) {
 }
 
 export default async function AppStore({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  if (!builtinsEnabled()) notFound();
+  if (!builtinsEnabled() && !marketplaceEnabled()) notFound();
   const { db, user } = await builtinAccount();
-  const result = user ? await db.from("kebu_builtin_app_installs").select("app_key").eq("user_id", user.id) : null;
+  const result = user && builtinsEnabled() ? await db.from("kebu_builtin_app_installs").select("app_key").eq("user_id", user.id) : null;
   const added = new Set(result?.data?.map(row => row.app_key));
   const failed = (await searchParams).error === "save";
   return <AppShell title="KEBU App Store">
@@ -46,10 +48,10 @@ export default async function AppStore({ searchParams }: { searchParams: Promise
       <header className="rounded-[28px] border border-[#ff5500]/15 bg-[#fff8f2] p-5 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted">Make KEBU yours</p>
         <h1 className="mt-2 text-4xl tracking-tight sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>KEBU App Store</h1>
-        <p className="mt-3 text-muted">Add the apps you want to use. They open here in KEBU.</p>
+        <p className="mt-3 text-muted">Add the apps you want to use. Keep them together in your KEBU.</p>
       </header>
       {(failed || result?.error) && <p role="alert">Could not load or save your apps. Please try again.</p>}
-      <section aria-labelledby="my-apps" className="space-y-3">
+      {builtinsEnabled() && <><section aria-labelledby="my-apps" className="space-y-3">
         <h2 id="my-apps" className="text-xl font-bold">My apps</h2>
         <div className="flex flex-wrap gap-3">
           {apps.filter(app => added.has(app.key)).map(app =>
@@ -79,7 +81,8 @@ export default async function AppStore({ searchParams }: { searchParams: Promise
               </form>}
           </article>)}
         </div>
-      </section>
+      </section></>}
+      {marketplaceEnabled() && <DeveloperCatalog />}
     </main>
   </AppShell>;
 }

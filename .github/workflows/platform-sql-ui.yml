@@ -3,12 +3,13 @@ name: Platform SQL and browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-experience-oct22", "work/codex-yande-reconcile-oct22", "work/codex-platform-verification-oct20", "work/codex-liguey-retry-oct20", "work/codex-frame-geometry-oct21", "work/codex-object-reset-oct21", "work/codex-marketplace-boundary-oct21", "work/codex-social-rail-oct21", "work/codex-hosted-release-oct21", "work/codex-hosted-auth-gate-oct21", "work/codex-builder-frame-verified-oct21", "work/codex-wave-verification-oct21", "work/codex-template-source-oct21", "work/codex-builder-pipeline-runtime-oct25"]
+    branches: ["work/developer-marketplace-nov08", "work/kebu-completion-audit-oct13", "work/codex-yande-experience-oct22", "work/codex-yande-reconcile-oct22", "work/codex-platform-verification-oct20", "work/codex-liguey-retry-oct20", "work/codex-frame-geometry-oct21", "work/codex-object-reset-oct21", "work/codex-marketplace-boundary-oct21", "work/codex-social-rail-oct21", "work/codex-hosted-release-oct21", "work/codex-hosted-auth-gate-oct21", "work/codex-builder-frame-verified-oct21", "work/codex-wave-verification-oct21", "work/codex-template-source-oct21", "work/codex-builder-pipeline-runtime-oct25"]
     paths:
       - "app/**"
       - "lib/**"
       - "supabase/migrations/**"
       - "tests/**"
+      - "scripts/verify-developer-marketplace-*.mjs"
       - "scripts/verify-mail-local-ui.mjs"
       - "scripts/verify-liguey-local-ui.mjs"
       - "scripts/verify-native-builder-local-ui.mjs"
@@ -45,6 +46,7 @@ jobs:
         run: |
           printf 'KEBU_LOCAL_PGLITE_ROOT=%s\n' "$RUNNER_TEMP/kebu-platform-runtime/node_modules/@electric-sql/pglite" >> "$GITHUB_ENV"
           printf 'KEBU_PGLITE_MODULE_PATH=%s\n' "$RUNNER_TEMP/kebu-platform-runtime/node_modules/@electric-sql/pglite/dist/index.js" >> "$GITHUB_ENV"
+          printf 'KEBU_MARKETPLACE_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-marketplace" >> "$GITHUB_ENV"
           printf 'KEBU_MAIL_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-mail" >> "$GITHUB_ENV"
           printf 'KEBU_LIGUEY_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-liguey" >> "$GITHUB_ENV"
           printf 'KEBU_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-locale" >> "$GITHUB_ENV"
@@ -64,8 +66,16 @@ jobs:
           }
           NODE
           done
+      - name: Verify developer app SQL permissions and lifecycle
+        run: node scripts/verify-developer-marketplace-sql.mjs
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Verify developer marketplace through browser, API and isolated SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          node scripts/verify-developer-marketplace-local-ui.mjs
       - name: Verify Mail UI through API and isolated SQL
         shell: bash
         run: |
@@ -97,4 +107,5 @@ jobs:
             ${{ runner.temp }}/kebu-platform-sql
             ${{ runner.temp }}/kebu-platform-mail
             ${{ runner.temp }}/kebu-platform-liguey
+            ${{ runner.temp }}/kebu-platform-marketplace
             ${{ runner.temp }}/kebu-platform-locale

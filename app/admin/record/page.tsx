@@ -210,6 +210,7 @@ export default function KebuRecordPortalPage() {
             <Link href="/create" className="underline text-ivory/80">
               Kebu Builder
             </Link>
+            <Link href="/admin/app-reviews" className="underline text-ivory/80">App reviews</Link>
             <Link href="/admin/developer-payouts" className="underline text-ivory/80">
               Developer payouts
             </Link>
