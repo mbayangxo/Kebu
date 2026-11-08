@@ -3,6 +3,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { createWorkItemSchema, updateWorkItemSchema, workItemKindSchema } from "@/lib/work/items";
+import { richDocumentSchema, extractPlainText } from "@/lib/work/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
   if (url.searchParams.has("kind") && !kindParsed.success) return NextResponse.json({ error: "Invalid item type." }, { status: 400 });
   let query = supabase
     .from("workspace_items")
-    .select("id, owner_id, business_id, kind, title, body, status, due_at, start_at, end_at, visibility, created_at, updated_at")
+    .select("id, owner_id, business_id, kind, title, body, rich_content, status, due_at, start_at, end_at, visibility, created_at, updated_at")
     .order("updated_at", { ascending: false })
     .limit(200);
 
@@ -46,13 +47,23 @@ export async function POST(req: Request) {
   const parsed = createWorkItemSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid item.", issues: parsed.error.flatten() }, { status: 400 });
 
-  const row = {
+  const row: Record<string, unknown> = {
     ...(parsed.data.id ? { id: parsed.data.id } : {}),
     owner_id: user.id, business_id: parsed.data.businessId ?? null, kind: parsed.data.kind,
     title: parsed.data.title, body: parsed.data.body, status: parsed.data.status,
     due_at: parsed.data.dueAt ?? null, start_at: parsed.data.startAt ?? null, end_at: parsed.data.endAt ?? null,
     visibility: parsed.data.visibility,
   };
+  if (parsed.data.richContent !== undefined) {
+    if (parsed.data.richContent === null) {
+      row.rich_content = null;
+    } else {
+      const richParsed = richDocumentSchema.safeParse(parsed.data.richContent);
+      if (!richParsed.success) return NextResponse.json({ error: "Invalid document content.", issues: richParsed.error.flatten() }, { status: 400 });
+      row.rich_content = richParsed.data;
+      row.body = extractPlainText(richParsed.data);
+    }
+  }
   const { data, error } = await supabase.from("workspace_items").insert(row).select("*").single();
   if (error?.code === "23505" && parsed.data.id) {
     const { data: existing } = await supabase.from("workspace_items").select("*")
@@ -61,6 +72,7 @@ export async function POST(req: Request) {
       if (["due_at", "start_at", "end_at"].includes(key) && value && existing[key]) {
         return Date.parse(String(existing[key])) === Date.parse(String(value));
       }
+      if (key === "rich_content") return JSON.stringify(existing[key] ?? null) === JSON.stringify(value ?? null);
       return existing[key] === value;
     });
     if (matches) return NextResponse.json({ item: existing, confirmedRetry: true });
@@ -96,6 +108,16 @@ export async function PATCH(req: Request) {
   if (parsed.data.endAt !== undefined) patch.end_at = parsed.data.endAt;
   if (parsed.data.businessId !== undefined) patch.business_id = parsed.data.businessId;
   if (parsed.data.visibility !== undefined) patch.visibility = parsed.data.visibility;
+  if (parsed.data.richContent !== undefined) {
+    if (parsed.data.richContent === null) {
+      patch.rich_content = null;
+    } else {
+      const richParsed = richDocumentSchema.safeParse(parsed.data.richContent);
+      if (!richParsed.success) return NextResponse.json({ error: "Invalid document content.", issues: richParsed.error.flatten() }, { status: 400 });
+      patch.rich_content = richParsed.data;
+      patch.body = extractPlainText(richParsed.data);
+    }
+  }
 
   const { data, error } = await supabase.from("workspace_items").update(patch).eq("id", parsed.data.id)
     .eq("updated_at", parsed.data.expectedUpdatedAt ?? existing.updated_at).select("*").maybeSingle();

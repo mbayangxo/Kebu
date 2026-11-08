@@ -27,6 +27,13 @@ const workItemFields = {
   kind: workItemKindSchema,
   title: z.string().trim().min(1).max(160),
   body: z.string().max(20000),
+  /**
+   * TipTap/ProseMirror JSON document. Only meaningful for kind="doc"; validated
+   * structurally (not just "is an object") by richDocumentSchema in rich-text.ts
+   * at the point of use, not here — this field stays `unknown` so a partial
+   * update schema doesn't reject a client sending nothing for it.
+   */
+  richContent: z.unknown().nullable().optional(),
   status: z.enum(["open", "done", "draft"]),
   dueAt: nullableDate,
   startAt: nullableDate,
@@ -54,6 +61,7 @@ export type WorkItemRow = {
   kind: WorkItemKind;
   title: string;
   body: string;
+  rich_content: unknown | null;
   status: "open" | "done" | "draft";
   due_at: string | null;
   start_at: string | null;
