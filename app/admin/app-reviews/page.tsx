@@ -31,7 +31,7 @@ export default function AppReviews(){
           {app.status==="review"?<><option value="rejected">Return for revision</option><option value="published">Approve and publish</option></>:app.status==="published"?<option value="suspended">Suspend app</option>:<option value="rejected">Return to developer for revision</option>}
         </select></label>
         <label className="grid gap-1 text-sm">Review note (shared with the developer)<textarea name="note" className={field} required minLength={5} maxLength={1000}/></label>
-        <button disabled={busy} className={mainButton+" w-fit"}>Save decision for {app.name}</button>
+        <button disabled={busy} aria-label={"Save decision for "+app.name} className={mainButton+" w-fit"}>Save decision</button>
       </form>
     </article>):!loaded.error&&<p>No apps are awaiting review or currently published.</p>}
     <button className={altButton} onClick={()=>location.reload()}>Refresh queue</button>
