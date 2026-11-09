@@ -1,9 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PDFDocument, PDFName } from "pdf-lib";
 import JSZip from "jszip";
 import { blankSlide, blankLayer } from "@/lib/slides/schema";
 import { buildSlidesPdf } from "@/lib/slides/export-pdf";
 import { buildSlidesPptx } from "@/lib/slides/export-pptx";
+
+// A minimal real 1x1 PNG (not a fixture claiming to be one -- these are the
+// actual bytes of a valid, decodable PNG file).
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const TINY_PNG_BYTES = Uint8Array.from(Buffer.from(TINY_PNG_BASE64, "base64"));
+
+function mockFetchOnce(bytes: Uint8Array, init?: { ok?: boolean }) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: init?.ok ?? true,
+      body: {},
+      arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    }),
+  );
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function deckOf(n: number) {
   return Array.from({ length: n }, (_, i) => {
@@ -57,16 +78,77 @@ describe("Slides PPTX export (lib/slides/export-pptx.ts)", () => {
     expect(xml).toContain("Hello slide 1");
   });
 
-  it("an image layer renders as a labeled placeholder, not an embedded image (deliberate scope limit, see export-pptx.ts header comment)", async () => {
+  it("embeds a real image into ppt/media when the URL resolves to a valid PNG", async () => {
+    mockFetchOnce(TINY_PNG_BYTES);
     const slide = blankSlide("s1");
     const image = blankLayer("img1", "image", { x: 960, y: 540 });
     const bytes = await buildSlidesPptx([{ ...slide, layers: [{ ...image, imageUrl: "https://example.test/a.png" }] }], 1920, 1080);
     const zip = await JSZip.loadAsync(bytes);
     const names = Object.keys(zip.files);
-    // pptxgenjs's template always ships an empty "ppt/media/" directory
-    // entry; a real embedded image would add an actual file under it.
-    expect(names.some((n) => /^ppt\/media\/.+\.\w+$/.test(n))).toBe(false);
+    const mediaFile = names.find((n) => /^ppt\/media\/.+\.\w+$/.test(n));
+    expect(mediaFile).toBeDefined();
+    // The embedded bytes are the real PNG we handed it, not a placeholder --
+    // read them back out of the zip and check the real PNG magic bytes.
+    const embedded = await zip.file(mediaFile!)!.async("uint8array");
+    expect(Array.from(embedded.slice(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
     const xml = await zip.file("ppt/slides/slide1.xml")!.async("string");
-    expect(xml).toContain("see PDF export");
+    expect(xml).not.toContain("Image unavailable");
+  });
+
+  it("falls back to a placeholder rather than throwing when an image URL doesn't resolve", async () => {
+    const slide = blankSlide("s1");
+    const image = blankLayer("img1", "image", { x: 960, y: 540 });
+    const bytes = await buildSlidesPptx([{ ...slide, layers: [{ ...image, imageUrl: "https://example.invalid/does-not-exist.png" }] }], 1920, 1080);
+    const zip = await JSZip.loadAsync(bytes);
+    expect(Object.keys(zip.files).some((n) => /^ppt\/media\/.+\.\w+$/.test(n))).toBe(false);
+    const xml = await zip.file("ppt/slides/slide1.xml")!.async("string");
+    expect(xml).toContain("Image unavailable");
+  });
+
+  it("rejects a buffer that isn't a real PNG/JPEG before it ever reaches pptxgenjs's image handling -- the vulnerability class this guards against", async () => {
+    // Shaped like the kind of input GHSA-5p2g-fcmc-qvqq/GHSA-w3rx-r6r6-pgpr
+    // describe (a non-PNG/JPEG container an auto-detecting sniffer would
+    // try to parse) -- our own magic-byte check must reject this itself,
+    // never handing it to pptxgenjs at all.
+    const adversarial = new Uint8Array(64).fill(0x41); // "AAAA..." -- no valid image magic bytes
+    mockFetchOnce(adversarial);
+    const slide = blankSlide("s1");
+    const image = blankLayer("img1", "image", { x: 960, y: 540 });
+    const bytes = await buildSlidesPptx([{ ...slide, layers: [{ ...image, imageUrl: "https://example.test/evil.bin" }] }], 1920, 1080);
+    const zip = await JSZip.loadAsync(bytes);
+    expect(Object.keys(zip.files).some((n) => /^ppt\/media\/.+\.\w+$/.test(n))).toBe(false);
+    const xml = await zip.file("ppt/slides/slide1.xml")!.async("string");
+    expect(xml).toContain("Image unavailable");
+  });
+
+  it("rejects an oversized buffer (the byte cap applies here too, same as PDF export)", async () => {
+    const oversized = new Uint8Array(8 * 1024 * 1024 + 1);
+    oversized[0] = 0x89; oversized[1] = 0x50; oversized[2] = 0x4e; oversized[3] = 0x47; // valid PNG magic, but too big
+    mockFetchOnce(oversized);
+    const slide = blankSlide("s1");
+    const image = blankLayer("img1", "image", { x: 960, y: 540 });
+    const bytes = await buildSlidesPptx([{ ...slide, layers: [{ ...image, imageUrl: "https://example.test/huge.png" }] }], 1920, 1080);
+    const zip = await JSZip.loadAsync(bytes);
+    expect(Object.keys(zip.files).some((n) => /^ppt\/media\/.+\.\w+$/.test(n))).toBe(false);
+  });
+
+  it("the shipped pptxgenjs runtime never requires an image-sizing dependency (regression tripwire for the fix's documented premise)", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const require = await import("node:module").then((m) => m.createRequire(import.meta.url));
+    const pptxgenEntryPath = require.resolve("pptxgenjs");
+    const pptxgenDir = path.dirname(pptxgenEntryPath).endsWith("dist")
+      ? path.dirname(pptxgenEntryPath)
+      : path.join(path.dirname(pptxgenEntryPath), "dist");
+    const dist = fs.readFileSync(path.join(pptxgenDir, "pptxgen.cjs.js"), "utf8");
+    // The only two require() calls in the bundle: jszip (real, active) and
+    // a `require('sizeof')` that only exists inside a commented-out,
+    // "FIXME: currently unused" function. If a future pptxgenjs version
+    // reinstates that path as live code, this assertion catches it so the
+    // header comment's safety claim gets re-reviewed rather than going stale.
+    const liveRequireCalls = dist
+      .replace(/\/\*[\s\S]*?\*\//g, "") // strip block comments
+      .match(/require\(['"][^'"]+['"]\)/g) ?? [];
+    expect(liveRequireCalls.every((call) => call.includes("jszip"))).toBe(true);
   });
 });
