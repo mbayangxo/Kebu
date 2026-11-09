@@ -82,46 +82,72 @@ export async function geocodeSearch(
 
 export type RouteProviderName = "osrm-demo";
 
-export type RouteProfile = "driving";
+export type RouteProfile = "driving" | "walking" | "cycling";
 
 export type RouteOutcome =
   | {
       ok: true;
       provider: RouteProviderName;
+      profile: RouteProfile;
       distanceMeters: number;
       durationSeconds: number;
       /** [lng, lat] pairs, GeoJSON order, ready for a MapLibre GeoJSON source. */
       geometry: [number, number][];
     }
-  | { ok: false; provider: RouteProviderName; reason: string };
+  | { ok: false; provider: RouteProviderName; profile: RouteProfile; reason: string };
 
 /**
- * router.project-osrm.org is OSRM's public demo deployment — explicitly a
- * demo/development endpoint (no SLA, no key, shared by the whole open-source
- * community), not a production routing backend. It only serves the "driving"
- * profile in its default public configuration, so that is the one real mode
- * this ships; walk/bike are not faked with no backend. A self-hosted OSRM
- * instance (with walking/cycling profiles) is a drop-in swap behind this
- * same interface later, matching the Mail provider's v1 -> v2 ladder.
+ * Two real, no-key, community-run OSRM demo deployments, chosen per travel
+ * profile — neither has an SLA, both are shared open-source community
+ * resources, not a production routing backend.
+ *
+ * router.project-osrm.org only ever serves its "driving" dataset: verified
+ * directly (curl, 2026-11-09) that requesting /route/v1/foot/... or even a
+ * nonsense profile name like /route/v1/zzznotarealprofile/... on that host
+ * returns the exact same distance/duration as /route/v1/driving/... — the
+ * profile segment in the URL path is not validated or switched by that
+ * deployment at all, so walking/cycling are NOT real there. Do not route
+ * those profiles through this host.
+ *
+ * routing.openstreetmap.de (operated by FOSSGIS e.V.) publishes separate
+ * routed-car/routed-foot/routed-bike instances with genuinely distinct
+ * profile data: verified directly that the same two points return ~24 km/h
+ * (car), ~4.5 km/h (foot), ~14 km/h (bike) implied speeds for an identical
+ * real distance — i.e. real, independent routing graphs per mode, not an
+ * aliased/ignored path segment.
+ *
+ * A self-hosted OSRM instance (with all profiles on one host Kebu controls)
+ * is a drop-in swap behind this same interface later, matching the Mail
+ * provider's v1 -> v2 ladder.
  */
-const OSRM_DEMO_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
+const OSRM_ROUTE_HOSTS: Record<RouteProfile, { baseUrl: string; osrmProfile: string }> = {
+  driving: { baseUrl: "https://router.project-osrm.org/route/v1", osrmProfile: "driving" },
+  walking: { baseUrl: "https://routing.openstreetmap.de/routed-foot/route/v1", osrmProfile: "foot" },
+  cycling: { baseUrl: "https://routing.openstreetmap.de/routed-bike/route/v1", osrmProfile: "bike" },
+};
 
 export async function routeBetween(
   from: { latitude: number; longitude: number },
   to: { latitude: number; longitude: number },
+  profile: RouteProfile = "driving",
   provider: RouteProviderName = "osrm-demo",
 ): Promise<RouteOutcome> {
   if (provider !== "osrm-demo") {
-    return { ok: false, provider: "osrm-demo", reason: `Unsupported routing provider: ${provider}` };
+    return { ok: false, provider: "osrm-demo", profile, reason: `Unsupported routing provider: ${provider}` };
+  }
+
+  const host = OSRM_ROUTE_HOSTS[profile];
+  if (!host) {
+    return { ok: false, provider, profile, reason: `Unsupported travel profile: ${profile}` };
   }
 
   const coords = `${from.longitude},${from.latitude};${to.longitude},${to.latitude}`;
-  const url = `${OSRM_DEMO_BASE_URL}/${coords}?overview=full&geometries=geojson`;
+  const url = `${host.baseUrl}/${host.osrmProfile}/${coords}?overview=full&geometries=geojson`;
 
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      return { ok: false, provider, reason: `Routing provider returned HTTP ${res.status}.` };
+      return { ok: false, provider, profile, reason: `Routing provider returned HTTP ${res.status}.` };
     }
     const body = (await res.json().catch(() => null)) as {
       code?: string;
@@ -133,7 +159,7 @@ export async function routeBetween(
     } | null;
 
     if (!body || body.code !== "Ok" || !body.routes?.length) {
-      return { ok: false, provider, reason: "No route found between those points." };
+      return { ok: false, provider, profile, reason: "No route found between those points." };
     }
 
     const route = body.routes[0];
@@ -142,11 +168,11 @@ export async function routeBetween(
     const geometry = route?.geometry?.coordinates;
 
     if (!Number.isFinite(distanceMeters) || !Number.isFinite(durationSeconds) || !Array.isArray(geometry)) {
-      return { ok: false, provider, reason: "Routing provider returned an invalid response." };
+      return { ok: false, provider, profile, reason: "Routing provider returned an invalid response." };
     }
 
-    return { ok: true, provider, distanceMeters, durationSeconds, geometry };
+    return { ok: true, provider, profile, distanceMeters, durationSeconds, geometry };
   } catch {
-    return { ok: false, provider, reason: "Routing provider network error." };
+    return { ok: false, provider, profile, reason: "Routing provider network error." };
   }
 }

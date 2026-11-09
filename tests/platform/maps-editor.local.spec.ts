@@ -88,6 +88,19 @@ test("real map renders real tiles, geolocation, business pins, search, and routi
   expect(routeBody.geometry.length).toBeGreaterThan(1);
   await expect(page.getByText(/driving/i)).toBeVisible({ timeout: 15_000 });
 
+  // Switch to Walk and re-route: a real, independent network call to the
+  // FOSSGIS routed-foot host (via our own proxy), not the driving route
+  // relabeled — a genuinely different profile must come back.
+  const walkRouteResponse = page.waitForResponse((r) => r.url().includes("/api/maps/route") && r.url().includes("profile=walking"), { timeout: 20_000 });
+  await page.getByRole("button", { name: /^walk$/i }).click();
+  await page.getByRole("button", { name: /directions from me/i }).click();
+  const walkRouteRes = await walkRouteResponse;
+  expect(walkRouteRes.status()).toBe(200);
+  const walkRouteBody = (await walkRouteRes.json()) as { profile: string; distanceMeters: number; durationSeconds: number };
+  expect(walkRouteBody.profile).toBe("walking");
+  expect(walkRouteBody.distanceMeters).toBeGreaterThan(0);
+  await expect(page.getByText(/walking/i)).toBeVisible({ timeout: 15_000 });
+
   expect(errors).toEqual([]);
   await context.close();
 });

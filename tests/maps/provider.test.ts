@@ -76,7 +76,7 @@ describe("routeBetween", () => {
   const dakar = { latitude: 14.6928, longitude: -17.4467 };
   const thies = { latitude: 14.7886, longitude: -16.9246 };
 
-  it("calls the real OSRM demo endpoint with lng,lat order and parses distance/duration/geometry", async () => {
+  it("defaults to driving via the project-osrm.org demo, lng,lat order, and parses distance/duration/geometry", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -90,6 +90,7 @@ describe("routeBetween", () => {
     expect(result).toEqual({
       ok: true,
       provider: "osrm-demo",
+      profile: "driving",
       distanceMeters: 68000,
       durationSeconds: 3600,
       geometry: [[-17.4467, 14.6928], [-16.9246, 14.7886]],
@@ -99,10 +100,58 @@ describe("routeBetween", () => {
     );
   });
 
+  it("routes walking via the FOSSGIS routed-foot host", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "Ok",
+          routes: [{ distance: 2461, duration: 1969, geometry: { type: "LineString", coordinates: [[-17.4467, 14.6928], [-16.9246, 14.7886]] } }],
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await routeBetween(dakar, thies, "walking");
+    expect(result).toEqual({
+      ok: true,
+      provider: "osrm-demo",
+      profile: "walking",
+      distanceMeters: 2461,
+      durationSeconds: 1969,
+      geometry: [[-17.4467, 14.6928], [-16.9246, 14.7886]],
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://routing.openstreetmap.de/routed-foot/route/v1/foot/-17.4467,14.6928;-16.9246,14.7886?overview=full&geometries=geojson",
+    );
+  });
+
+  it("routes cycling via the FOSSGIS routed-bike host", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "Ok",
+          routes: [{ distance: 2462, duration: 615, geometry: { type: "LineString", coordinates: [[-17.4467, 14.6928], [-16.9246, 14.7886]] } }],
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await routeBetween(dakar, thies, "cycling");
+    expect(result).toEqual({
+      ok: true,
+      provider: "osrm-demo",
+      profile: "cycling",
+      distanceMeters: 2462,
+      durationSeconds: 615,
+      geometry: [[-17.4467, 14.6928], [-16.9246, 14.7886]],
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://routing.openstreetmap.de/routed-bike/route/v1/bike/-17.4467,14.6928;-16.9246,14.7886?overview=full&geometries=geojson",
+    );
+  });
+
   it("reports no route rather than fabricating one when OSRM finds none", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(new Response(JSON.stringify({ code: "NoRoute", routes: [] }), { status: 200 }));
     const result = await routeBetween(dakar, thies);
-    expect(result).toEqual({ ok: false, provider: "osrm-demo", reason: "No route found between those points." });
+    expect(result).toEqual({ ok: false, provider: "osrm-demo", profile: "driving", reason: "No route found between those points." });
   });
 
   it("surfaces an invalid provider payload as a failure", async () => {
@@ -110,12 +159,12 @@ describe("routeBetween", () => {
       new Response(JSON.stringify({ code: "Ok", routes: [{ distance: "bad", duration: 1, geometry: { coordinates: [] } }] }), { status: 200 }),
     );
     const result = await routeBetween(dakar, thies);
-    expect(result).toEqual({ ok: false, provider: "osrm-demo", reason: "Routing provider returned an invalid response." });
+    expect(result).toEqual({ ok: false, provider: "osrm-demo", profile: "driving", reason: "Routing provider returned an invalid response." });
   });
 
   it("treats a network error as a failure, not a throw", async () => {
     vi.spyOn(global, "fetch").mockRejectedValue(new Error("ECONNRESET"));
     const result = await routeBetween(dakar, thies);
-    expect(result).toEqual({ ok: false, provider: "osrm-demo", reason: "Routing provider network error." });
+    expect(result).toEqual({ ok: false, provider: "osrm-demo", profile: "driving", reason: "Routing provider network error." });
   });
 });

@@ -12,7 +12,7 @@ import {
 import type { Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { KEBU } from "@/lib/kebu-brand";
-import { getMapStyleUrl } from "@/lib/maps/provider";
+import { getMapStyleUrl, type RouteProfile } from "@/lib/maps/provider";
 
 // Turbopack doesn't correctly bundle MapLibre's `new Worker(new URL(...))`
 // self-reference in dev, so the tile-parsing worker 404s/fails silently and
@@ -31,7 +31,13 @@ type BusinessPin = {
   address: string | null;
   url: string | null;
 };
-type RouteOutcome = { distanceMeters: number; durationSeconds: number; geometry: [number, number][] };
+type RouteOutcome = { profile: RouteProfile; distanceMeters: number; durationSeconds: number; geometry: [number, number][] };
+
+const TRAVEL_PROFILES: { id: RouteProfile; label: string }[] = [
+  { id: "driving", label: "Drive" },
+  { id: "walking", label: "Walk" },
+  { id: "cycling", label: "Cycle" },
+];
 
 const ROUTE_SOURCE_ID = "kebu-route";
 const ROUTE_LAYER_ID = "kebu-route-line";
@@ -71,6 +77,7 @@ export function KebuMap() {
   const [route, setRoute] = useState<RouteOutcome | null>(null);
   const [routing, setRouting] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [travelProfile, setTravelProfile] = useState<RouteProfile>("driving");
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -238,7 +245,7 @@ export function KebuMap() {
     setRouteError(null);
     try {
       const res = await fetch(
-        `/api/maps/route?from=${from.latitude},${from.longitude}&to=${destination.latitude},${destination.longitude}`,
+        `/api/maps/route?from=${from.latitude},${from.longitude}&to=${destination.latitude},${destination.longitude}&profile=${travelProfile}`,
       );
       const body = (await res.json().catch(() => ({}))) as RouteOutcome & { error?: string };
       if (!res.ok) {
@@ -272,7 +279,7 @@ export function KebuMap() {
     } finally {
       setRouting(false);
     }
-  }, [destination, userLocation]);
+  }, [destination, userLocation, travelProfile]);
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl" style={{ border: `1px solid ${KEBU.border}` }}>
@@ -321,6 +328,22 @@ export function KebuMap() {
         {destination ? (
           <div className="rounded-xl bg-white p-3 shadow-md" style={{ border: `1px solid ${KEBU.border}` }}>
             <p className="mb-2 text-xs font-bold" style={{ color: KEBU.black }}>{destination.label}</p>
+            <div className="mb-2 flex gap-1">
+              {TRAVEL_PROFILES.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setTravelProfile(p.id)}
+                  className="flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold"
+                  style={{
+                    background: travelProfile === p.id ? KEBU.black : "#F3F3F0",
+                    color: travelProfile === p.id ? "#fff" : KEBU.muted,
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => void runRoute()}
@@ -336,7 +359,7 @@ export function KebuMap() {
             {routeError ? <p className="mt-1.5 text-[11px]" style={{ color: "#991B1B" }}>{routeError}</p> : null}
             {route ? (
               <p className="mt-1.5 text-[11px]" style={{ color: KEBU.muted }}>
-                {formatDistance(route.distanceMeters)} · {formatDuration(route.durationSeconds)} (driving)
+                {formatDistance(route.distanceMeters)} · {formatDuration(route.durationSeconds)} ({route.profile})
               </p>
             ) : null}
           </div>
