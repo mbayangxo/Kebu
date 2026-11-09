@@ -109,6 +109,23 @@ export async function middleware(request: NextRequest) {
     customDomainSlug: customSlug,
   });
 
+  if (rewrite.kind === "cloud-deployment") {
+    // Served from a distinct <slug>.cloud.kebu.africa origin: never falls through to
+    // updateSession() below, so an uploaded deployment's page can never see a Kebu
+    // auth cookie (there isn't one on this host) or the main app's session.
+    // The serving route itself requires x-kebu-cloud-site, set only here, so a
+    // direct request to /cloud-sites/... on the MAIN app's own origin (which would
+    // defeat the whole point of the isolation) is refused rather than served.
+    const url = request.nextUrl.clone();
+    url.pathname = rewrite.pathname;
+    const reqHeaders = new Headers(request.headers);
+    reqHeaders.set("x-kebu-cloud-site", "1");
+    return withDataModeCookie(
+      request,
+      withSecurityHeaders(NextResponse.rewrite(url, { request: { headers: reqHeaders } })),
+    );
+  }
+
   if (rewrite.kind === "kebu-subdomain" || rewrite.kind === "custom-domain") {
     const url = request.nextUrl.clone();
     url.pathname = rewrite.pathname;
