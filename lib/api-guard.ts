@@ -85,6 +85,16 @@ export function publicSiteRateLimit(req: Request | NextRequest): Response | null
   return rateLimit(req as NextRequest, PUBLIC_LIMIT, "public");
 }
 
+// Nominatim/OSRM's public demo endpoints are shared, free, no-key community
+// infrastructure with their own usage policies — keep this tighter than our
+// general public limit so we stay a good citizen of those services.
+const MAPS_PROXY_LIMIT = 30;
+
+/** Geocoding / routing proxy calls to open, no-key third-party demo endpoints. */
+export function mapsProxyRateLimit(req: Request | NextRequest): Response | null {
+  return rateLimit(req as NextRequest, MAPS_PROXY_LIMIT, "maps-proxy");
+}
+
 const SHOP_ORDER_LIMIT = 20;
 
 /** Customer order posts from live sites. */

@@ -103,6 +103,16 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: NO_STORE },
         ],
       },
+      // Kebu Map needs real browser geolocation ("Locate me"); everywhere
+      // else keeps the default lockdown.
+      {
+        source: "/map",
+        headers: [
+          ...SECURITY_HEADERS.filter((h) => h.key !== "Permissions-Policy"),
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+          { key: "Cache-Control", value: NO_STORE },
+        ],
+      },
     ];
   },
 };

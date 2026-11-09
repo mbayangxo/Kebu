@@ -5,16 +5,17 @@ import { hostOnly, MAIN_HOSTS, resolveMiddlewareRewrite } from "@/lib/create/mid
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin/admin-session";
 
 const CAMERA_MIC_PATHS = [/^\/rooms\/[^/]+\/call\/?$/];
+const GEOLOCATION_PATHS = [/^\/map\/?$/];
 
 function withSecurityHeaders(response: NextResponse, pathname = ""): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  const cameraMic = CAMERA_MIC_PATHS.some((re) => re.test(pathname));
+  const geolocation = GEOLOCATION_PATHS.some((re) => re.test(pathname));
   response.headers.set(
     "Permissions-Policy",
-    CAMERA_MIC_PATHS.some((re) => re.test(pathname))
-      ? "camera=(self), microphone=(self), geolocation=()"
-      : "camera=(), microphone=(), geolocation=()",
+    `camera=${cameraMic ? "(self)" : "()"}, microphone=${cameraMic ? "(self)" : "()"}, geolocation=${geolocation ? "(self)" : "()"}`,
   );
   const scriptPolicy =
     process.env.NODE_ENV === "production"
@@ -22,7 +23,8 @@ function withSecurityHeaders(response: NextResponse, pathname = ""): NextRespons
       : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; " + scriptPolicy + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
+    // worker-src needs blob: for MapLibre GL's bundler-built tile-parsing worker (Kebu Map, /map).
+    "default-src 'self'; " + scriptPolicy + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' https: blob:; font-src 'self' data: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
   );
   response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
   if (process.env.NODE_ENV === "production") {
