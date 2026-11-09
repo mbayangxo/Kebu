@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { gridColumns } from "@/lib/rooms/call-mesh";
+import { gridColumns, DEFAULT_MESH_PARTICIPANTS, MESH_PARTICIPANT_OPTIONS } from "@/lib/rooms/call-mesh";
 import { useMeshCall } from "@/app/components/rooms/use-mesh-call";
 
 type Person = { id: string; name: string | null };
@@ -24,6 +24,7 @@ export default function RoomCallPage() {
   const [history, setHistory] = useState<HistoryCall[]>([]);
   const local = useRef<HTMLVideoElement>(null);
   const call = useMeshCall(id);
+  const [groupSize, setGroupSize] = useState(DEFAULT_MESH_PARTICIPANTS);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -45,7 +46,24 @@ export default function RoomCallPage() {
       {call.error && <p role="alert" className="rounded-xl bg-red-950 p-3">{call.error}</p>}
 
       {call.phase === "idle" && (
-        <button className={button} onClick={() => void call.join()}>Join with camera and mic</button>
+        <div className="space-y-2">
+          <label className="block text-sm text-zinc-300" htmlFor="call-group-size">
+            Group size if you're starting a new call (joining one already in progress keeps its own limit)
+          </label>
+          <select
+            id="call-group-size"
+            className="rounded-xl border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
+            value={groupSize}
+            onChange={(e) => setGroupSize(Number(e.target.value))}
+          >
+            {MESH_PARTICIPANT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <div>
+            <button className={button} onClick={() => void call.join(groupSize)}>Join with camera and mic</button>
+          </div>
+        </div>
       )}
       {call.phase === "joining" && <p role="status">Connecting…</p>}
       {call.phase === "ended" && <p role="status">You left the call.</p>}

@@ -6,7 +6,11 @@ import { callIceServers, privateCallsEnabled } from "@/lib/rooms/call-access";
 
 const uuid = z.string().uuid();
 const actions = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("join") }),
+  // Only meaningful when this join actually starts a new call - the RPC
+  // ignores it when joining one already in progress, since that call's cap
+  // was fixed at creation. Range matches room_calls.max_participants' check
+  // constraint; the RPC also clamps, this just gives a clean 400 for the UI.
+  z.object({ action: z.literal("join"), maxParticipants: z.number().int().min(2).max(8).optional() }),
   z.object({ action: z.literal("leave"), call: uuid }),
   z.object({ action: z.literal("end"), call: uuid }),
 ]);
@@ -25,7 +29,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const a = input.data;
   if (a.action === "join") {
-    const { data, error } = await auth.supabase.rpc("room_call_join", { p_room: room.data });
+    const { data, error } = await auth.supabase.rpc("room_call_join", {
+      p_room: room.data,
+      ...(a.maxParticipants !== undefined ? { p_max_participants: a.maxParticipants } : {}),
+    });
     if (error?.message === "Call is full") return reply({ error: error.message }, 409);
     if (error) return reply({ error: "Calls are unavailable. Try again later." }, 503);
     if (!data) return reply({ error: "You don't have access to this room." }, 404);

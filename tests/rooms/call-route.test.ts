@@ -77,6 +77,21 @@ describe("POST /api/rooms/[id]/call", () => {
     expect(deps.rpc).toHaveBeenCalledWith("room_call_join", { p_room: roomId });
   });
 
+  it("passes a requested group size through to the RPC", async () => {
+    setupAuth();
+    deps.rpc.mockResolvedValue({ data: { id: callId, roomId, startedAt: "2026-01-01T00:00:00Z", maxParticipants: 6 }, error: null });
+    const res = await POST(postReq({ action: "join", maxParticipants: 6 }), params());
+    expect(res.status).toBe(200);
+    expect(deps.rpc).toHaveBeenCalledWith("room_call_join", { p_room: roomId, p_max_participants: 6 });
+  });
+
+  it("rejects an out-of-range group size before touching the database", async () => {
+    setupAuth();
+    const res = await POST(postReq({ action: "join", maxParticipants: 20 }), params());
+    expect(res.status).toBe(400);
+    expect(deps.rpc).not.toHaveBeenCalled();
+  });
+
   it("rejects leave/end without a call id", async () => {
     setupAuth();
     const res = await POST(postReq({ action: "leave" }), params());

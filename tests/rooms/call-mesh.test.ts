@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   activePeerIds,
+  DEFAULT_MESH_PARTICIPANTS,
   gridColumns,
+  MAX_MESH_PARTICIPANTS,
+  MESH_PARTICIPANT_OPTIONS,
   parseSignalMessage,
   shouldInitiateOffer,
 } from "@/lib/rooms/call-mesh";
@@ -75,5 +78,21 @@ describe("gridColumns", () => {
     expect(gridColumns(5)).toBe(3);
     expect(gridColumns(6)).toBe(3);
     expect(gridColumns(8)).toBe(4);
+  });
+});
+
+describe("mesh participant cap", () => {
+  it("defaults below the hard ceiling (mobile-first, full-mesh upload cost)", () => {
+    expect(DEFAULT_MESH_PARTICIPANTS).toBeLessThan(MAX_MESH_PARTICIPANTS);
+    expect(DEFAULT_MESH_PARTICIPANTS).toBeGreaterThanOrEqual(2);
+  });
+
+  it("offers only values within the database's own check constraint range", () => {
+    for (const opt of MESH_PARTICIPANT_OPTIONS) {
+      expect(opt.value).toBeGreaterThanOrEqual(2);
+      expect(opt.value).toBeLessThanOrEqual(MAX_MESH_PARTICIPANTS);
+    }
+    expect(MESH_PARTICIPANT_OPTIONS.map((o) => o.value)).toContain(DEFAULT_MESH_PARTICIPANTS);
+    expect(MESH_PARTICIPANT_OPTIONS.map((o) => o.value)).toContain(MAX_MESH_PARTICIPANTS);
   });
 });
