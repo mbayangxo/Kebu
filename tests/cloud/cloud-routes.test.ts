@@ -7,6 +7,10 @@ vi.mock("@/lib/create/auth", () => ({ requireUser: deps.auth, logCreate: vi.fn()
 const serviceClientMock = vi.hoisted(() => ({ client: null as unknown }));
 vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: () => serviceClientMock.client }));
 
+const notifyDeps = vi.hoisted(() => ({ maybeNotify: vi.fn() }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ fakeAdminClient: true }) }));
+vi.mock("@/lib/cloud/storage-notify", () => ({ maybeNotifyCloudStorageThreshold: notifyDeps.maybeNotify }));
+
 import { POST as uploadVersion } from "@/app/api/cloud/deployments/[deploymentId]/versions/route";
 import { POST as promoteVersion } from "@/app/api/cloud/deployments/[deploymentId]/versions/[versionId]/promote/route";
 import { POST as createBucket } from "@/app/api/cloud/buckets/route";
@@ -51,7 +55,10 @@ function bundleFormData(buf: Buffer): FormData {
   return fd;
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  notifyDeps.maybeNotify.mockResolvedValue(false);
+});
 
 describe("POST /api/cloud/deployments/[id]/versions", () => {
   it("rejects an invalid deployment id before touching the database", async () => {
@@ -133,6 +140,39 @@ describe("POST /api/cloud/deployments/[id]/versions", () => {
     const res = await uploadVersion(req, { params: Promise.resolve({ deploymentId }) });
     expect(res.status).toBe(200);
     expect(storage._bucketApi.upload).toHaveBeenCalledTimes(2);
+  });
+
+  it("checks the storage-warning threshold after a successful version upload, using real post-upload usage", async () => {
+    const storage = storageMock();
+    let versionsCalls = 0;
+    const supabase = {
+      from: (table: string) => {
+        if (table === "cloud_deployments") return chain({ data: { id: deploymentId }, error: null });
+        if (table === "cloud_storage_files") return chain({ data: [], error: null });
+        if (table === "cloud_deployment_versions") {
+          versionsCalls += 1;
+          // 1: pre-upload quota select (array). 2: lastVersion lookup
+          // (single row via maybeSingle). 3: insert().select().single() for
+          // the new version. 4: post-upload quota re-check select (array
+          // again) -- usage now sits at 490MB of the free tier's 500MB cap.
+          if (versionsCalls === 1) return chain({ data: [], error: null });
+          if (versionsCalls === 2) return chain({ data: null, error: null });
+          if (versionsCalls === 3) return chain({ data: { id: versionId, version_number: 1, size_bytes: 20, file_count: 2, created_at: "2026-01-01" }, error: null });
+          return chain({ data: [{ size_bytes: 490 * 1024 * 1024 }], error: null });
+        }
+        return chain({ data: [], error: null });
+      },
+      storage,
+    };
+    deps.auth.mockResolvedValue({ user: { id: owner }, supabase });
+    const req = new Request("https://kebu.test/x", { method: "POST", body: bundleFormData(await zipBuffer({ "index.html": "<h1>hi</h1>" })) });
+    const res = await uploadVersion(req, { params: Promise.resolve({ deploymentId }) });
+    expect(res.status).toBe(200);
+    expect(notifyDeps.maybeNotify).toHaveBeenCalledTimes(1);
+    const [adminArg, ownerArg, quotaArg] = notifyDeps.maybeNotify.mock.calls[0]!;
+    expect(adminArg).toEqual({ fakeAdminClient: true });
+    expect(ownerArg).toBe(owner);
+    expect(quotaArg.usedBytes).toBe(490 * 1024 * 1024);
   });
 });
 

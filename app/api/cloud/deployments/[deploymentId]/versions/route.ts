@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { assertCloudStorageQuota } from "@/lib/cloud/quota";
+import { assertCloudStorageQuota, getCloudQuota } from "@/lib/cloud/quota";
+import { maybeNotifyCloudStorageThreshold } from "@/lib/cloud/storage-notify";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { platformLog } from "@/lib/platform/observability";
 import { extractDeploymentZip } from "@/lib/cloud/zip-extract";
 import { CLOUD_DEPLOYMENTS_BUCKET } from "@/lib/cloud/constants";
 
@@ -102,6 +105,16 @@ export async function POST(req: Request, { params }: Params) {
     fileCount: extracted.files.length,
     sizeBytes: extracted.totalBytes,
   });
+
+  try {
+    const admin = createAdminClient();
+    const quotaAfter = await getCloudQuota(supabase, user.id);
+    await maybeNotifyCloudStorageThreshold(admin, user.id, quotaAfter);
+  } catch (cause) {
+    platformLog.error("cloud_storage.warning_check_failed", {
+      userId: user.id, error: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
 
   return NextResponse.json({ version: row });
 }
