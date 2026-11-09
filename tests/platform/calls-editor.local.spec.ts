@@ -90,6 +90,54 @@ test("mute and camera-off actually disable the local tracks", async ({ browser }
   }
 });
 
+test("sharing the screen replaces the outgoing video track and the remote side sees it, then restores the camera", async ({ browser }) => {
+  const hub = createRealtimeHub();
+  const hostCtx = await browser.newContext({ permissions: ["camera", "microphone"] });
+  const guestCtx = await browser.newContext({ permissions: ["camera", "microphone"] });
+  try {
+    const hostPage = await joinCall(hostCtx, host, hub);
+    const guestPage = await joinCall(guestCtx, guest, hub);
+    await expect(hostPage.getByText(/connected/i)).toBeVisible({ timeout: 15_000 });
+    await expect(guestPage.getByText(/connected/i)).toBeVisible({ timeout: 15_000 });
+
+    const remoteVideoDims = () => guestPage.evaluate(() => {
+      const videos = Array.from(document.querySelectorAll("video"));
+      const remote = videos.find((v) => v !== videos[0]) as HTMLVideoElement | undefined;
+      return { width: remote?.videoWidth ?? 0, height: remote?.videoHeight ?? 0 };
+    });
+
+    // Chromium's fake camera device defaults to 640x480; getDisplayMedia's
+    // fake desktop capture defaults to 1280x720 — a real, measurable
+    // difference in decoded frame size proves the remote side is actually
+    // receiving the shared-screen content, not just "a track that exists".
+    await expect.poll(remoteVideoDims, { timeout: 15_000 }).toMatchObject({ width: 640, height: 480 });
+
+    await hostPage.getByRole("button", { name: /^share screen$/i }).click();
+    await expect(hostPage.getByRole("button", { name: /^stop sharing$/i })).toBeVisible();
+    await expect(hostPage.getByText(/your shared screen/i)).toBeVisible();
+
+    await expect.poll(remoteVideoDims, { timeout: 15_000 }).toMatchObject({ width: 1280, height: 720 });
+    const remoteTrackLiveWhileSharing = await guestPage.evaluate(() => {
+      const videos = Array.from(document.querySelectorAll("video"));
+      const remote = videos.find((v) => v !== videos[0]) as HTMLVideoElement | undefined;
+      const stream = remote?.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks()[0];
+      return track?.readyState === "live";
+    });
+    expect(remoteTrackLiveWhileSharing, "remote video track should still be live while screen-sharing").toBe(true);
+
+    await hostPage.getByRole("button", { name: /^stop sharing$/i }).click();
+    await expect(hostPage.getByRole("button", { name: /^share screen$/i })).toBeVisible();
+    await expect(hostPage.getByText(/^you$/i)).toBeVisible();
+
+    // Stopping restores the camera track — remote frame size goes back to
+    // the webcam's resolution, proving replaceTrack really swapped back.
+    await expect.poll(remoteVideoDims, { timeout: 15_000 }).toMatchObject({ width: 640, height: 480 });
+  } finally {
+    await hostCtx.close(); await guestCtx.close();
+  }
+});
+
 test("leaving ends the call and it shows up in call history", async ({ browser, request }) => {
   await request.post("http://127.0.0.1:38461/__qa/reset");
   const hub = createRealtimeHub();
