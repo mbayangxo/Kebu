@@ -1,4 +1,9 @@
 # Kebu — Implementation Status
+## November 8 — optional developer App Store source candidate
+
+The developer → Record review → account add/open/remove path is implemented for reviewed, externally hosted free apps. Paid/subscription publication is blocked pending real billing/entitlements. Local database acceptance passes 20 assertions, focused tests 25 cases and two local browser flows at desktop/phone widths verify persistence and suspension. The developer marketplace's screenshots were visually inspected locally; this does not certify the separately built Live Rooms streaming feature. Local TypeScript, full lint (zero errors / 359 warnings), all 6,948 repository tests (473 explicit environment skips), and the production build pass. The initial worktree dependency-link build failure was resolved with a clean local npm ci; no application workaround or deployment was needed. Hosted migrations and preview release remain unapplied/blocked. [Scope, evidence and explicit remaining work](audits/KEBU_DEVELOPER_MARKETPLACE_2026-11-08.md).
+
+
 
 ## November 5 — full-scope closeout in progress
 

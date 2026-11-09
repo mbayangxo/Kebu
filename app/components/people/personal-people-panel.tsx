@@ -10,9 +10,9 @@ type Connection = {
   other: { id: string; name: string | null; avatar_url: string | null; public_kebu_id?: string | null };
 };
 
-type Person = { id: string; name: string | null; avatar_url: string | null; public_kebu_id: string };
+type Person = { id: string; name: string | null; avatar_url: string | null; public_kebu_id: string; bio?: string };
 
-export function PersonalPeoplePanel() {
+export function PersonalPeoplePanel({ friendsSearch = false }: { friendsSearch?: boolean }) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<Person | null>(null);
@@ -41,7 +41,7 @@ export function PersonalPeoplePanel() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Search failed.");
       setFound(data.person ?? null);
-      if (!data.person) setError("No Kebu account found with that public Kebu ID.");
+      if (!data.person) setError("No KEBU account matched that username or public ID.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Search failed.");
     } finally {
@@ -103,7 +103,7 @@ export function PersonalPeoplePanel() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="KBU-P-XXXXXXXXXX"
+            aria-label="Find someone" placeholder={friendsSearch ? "@username or public KEBU ID" : "KBU-P-XXXXXXXXXX"}
             className="min-h-10 min-w-0 flex-1 rounded-full border px-4 text-[10px] font-semibold uppercase outline-none focus:ring-2 focus:ring-[#FF6A00]"
             style={{ borderColor: KEBU.borders.default }}
           />
@@ -118,6 +118,7 @@ export function PersonalPeoplePanel() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-black">{found.name || "Kebu person"}</p>
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide" style={{ color: KEBU.muted }}>{found.public_kebu_id}</p>
+              {found.bio && <p className="mt-1 text-sm">{found.bio}</p>}
             </div>
             <button type="button" disabled={busyId === found.id} onClick={() => void requestFriend(found)} className="rounded-full px-4 py-2 text-[9px] font-black uppercase tracking-wide text-white disabled:opacity-40" style={{ background: KEBU.orange }}>
               {busyId === found.id ? "Sending…" : "Add"}
