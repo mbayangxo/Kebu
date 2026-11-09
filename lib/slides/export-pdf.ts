@@ -4,41 +4,17 @@
  * not a rasterized screenshot -- the exported PDF has real selectable text
  * and real vector shapes, openable in any PDF viewer.
  *
- * Image layers: the source is a URL the editor doesn't control (anyone who
- * can edit the deck can set it), so embedding it safely means more than
- * "fetch and hand to a decoder". We fetch with a timeout and a byte cap,
- * then sniff the real magic bytes ourselves and only call pdf-lib's
- * format-specific embedPng/embedJpg (never a format-sniffing "embed
- * whatever this is" call) -- this avoids running an auto-detecting image
- * parser against attacker-controlled bytes. A URL that isn't actually a
- * PNG/JPEG, is too large, or fails to fetch renders a labeled placeholder
- * instead of silently failing the whole export.
+ * Image layers: fetched via the shared safe boundary in fetch-image.ts
+ * (fetch with a timeout/byte cap, sniff real magic bytes, PNG/JPEG only),
+ * then embedded with pdf-lib's format-specific embedPng/embedJpg (never a
+ * format-sniffing "embed whatever this is" call). A URL that isn't
+ * actually a PNG/JPEG, is too large, or fails to fetch renders a labeled
+ * placeholder instead of silently failing the whole export.
  */
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Slide, SlideLayer } from "@/lib/slides/schema";
 import { parseHexColor } from "@/lib/slides/colors";
-
-const FETCH_TIMEOUT_MS = 8000;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-
-async function fetchImageBytes(url: string): Promise<{ bytes: Uint8Array; kind: "png" | "jpg" } | null> {
-  if (!/^https:\/\//i.test(url)) return null;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok || !res.body) return null;
-    const buf = new Uint8Array(await res.arrayBuffer());
-    if (buf.byteLength === 0 || buf.byteLength > MAX_IMAGE_BYTES) return null;
-    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return { bytes: buf, kind: "png" };
-    if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return { bytes: buf, kind: "jpg" };
-    return null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
+import { fetchImageBytes } from "@/lib/slides/fetch-image";
 
 function wrapLines(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const lines: string[] = [];
