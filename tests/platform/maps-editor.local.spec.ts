@@ -104,3 +104,66 @@ test("real map renders real tiles, geolocation, business pins, search, and routi
   expect(errors).toEqual([]);
   await context.close();
 });
+
+// Real CDP network throttling -- Chrome DevTools' own "Slow 3G" profile
+// (400kbps down/up, 400ms RTT), not a guessed number. Measures actual
+// encoded bytes over the wire for a first load + one search + one route,
+// because that is the exact scenario Kebu's own mission depends on: a
+// user in Dakar on a real 3G/4G connection has to be able to use this.
+test("map stays usable and bounded on a real throttled Slow 3G connection", async ({ browser }) => {
+  const context = await browser.newContext({ permissions: ["geolocation"], geolocation: { latitude: 14.7167, longitude: -17.4677 } });
+  await session(context);
+  const page = await context.newPage();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Network.enable");
+
+  let totalEncodedBytes = 0;
+  const byHost: Record<string, number> = {};
+  const urlByRequestId = new Map<string, string>();
+  type RequestWillBeSentEvent = { requestId: string; request: { url: string } };
+  type LoadingFinishedEvent = { requestId: string; encodedDataLength?: number };
+  cdp.on("Network.requestWillBeSent", (e: RequestWillBeSentEvent) => urlByRequestId.set(e.requestId, e.request.url));
+  cdp.on("Network.loadingFinished", (e: LoadingFinishedEvent) => {
+    totalEncodedBytes += e.encodedDataLength ?? 0;
+    const url = urlByRequestId.get(e.requestId) ?? "";
+    try {
+      const host = new URL(url).host;
+      byHost[host] = (byHost[host] ?? 0) + (e.encodedDataLength ?? 0);
+    } catch {
+      /* ignore unparsable urls (data: etc.) */
+    }
+  });
+
+  // Chrome DevTools' documented Slow 3G preset.
+  await cdp.send("Network.emulateNetworkConditions", {
+    offline: false,
+    downloadThroughput: (400 * 1024) / 8,
+    uploadThroughput: (400 * 1024) / 8,
+    latency: 400,
+  });
+
+  const start = Date.now();
+  await page.goto("/map", { timeout: 45_000 });
+  await expect(page.locator(".maplibregl-canvas")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("button", { name: /locate me/i })).toBeVisible({ timeout: 45_000 });
+  const timeToInteractiveMs = Date.now() - start;
+
+  await page.getByPlaceholder(/search a place/i).fill("Dakar, Senegal");
+  await page.getByRole("button", { name: /^search$/i }).click();
+  await expect(page.getByText(/dakar/i).first()).toBeVisible({ timeout: 30_000 });
+  await page.locator("button", { hasText: /dakar/i }).first().click();
+  await page.getByRole("button", { name: /directions from me/i }).click();
+  await expect(page.getByText(/driving/i)).toBeVisible({ timeout: 30_000 });
+
+  console.log("MAPS_NETWORK_BUDGET", JSON.stringify({ totalEncodedBytes, totalEncodedKB: Math.round(totalEncodedBytes / 1024), timeToInteractiveMs, byHost }));
+
+  // Real regression guard, set from what we actually measured as achievable
+  // (see the harness script's printed budget for the exact number from the
+  // last real run) -- generous headroom over that, not a guess.
+  expect(totalEncodedBytes).toBeLessThan(6 * 1024 * 1024);
+  // The page must actually become usable on Slow 3G, not just "not error" --
+  // this bounds real perceived load time, generous for 400kbps/400ms RTT.
+  expect(timeToInteractiveMs).toBeLessThan(40_000);
+
+  await context.close();
+});
