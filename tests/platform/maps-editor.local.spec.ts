@@ -105,12 +105,15 @@ test("real map renders real tiles, geolocation, business pins, search, and routi
   await context.close();
 });
 
-// Real CDP network throttling -- Chrome DevTools' own "Slow 3G" profile
-// (400kbps down/up, 400ms RTT), not a guessed number. Measures actual
-// encoded bytes over the wire for a first load + one search + one route,
-// because that is the exact scenario Kebu's own mission depends on: a
-// user in Dakar on a real 3G/4G connection has to be able to use this.
-test("map stays usable and bounded on a real throttled Slow 3G connection", async ({ browser }) => {
+// Real CDP network throttling -- Chrome DevTools' own documented presets,
+// not guessed numbers. Measures actual encoded bytes over the wire for a
+// first load + one search + one route, because that is the exact scenario
+// Kebu's own mission depends on: a user in Dakar on a real 3G/4G connection
+// has to be able to use this.
+async function measureThrottledMapLoad(
+  browser: import("playwright/test").Browser,
+  profile: { label: string; downloadKbps: number; uploadKbps: number; latencyMs: number },
+) {
   const context = await browser.newContext({ permissions: ["geolocation"], geolocation: { latitude: 14.7167, longitude: -17.4677 } });
   await session(context);
   const page = await context.newPage();
@@ -134,12 +137,11 @@ test("map stays usable and bounded on a real throttled Slow 3G connection", asyn
     }
   });
 
-  // Chrome DevTools' documented Slow 3G preset.
   await cdp.send("Network.emulateNetworkConditions", {
     offline: false,
-    downloadThroughput: (400 * 1024) / 8,
-    uploadThroughput: (400 * 1024) / 8,
-    latency: 400,
+    downloadThroughput: (profile.downloadKbps * 1024) / 8,
+    uploadThroughput: (profile.uploadKbps * 1024) / 8,
+    latency: profile.latencyMs,
   });
 
   const start = Date.now();
@@ -148,6 +150,13 @@ test("map stays usable and bounded on a real throttled Slow 3G connection", asyn
   await expect(page.getByRole("button", { name: /locate me/i })).toBeVisible({ timeout: 45_000 });
   const timeToInteractiveMs = Date.now() - start;
 
+  // "Directions from me" stays disabled until userLocation is set, which only
+  // happens after this click resolves the real browser Geolocation API --
+  // without it the button below is permanently disabled regardless of
+  // network speed, not a throttling effect.
+  await page.getByRole("button", { name: /locate me/i }).click();
+  await expect(page.getByRole("button", { name: /locate me/i })).toContainText(/locate me/i, { timeout: 15_000 });
+
   await page.getByPlaceholder(/search a place/i).fill("Dakar, Senegal");
   await page.getByRole("button", { name: /^search$/i }).click();
   await expect(page.getByText(/dakar/i).first()).toBeVisible({ timeout: 30_000 });
@@ -155,8 +164,16 @@ test("map stays usable and bounded on a real throttled Slow 3G connection", asyn
   await page.getByRole("button", { name: /directions from me/i }).click();
   await expect(page.getByText(/driving/i)).toBeVisible({ timeout: 30_000 });
 
-  console.log("MAPS_NETWORK_BUDGET", JSON.stringify({ totalEncodedBytes, totalEncodedKB: Math.round(totalEncodedBytes / 1024), timeToInteractiveMs, byHost }));
+  console.log(`MAPS_NETWORK_BUDGET[${profile.label}]`, JSON.stringify({ totalEncodedBytes, totalEncodedKB: Math.round(totalEncodedBytes / 1024), timeToInteractiveMs, byHost }));
 
+  await context.close();
+  return { totalEncodedBytes, timeToInteractiveMs };
+}
+
+test("map stays usable and bounded on a real throttled Slow 3G connection", async ({ browser }) => {
+  const { totalEncodedBytes, timeToInteractiveMs } = await measureThrottledMapLoad(browser, {
+    label: "Slow 3G", downloadKbps: 400, uploadKbps: 400, latencyMs: 400,
+  });
   // Real regression guard, set from what we actually measured as achievable
   // (see the harness script's printed budget for the exact number from the
   // last real run) -- generous headroom over that, not a guess.
@@ -164,6 +181,16 @@ test("map stays usable and bounded on a real throttled Slow 3G connection", asyn
   // The page must actually become usable on Slow 3G, not just "not error" --
   // this bounds real perceived load time, generous for 400kbps/400ms RTT.
   expect(timeToInteractiveMs).toBeLessThan(40_000);
+});
 
-  await context.close();
+test("map stays usable and bounded on a real throttled Fast 4G connection", async ({ browser }) => {
+  const { totalEncodedBytes, timeToInteractiveMs } = await measureThrottledMapLoad(browser, {
+    // Chrome DevTools' documented Fast 4G preset.
+    label: "Fast 4G", downloadKbps: 4 * 1024, uploadKbps: 3 * 1024, latencyMs: 20,
+  });
+  expect(totalEncodedBytes).toBeLessThan(6 * 1024 * 1024);
+  // Same real scenario at 4G speeds should be comfortably faster than 3G --
+  // bounded generously, not tight, since this is a real-network guard, not
+  // a performance-tuning target.
+  expect(timeToInteractiveMs).toBeLessThan(15_000);
 });
