@@ -4,15 +4,36 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import { useEffect } from "react";
+import type * as Y from "yjs";
+import type { Awareness } from "y-protocols/awareness";
 import type { RichDocument } from "@/lib/work/rich-text";
 import { KEBU } from "@/lib/kebu-brand";
+import { COLLAB_YJS_FIELD } from "./use-document-collab";
 
-const EXTENSIONS = [
-  StarterKit,
-  Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } }),
-  Placeholder.configure({ placeholder: "Start writing…" }),
-];
+const LINK_EXTENSION = Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } });
+const PLACEHOLDER_EXTENSION = Placeholder.configure({ placeholder: "Start writing…" });
+
+export type DocumentCollabBinding = { doc: Y.Doc; awareness: Awareness; label: string; color: string };
+
+function buildExtensions(collab: DocumentCollabBinding | null) {
+  if (!collab) {
+    return [StarterKit, LINK_EXTENSION, PLACEHOLDER_EXTENSION];
+  }
+  // Collaboration ships its own Yjs-backed undo history; ProseMirror's local
+  // history plugin (StarterKit's default) must be disabled alongside it —
+  // local undo/redo stacks don't make sense once remote edits interleave
+  // with your own, so Undo/Redo become no-ops while connected (see Toolbar).
+  return [
+    StarterKit.configure({ history: false }),
+    LINK_EXTENSION,
+    PLACEHOLDER_EXTENSION,
+    Collaboration.configure({ document: collab.doc, field: COLLAB_YJS_FIELD }),
+    CollaborationCursor.configure({ provider: { awareness: collab.awareness }, user: { name: collab.label, color: collab.color } }),
+  ];
+}
 
 function ToolbarButton({ active, disabled, label, title, onClick }: { active?: boolean; disabled?: boolean; label: string; title: string; onClick: () => void }) {
   return (
@@ -59,8 +80,8 @@ function Toolbar({ editor, disabled }: { editor: Editor; disabled: boolean }) {
       <span className="mx-1 h-5 w-px" style={{ background: KEBU.border }} />
       <ToolbarButton title="Link" label="Link" disabled={disabled} active={editor.isActive("link")} onClick={setLink} />
       <span className="mx-1 h-5 w-px" style={{ background: KEBU.border }} />
-      <ToolbarButton title="Undo (Ctrl+Z)" label="Undo" disabled={disabled} onClick={() => editor.chain().focus().undo().run()} />
-      <ToolbarButton title="Redo (Ctrl+Shift+Z)" label="Redo" disabled={disabled} onClick={() => editor.chain().focus().redo().run()} />
+      <ToolbarButton title="Undo (Ctrl+Z)" label="Undo" disabled={disabled || !editor.can().undo()} onClick={() => editor.chain().focus().undo().run()} />
+      <ToolbarButton title="Redo (Ctrl+Shift+Z)" label="Redo" disabled={disabled || !editor.can().redo()} onClick={() => editor.chain().focus().redo().run()} />
     </div>
   );
 }
@@ -73,17 +94,21 @@ function Toolbar({ editor, disabled }: { editor: Editor; disabled: boolean }) {
  * every render, so the parent owns the actual persisted content between
  * remounts via onUpdate.
  */
-export function DocumentEditor({ docKey, initialContent, disabled, onUpdate, onBlur, onSaveShortcut }: {
+export function DocumentEditor({ docKey, initialContent, collab, disabled, onUpdate, onBlur, onSaveShortcut }: {
   docKey: string;
   initialContent: RichDocument;
+  collab: DocumentCollabBinding | null;
   disabled: boolean;
   onUpdate: (doc: RichDocument) => void;
   onBlur: () => void;
   onSaveShortcut: () => void;
 }) {
   const editor = useEditor({
-    extensions: EXTENSIONS,
-    content: initialContent,
+    extensions: buildExtensions(collab),
+    // Collaboration mode hydrates its content entirely from the already-
+    // populated Yjs doc (see use-document-collab.ts's prosemirrorJSONToYDoc
+    // call) — passing `content` too would race/duplicate that hydration.
+    ...(collab ? {} : { content: initialContent }),
     editable: !disabled,
     immediatelyRender: false,
     editorProps: {
