@@ -5,6 +5,12 @@ import Link from "next/link";
 import { Room, RoomEvent, Track, type RemoteTrack } from "livekit-client";
 
 type Broadcast = { id: string; title: string; expires_at: string };
+
+/** Pure so it's unit-testable without React/DOM. */
+export function filterBroadcasts(rooms: Broadcast[], query: string): Broadcast[] {
+  const needle = query.trim().toLowerCase();
+  return needle ? rooms.filter(room => room.title.toLowerCase().includes(needle)) : rooms;
+}
 const control = "inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#a93600] disabled:opacity-45";
 const button = control + " bg-[#ff5500] text-[#0a0a0a] hover:bg-[#ff7733]";
 const secondary = control + " border border-black/15 bg-white text-[#0a0a0a] hover:bg-[#fff8f2]";
@@ -30,6 +36,7 @@ export function LiveRooms() {
   const [videoReady, setVideoReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [rooms, setRooms] = useState<Broadcast[]>([]);
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Broadcast>();
   const [host, setHost] = useState(false);
   const [title, setTitle] = useState("");
@@ -54,6 +61,14 @@ export function LiveRooms() {
     void refresh();
     return () => { void connection.current?.disconnect(); };
   }, [refresh]);
+  // Live now, not stale: poll the public broadcast list so a room that just went live
+  // shows up without a manual refresh. Paused while watching/connecting so it never
+  // competes with the LiveKit connection.
+  useEffect(() => {
+    if (selected) return;
+    const id = window.setInterval(() => { void refresh(); }, 20_000);
+    return () => window.clearInterval(id);
+  }, [selected, refresh]);
 
   async function run(fn: () => Promise<void>) {
     if (locked.current) return;
@@ -167,17 +182,24 @@ export function LiveRooms() {
         </form>}
       </div>
       <section aria-labelledby="live-now" className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="live-now" className="text-3xl" style={heading}>Live now</h2>
-          <button className={secondary} disabled={busy || loading} onClick={() => void run(refresh)}>Refresh</button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="live-now" className="text-3xl" style={heading}>Live now{rooms.length > 0 ? ` (${rooms.length})` : ""}</h2>
+          <div className="flex items-center gap-2">
+            {rooms.length > 1 && <label className="sr-only" htmlFor="live-search">Search live broadcasts by title</label>}
+            {rooms.length > 1 && <input id="live-search" className={input + " max-w-[220px]"} type="search" placeholder="Search titles…" value={search} onChange={event => setSearch(event.target.value)} />}
+            <button className={secondary} disabled={busy || loading} onClick={() => void run(refresh)}>Refresh</button>
+          </div>
         </div>
         {loading ? <p role="status" className="text-sm text-[#5c5348]">Finding live broadcasts…</p>
         : roomError ? <p role="alert" className="rounded-xl border border-red-200 bg-white p-4 text-sm">{roomError} Try refreshing.</p>
-        : rooms.length ? <div className="grid gap-3 sm:grid-cols-2">{rooms.map(room => <article className="flex min-w-0 flex-col items-start gap-3 rounded-[20px] border border-black/10 bg-white p-5" key={room.id}>
-          <span className="rounded-full bg-[#fff0e6] px-2.5 py-1 text-xs font-bold text-[#8c3000]">Public broadcast</span>
-          <h3 className="w-full break-words text-lg font-semibold">{room.title}</h3>
-          <button className={button + " mt-auto"} aria-label={`Watch ${room.title}`} disabled={busy} onClick={() => void run(() => enter(room))}>Watch room</button>
-        </article>)}</div> : <div className="rounded-[20px] border border-dashed border-black/20 bg-white px-5 py-8 text-center">
+        : rooms.length ? (() => {
+          const visible = filterBroadcasts(rooms, search);
+          return visible.length ? <div className="grid gap-3 sm:grid-cols-2">{visible.map(room => <article className="flex min-w-0 flex-col items-start gap-3 rounded-[20px] border border-black/10 bg-white p-5" key={room.id}>
+            <span className="rounded-full bg-[#fff0e6] px-2.5 py-1 text-xs font-bold text-[#8c3000]">Public broadcast</span>
+            <h3 className="w-full break-words text-lg font-semibold">{room.title}</h3>
+            <button className={button + " mt-auto"} aria-label={`Watch ${room.title}`} disabled={busy} onClick={() => void run(() => enter(room))}>Watch room</button>
+          </article>)}</div> : <p role="status" className="rounded-xl border border-black/10 bg-white p-4 text-sm text-[#5c5348]">No live broadcast titles match “{search.trim()}”.</p>;
+        })() : <div className="rounded-[20px] border border-dashed border-black/20 bg-white px-5 py-8 text-center">
           <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-[#fff0e6] text-[#8c3000]"><LiveMark /></div>
           <h3 className="text-lg font-semibold">Nobody’s live right now</h3>
           <p className="mt-1 text-sm text-[#5c5348]">Check back soon, or start a public broadcast.</p>

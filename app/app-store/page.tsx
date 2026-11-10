@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { AppShell } from "@/app/components/app-shell";
 import { appKeys, builtinAccount, builtinsEnabled, type AppKey } from "@/lib/live/app-access";
+import { liveBroadcastCount } from "@/lib/live/discovery";
 
 const apps = [
   { key: "live-rooms", title: "Live Rooms", url: "/live", info: "Discover public broadcasts, watch live, or start a room of your own." },
@@ -43,6 +44,7 @@ export default async function AppStore({ searchParams }: { searchParams: Promise
   const result = user && builtinsEnabled() ? await db.from("kebu_builtin_app_installs").select("app_key").eq("user_id", user.id) : null;
   const added = new Set(result?.data?.map(row => row.app_key));
   const failed = (await searchParams).error === "save";
+  const liveCount = builtinsEnabled() ? await liveBroadcastCount() : null;
   return <AppShell title="KEBU App Store">
     <main className="mx-auto max-w-6xl space-y-8 px-4 py-7 sm:px-7 sm:py-10">
       <header className="rounded-[28px] border border-[#ff5500]/15 bg-[#fff8f2] p-5 sm:p-8">
@@ -66,7 +68,15 @@ export default async function AppStore({ searchParams }: { searchParams: Promise
             <div className="flex items-start gap-3">
               <AppIcon app={app.key} />
               <div>
-                <h3 className="text-lg font-semibold">{app.title}</h3>
+                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                  {app.title}
+                  {app.key === "live-rooms" && typeof liveCount === "number" && liveCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fff0e6] px-2 py-0.5 text-xs font-bold text-[#8c3000]">
+                      <span aria-hidden="true" className="size-1.5 rounded-full bg-[#ff5500]" />
+                      {liveCount} live now
+                    </span>
+                  )}
+                </h3>
                 <p className="mt-1 text-sm text-[#5c5348]">{app.info}</p>
               </div>
             </div>
