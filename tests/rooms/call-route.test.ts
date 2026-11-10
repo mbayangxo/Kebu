@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const deps = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn() }));
+const deps = vi.hoisted(() => ({
+  auth: vi.fn(), rpc: vi.fn(), createAdminClient: vi.fn(), notifyRoomCallStarted: vi.fn(),
+}));
 vi.mock("@/lib/create/auth", () => ({ requireUser: deps.auth }));
 vi.mock("@/lib/admin/assert-admin-cookie", () => ({ assertSameOriginMutation: () => null }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: deps.createAdminClient }));
+vi.mock("@/lib/rooms/call-notify", () => ({ notifyRoomCallStarted: deps.notifyRoomCallStarted }));
 
 import { GET, POST } from "@/app/api/rooms/[id]/call/route";
 
@@ -32,7 +36,11 @@ function getReq() {
 }
 const params = (id: string = roomId) => ({ params: Promise.resolve({ id }) });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  deps.createAdminClient.mockReturnValue({ fakeAdminClient: true });
+  deps.notifyRoomCallStarted.mockResolvedValue(0);
+});
 
 describe("POST /api/rooms/[id]/call", () => {
   it("rejects a non-UUID room id before touching the database", async () => {
@@ -66,7 +74,7 @@ describe("POST /api/rooms/[id]/call", () => {
 
   it("joins successfully and attaches ICE servers to the response", async () => {
     setupAuth();
-    deps.rpc.mockResolvedValue({ data: { id: callId, roomId, startedAt: "2026-01-01T00:00:00Z", maxParticipants: 8 }, error: null });
+    deps.rpc.mockResolvedValue({ data: { id: callId, roomId, startedAt: "2026-01-01T00:00:00Z", maxParticipants: 8, created: false }, error: null });
     const res = await POST(postReq({ action: "join" }), params());
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -75,6 +83,35 @@ describe("POST /api/rooms/[id]/call", () => {
     expect(Array.isArray(data.iceServers)).toBe(true);
     expect(data.iceServers.length).toBeGreaterThan(0);
     expect(deps.rpc).toHaveBeenCalledWith("room_call_join", { p_room: roomId });
+  });
+
+  it("notifies other room members when the join actually starts a new call", async () => {
+    setupAuth();
+    deps.rpc.mockResolvedValue({ data: { id: callId, roomId, startedAt: "2026-01-01T00:00:00Z", maxParticipants: 8, created: true }, error: null });
+    const res = await POST(postReq({ action: "join" }), params());
+    expect(res.status).toBe(200);
+    expect(deps.notifyRoomCallStarted).toHaveBeenCalledTimes(1);
+    expect(deps.notifyRoomCallStarted).toHaveBeenCalledWith(
+      { fakeAdminClient: true },
+      { roomId, callId, startedBy: userId },
+    );
+  });
+
+  it("does not notify anyone when joining a call that was already in progress", async () => {
+    setupAuth();
+    deps.rpc.mockResolvedValue({ data: { id: callId, roomId, startedAt: "2026-01-01T00:00:00Z", maxParticipants: 8, created: false }, error: null });
+    await POST(postReq({ action: "join" }), params());
+    expect(deps.notifyRoomCallStarted).not.toHaveBeenCalled();
+  });
+
+  it("still returns the join result even if notifying other members throws", async () => {
+    setupAuth();
+    deps.rpc.mockResolvedValue({ data: { id: callId, roomId, startedAt: "2026-01-01T00:00:00Z", maxParticipants: 8, created: true }, error: null });
+    deps.notifyRoomCallStarted.mockRejectedValue(new Error("platform_jobs insert failed"));
+    const res = await POST(postReq({ action: "join" }), params());
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.id).toBe(callId);
   });
 
   it("rejects leave/end without a call id", async () => {

@@ -52,13 +52,14 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
         ('${room}','${guest}','member'), ('${room}','${admin}','admin'), ('${room}','${bystander}','member');
     `);
     await db.exec(readFileSync("supabase/migrations/20261108020000_room_calls_mesh.sql", "utf8"));
+    await db.exec(readFileSync("supabase/migrations/20261109010000_room_call_join_created_flag.sql", "utf8"));
 
     async function as<T>(actor: string, sql: string, values: unknown[] = []): Promise<T> {
       await db.query("select set_config('test.actor',$1,false)", [actor]);
       const result = await db.query<{ v: T }>(`select (${sql}) as v`, values);
       return result.rows[0]!.v;
     }
-    type Joined = { id: string; roomId: string; startedAt: string; maxParticipants: number } | null;
+    type Joined = { id: string; roomId: string; startedAt: string; maxParticipants: number; created: boolean } | null;
 
     // Direct table access is locked down; only the RPCs and the select policy work.
     await db.exec("set role anon");
@@ -71,10 +72,14 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
     expect(await as<Joined>(outsider, "public.room_call_join($1)", [room])).toBeNull();
 
     // The host starts a call; a room member joins the same active call.
+    // `created` distinguishes the two — only a genuinely new call should ever
+    // trigger a "call started" notification, never a join of one in progress.
     const started = await as<Joined>(host, "public.room_call_join($1)", [room]);
     expect(started?.roomId).toBe(room);
+    expect(started?.created).toBe(true);
     const joined = await as<Joined>(guest, "public.room_call_join($1)", [room]);
     expect(joined?.id).toBe(started!.id);
+    expect(joined?.created).toBe(false);
 
     // History is readable by any room member (RLS select policy), not by an outsider.
     await db.query("select set_config('test.actor',$1,false)", [admin]);
@@ -106,9 +111,11 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
     const finalParticipants = await db.query<{ left_at: string | null }>("select left_at from public.room_call_participants where call_id=$1", [started!.id]);
     expect(finalParticipants.rows.every((r) => r.left_at !== null)).toBe(true);
 
-    // Joining again after the call ended opens a fresh one, not the ended one.
+    // Joining again after the call ended opens a fresh one, not the ended one —
+    // and is reported as created again, since it's a genuinely new call.
     const fresh = await as<Joined>(host, "public.room_call_join($1)", [room]);
     expect(fresh!.id).not.toBe(started!.id);
+    expect(fresh!.created).toBe(true);
     await as<Joined>(guest, "public.room_call_join($1)", [room]);
 
     // Rejoining after leaving resets left_at (no duplicate participant rows).

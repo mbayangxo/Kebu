@@ -3,6 +3,9 @@ import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { callIceServers, privateCallsEnabled } from "@/lib/rooms/call-access";
+import { notifyRoomCallStarted } from "@/lib/rooms/call-notify";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { platformLog } from "@/lib/platform/observability";
 
 const uuid = z.string().uuid();
 const actions = z.discriminatedUnion("action", [
@@ -29,6 +32,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (error?.message === "Call is full") return reply({ error: error.message }, 409);
     if (error) return reply({ error: "Calls are unavailable. Try again later." }, 503);
     if (!data) return reply({ error: "You don't have access to this room." }, 404);
+    if (data.created === true) {
+      try {
+        const admin = createAdminClient();
+        await notifyRoomCallStarted(admin, { roomId: room.data, callId: data.id, startedBy: auth.user.id });
+      } catch (cause) {
+        platformLog.error("room_call.notify_failed", {
+          roomId: room.data, callId: data.id,
+          error: cause instanceof Error ? cause.message : String(cause),
+        });
+      }
+    }
     return reply({ ...data, userId: auth.user.id, iceServers: callIceServers(process.env, auth.user.id) });
   }
 
