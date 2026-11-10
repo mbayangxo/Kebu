@@ -7,6 +7,9 @@ import { StudioSaveQueue as RevisionQueue, validStudioSaveReceipt } from "@/lib/
 import { KEBU } from "@/lib/kebu-brand";
 import { richDocumentSchema, extractPlainText, plainTextToRichDocument, richDocumentToHtml, type RichDocument } from "@/lib/work/rich-text";
 import { DocumentEditor } from "./document-editor";
+import { useDocumentCollab } from "./use-document-collab";
+
+const EMPTY_DOC: RichDocument = { type: "doc", content: [] };
 
 type Draft = { body: string; savedBody: string; content: RichDocument; contentVersion: number; revision: string; status: "saved" | "pending" | "saving" | "error" | "conflict" | "offline"; error?: string; server?: WorkItemRow };
 
@@ -34,6 +37,8 @@ export function LibraryDocumentsPanel() {
   const userId = useRef<string | null>(null);
   const mounted = useRef(true);
   const createId = useRef<string | null>(null);
+  const collabConnectedIdRef = useRef<string | null>(null);
+  const saveDocRef = useRef<(id: string) => Promise<void>>(async () => {});
 
   /**
    * TipTap only reads `content` when the editor mounts — it does not sync
@@ -133,11 +138,26 @@ export function LibraryDocumentsPanel() {
         const data = await response.json().catch(() => ({}));
         if (!context.active()) return;
         if (response.status === 409) {
-          context.conflict();
           const latestResponse = await fetch(`/api/work/items?kind=doc&id=${encodeURIComponent(id)}`, { credentials: "include", cache: "no-store" });
           const latest = await latestResponse.json().catch(() => ({}));
           if (!context.active()) return;
           const server = latestResponse.ok ? latest.items?.find((row: WorkItemRow) => row.id === id) : undefined;
+          if (server && collabConnectedIdRef.current === id) {
+            // Both sides are live-collaborating through the same Yjs
+            // document, so a 409 here only means this tab's revision pointer
+            // went stale while the other tab's save landed first — Yjs
+            // already merged both tabs' edits client-side, so there is no
+            // real conflict to ask about. Advance the pointer and retry
+            // shortly, instead of surfacing the manual conflict UI (which
+            // would otherwise make a connected collaborator choose between
+            // two copies of the exact same converged text).
+            context.acknowledge(server.updated_at);
+            const next = { ...draftsRef.current[id]!, revision: server.updated_at, status: draftsRef.current[id]!.body === draftsRef.current[id]!.savedBody ? "saved" as const : "pending" as const };
+            updateDraft(id, next); setItems(current => current.map(row => row.id === id ? server : row));
+            clearTimeout(timers.current.get(id)); timers.current.set(id, setTimeout(() => void saveDocRef.current(id), 50));
+            return;
+          }
+          context.conflict();
           updateDraft(id, { ...draftsRef.current[id]!, status: "conflict", server, error: server ? "This document changed elsewhere. Choose which text to keep." : "Could not load the newer document. Your text is kept. Reload the list before retrying." }); return;
         }
         if (!response.ok) throw new Error(data.error || "Could not save document.");
@@ -153,6 +173,7 @@ export function LibraryDocumentsPanel() {
       }
     });
   }, [cache, updateDraft]);
+  useEffect(() => { saveDocRef.current = saveDoc; }, [saveDoc]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -174,6 +195,13 @@ export function LibraryDocumentsPanel() {
   }
   const selected = useMemo(() => items.find(item => item.id === selectedId) ?? null, [items, selectedId]);
   const selectedDraft = selectedId ? drafts[selectedId] : undefined;
+  const collab = useDocumentCollab(selectedId, selectedDraft?.content ?? EMPTY_DOC);
+  useEffect(() => {
+    collabConnectedIdRef.current = collab.status === "connected" ? selectedId : null;
+  }, [collab.status, selectedId]);
+  const collabBinding = collab.status === "connected" && collab.doc && collab.awareness
+    ? { doc: collab.doc, awareness: collab.awareness, label: collab.label, color: collab.color }
+    : null;
   function edit(id: string, content: RichDocument) {
     const previous = draftsRef.current[id]; if (!previous || deleting.current.has(id)) return;
     const text = extractPlainText(content);
@@ -259,9 +287,14 @@ export function LibraryDocumentsPanel() {
         {selected && selectedDraft ? <div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3"><h2 className="text-lg font-semibold">{selected.title}</h2><div className="flex flex-wrap gap-2"><button type="button" disabled={busy || selectedDraft.status === "saving" || selectedDraft.status === "conflict" || selectedDraft.body === selectedDraft.savedBody} onClick={() => void saveDoc(selected.id)} className="min-h-11 rounded-full border px-4 text-xs">Save document</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "txt")} className="min-h-11 rounded-full border px-4 text-xs">Export .txt</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "html")} className="min-h-11 rounded-full border px-4 text-xs">Export .html</button><button type="button" disabled={busy} onClick={() => void removeDoc(selected.id)} className="min-h-11 px-3 text-xs font-semibold text-red-700">Delete document</button></div></div>
           <p role="status" className="mt-2 text-xs text-black/60">{({ saved: "Saved", pending: "Unsaved changes", saving: "Saving…", error: "Save failed", conflict: "Version conflict", offline: "Saved on this device" })[selectedDraft.status]}</p>
+          <p role="status" className="mt-1 text-xs" style={{ color: collab.status === "connected" ? "#1B6B3A" : KEBU.muted }}>
+            {collab.status === "connected"
+              ? `Live collaboration: connected${collab.peerCount > 0 ? ` · ${collab.peerCount} other${collab.peerCount === 1 ? "" : "s"} editing` : ""}`
+              : collab.status === "connecting" ? "Live collaboration: connecting…" : "Live collaboration: offline (autosave only)"}
+          </p>
           {selectedDraft.error ? <p role="alert" className="mt-2 text-xs text-red-700">{selectedDraft.error}</p> : null}
           {selectedDraft.status === "conflict" && selectedDraft.server ? <div className="mt-3 rounded-lg border border-amber-300 p-3"><p className="text-sm">A newer version is saved elsewhere.</p><details className="my-2"><summary className="cursor-pointer text-xs">Review saved text</summary><p className="whitespace-pre-wrap text-sm">{selectedDraft.server.body}</p></details><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveConflict(selected.id, true)} className="min-h-11 rounded-full border px-4 text-xs">Keep my text</button><button type="button" onClick={() => void resolveConflict(selected.id, false)} className="min-h-11 rounded-full border px-4 text-xs">Use saved text</button></div></div> : null}
-          <DocumentEditor docKey={`${selected.id}:${selectedDraft.contentVersion}`} initialContent={selectedDraft.content} disabled={busy} onUpdate={doc => edit(selected.id, doc)} onBlur={() => void saveDoc(selected.id)} onSaveShortcut={() => void saveDoc(selected.id)} />
+          <DocumentEditor docKey={`${selected.id}:${selectedDraft.contentVersion}:${collabBinding ? "collab" : "solo"}`} initialContent={selectedDraft.content} collab={collabBinding} disabled={busy} onUpdate={doc => edit(selected.id, doc)} onBlur={() => void saveDoc(selected.id)} onSaveShortcut={() => void saveDoc(selected.id)} />
         </div> : <p className="py-20 text-center text-sm text-black/50">Select a document to start writing.</p>}
       </section>
     </div>
