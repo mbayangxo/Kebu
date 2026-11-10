@@ -225,6 +225,49 @@ describe("POST /api/cloud/buckets", () => {
   });
 });
 
+describe("Cloud mutation routes reject cross-origin requests (real assertSameOriginMutation, not mocked)", () => {
+  it("createBucket rejects a request whose Origin doesn't match Host, before touching the database", async () => {
+    deps.auth.mockResolvedValue({ user: { id: owner }, supabase: { from: () => { throw new Error("must not query — CSRF check should short-circuit first"); } } });
+    const res = await createBucket(new Request("https://kebu.africa/api/cloud/buckets", {
+      method: "POST",
+      body: JSON.stringify({ name: "evil" }),
+      headers: { "Content-Type": "application/json", Origin: "https://attacker.cloud.kebu.africa", Host: "kebu.africa" },
+    }));
+    expect(res.status).toBe(403);
+  });
+
+  it("createBucket still accepts a same-origin request (Origin matches Host)", async () => {
+    const supabase = { from: () => chain({ data: { id: "b1", name: "docs", visibility: "private", created_at: "now" }, error: null }) };
+    deps.auth.mockResolvedValue({ user: { id: owner }, supabase });
+    const res = await createBucket(new Request("https://kebu.africa/api/cloud/buckets", {
+      method: "POST",
+      body: JSON.stringify({ name: "docs" }),
+      headers: { "Content-Type": "application/json", Origin: "https://kebu.africa", Host: "kebu.africa" },
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it("promoteVersion rejects a cross-origin request before touching the database", async () => {
+    deps.auth.mockResolvedValue({ user: { id: owner }, supabase: { from: () => { throw new Error("must not query — CSRF check should short-circuit first"); } } });
+    const res = await promoteVersion(new Request("https://kebu.africa/x", {
+      method: "POST",
+      headers: { Origin: "https://attacker.cloud.kebu.africa", Host: "kebu.africa" },
+    }), { params: Promise.resolve({ deploymentId, versionId }) });
+    expect(res.status).toBe(403);
+  });
+
+  it("uploadVersion (multipart zip) rejects a cross-origin request before touching the database", async () => {
+    deps.auth.mockResolvedValue({ user: { id: owner }, supabase: { from: () => { throw new Error("must not query — CSRF check should short-circuit first"); } } });
+    const req = new Request("https://kebu.africa/x", {
+      method: "POST",
+      body: bundleFormData(await zipBuffer({ "index.html": "<h1>hi</h1>" })),
+      headers: { Origin: "https://attacker.cloud.kebu.africa", Host: "kebu.africa" },
+    });
+    const res = await uploadVersion(req, { params: Promise.resolve({ deploymentId }) });
+    expect(res.status).toBe(403);
+  });
+});
+
 describe("GET /cloud-sites/[slug]/[...path] — public static serving", () => {
   it("refuses a request that didn't come through the x-kebu-cloud-site middleware rewrite (direct main-origin access)", async () => {
     const req = new Request("https://kebu.africa/cloud-sites/my-app/index.html");

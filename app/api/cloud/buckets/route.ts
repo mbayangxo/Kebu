@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { getCloudQuota } from "@/lib/cloud/quota";
 import { BUCKET_NAME_PATTERN } from "@/lib/cloud/constants";
 
@@ -53,6 +54,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const blocked = assertSameOriginMutation(req);
+  if (blocked) return blocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

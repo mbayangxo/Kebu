@@ -1,9 +1,24 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PDFDocument, PDFName } from "pdf-lib";
 import JSZip from "jszip";
 import { blankSlide, blankLayer } from "@/lib/slides/schema";
 import { buildSlidesPdf } from "@/lib/slides/export-pdf";
 import { buildSlidesPptx } from "@/lib/slides/export-pptx";
+import { fetchImageBytes } from "@/lib/slides/fetch-image";
+
+// The export tests below use RFC 2606 reserved test hostnames
+// (example.test/example.invalid) that don't really resolve, so the real
+// SSRF host-validation in lib/slides/fetch-image.ts needs a DNS double so
+// those fixtures can stand in for "some real public image host" without
+// doing a real network lookup. Each test controls the result explicitly.
+const dnsDeps = vi.hoisted(() => ({ lookup: vi.fn() }));
+vi.mock("node:dns/promises", () => ({ lookup: dnsDeps.lookup }));
+
+const PUBLIC_ADDR = [{ address: "93.184.216.34", family: 4 }];
+
+beforeEach(() => {
+  dnsDeps.lookup.mockResolvedValue(PUBLIC_ADDR);
+});
 
 // A minimal real 1x1 PNG (not a fixture claiming to be one -- these are the
 // actual bytes of a valid, decodable PNG file).
@@ -150,5 +165,64 @@ describe("Slides PPTX export (lib/slides/export-pptx.ts)", () => {
       .replace(/\/\*[\s\S]*?\*\//g, "") // strip block comments
       .match(/require\(['"][^'"]+['"]\)/g) ?? [];
     expect(liveRequireCalls.every((call) => call.includes("jszip"))).toBe(true);
+  });
+});
+
+describe("fetchImageBytes SSRF guard (lib/slides/fetch-image.ts)", () => {
+  it("rejects a literal loopback IP URL without ever calling fetch", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const result = await fetchImageBytes("https://127.0.0.1/admin");
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a literal link-local/cloud-metadata IP URL without ever calling fetch", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const result = await fetchImageBytes("https://169.254.169.254/latest/meta-data/");
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a hostname that resolves to a private IP, without the private address ever being dialed by a mocked fetch that would otherwise succeed", async () => {
+    dnsDeps.lookup.mockResolvedValue([{ address: "10.1.2.3", family: 4 }]);
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, body: {}, status: 200, arrayBuffer: async () => TINY_PNG_BYTES.buffer });
+    vi.stubGlobal("fetch", fetchSpy);
+    const result = await fetchImageBytes("https://internal.example.test/secret.png");
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("still fetches and classifies a well-formed public image correctly (the fix must not break the legitimate case)", async () => {
+    mockFetchOnce(TINY_PNG_BYTES);
+    const result = await fetchImageBytes("https://example.test/a.png");
+    expect(result).toEqual({ bytes: TINY_PNG_BYTES, kind: "png" });
+  });
+
+  it("follows a same-origin-looking redirect to a public host, but rejects when the redirect target resolves to a private IP", async () => {
+    const redirectThenBlocked = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 302, ok: false, headers: new Headers({ location: "https://internal.example.test/secret.png" }) });
+    vi.stubGlobal("fetch", redirectThenBlocked);
+    // The redirect target resolves privately; the initial host resolves publicly (default mock).
+    dnsDeps.lookup.mockImplementation(async (hostname: string) =>
+      hostname === "internal.example.test" ? [{ address: "192.168.1.1", family: 4 }] : PUBLIC_ADDR,
+    );
+    const result = await fetchImageBytes("https://example.test/redirect-me.png");
+    expect(result).toBeNull();
+    // Only the first hop should ever be dialed -- the blocked redirect target must never be fetched.
+    expect(redirectThenBlocked).toHaveBeenCalledTimes(1);
+  });
+
+  it("follows a redirect to a genuinely public host and still embeds the real image", async () => {
+    const redirectThenOk = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 301, ok: false, headers: new Headers({ location: "https://cdn.example.test/a.png" }) })
+      .mockResolvedValueOnce({ ok: true, body: {}, status: 200, arrayBuffer: async () => TINY_PNG_BYTES.buffer });
+    vi.stubGlobal("fetch", redirectThenOk);
+    const result = await fetchImageBytes("https://example.test/redirect-me.png");
+    expect(result).toEqual({ bytes: TINY_PNG_BYTES, kind: "png" });
+    expect(redirectThenOk).toHaveBeenCalledTimes(2);
   });
 });
