@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   activePeerIds,
+  DEFAULT_MESH_PARTICIPANTS,
   gridColumns,
+  MAX_MESH_PARTICIPANTS,
+  MESH_PARTICIPANT_OPTIONS,
   parseSignalMessage,
   shouldInitiateOffer,
 } from "@/lib/rooms/call-mesh";
@@ -75,5 +78,26 @@ describe("gridColumns", () => {
     expect(gridColumns(5)).toBe(3);
     expect(gridColumns(6)).toBe(3);
     expect(gridColumns(8)).toBe(4);
+  });
+});
+
+describe("mesh participant cap", () => {
+  it("defaults to the hard ceiling (explicit product decision, not an oversight)", () => {
+    // Full mesh costs real upload bandwidth per extra participant, but
+    // Kebu's group/family/team calls mattering more than protecting every
+    // connection from strain was an explicit, confirmed product decision -
+    // smaller sizes stay available via MESH_PARTICIPANT_OPTIONS for whoever
+    // wants one, without shrinking what happens when nobody asks.
+    expect(DEFAULT_MESH_PARTICIPANTS).toBe(MAX_MESH_PARTICIPANTS);
+  });
+
+  it("offers only values within the database's own check constraint range, including smaller alternatives", () => {
+    for (const opt of MESH_PARTICIPANT_OPTIONS) {
+      expect(opt.value).toBeGreaterThanOrEqual(2);
+      expect(opt.value).toBeLessThanOrEqual(MAX_MESH_PARTICIPANTS);
+    }
+    expect(MESH_PARTICIPANT_OPTIONS.map((o) => o.value)).toContain(DEFAULT_MESH_PARTICIPANTS);
+    expect(MESH_PARTICIPANT_OPTIONS.map((o) => o.value)).toContain(MAX_MESH_PARTICIPANTS);
+    expect(MESH_PARTICIPANT_OPTIONS.some((o) => o.value < MAX_MESH_PARTICIPANTS)).toBe(true);
   });
 });

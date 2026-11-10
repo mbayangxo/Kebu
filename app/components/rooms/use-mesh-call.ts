@@ -142,7 +142,7 @@ export function useMeshCall(roomId: string) {
     }
   }, [broadcast, ensurePeer]);
 
-  const join = useCallback(async () => {
+  const join = useCallback(async (maxParticipants?: number) => {
     if (phase === "joining" || phase === "in-call") return;
     setError("");
     setPhase("joining");
@@ -154,7 +154,10 @@ export function useMeshCall(roomId: string) {
       if (!mounted.current) { stream.getTracks().forEach((t) => t.stop()); return; }
 
       const res = await fetch(`/api/rooms/${encodeURIComponent(roomId)}/call`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "join" }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        // Only takes effect if this join actually starts a new call; joining
+        // one already in progress keeps whatever cap it started with.
+        body: JSON.stringify({ action: "join", ...(maxParticipants ? { maxParticipants } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) { stream.getTracks().forEach((t) => t.stop()); throw new Error(data.error || "Could not join the call."); }

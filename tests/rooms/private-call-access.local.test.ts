@@ -53,6 +53,7 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
     `);
     await db.exec(readFileSync("supabase/migrations/20261108020000_room_calls_mesh.sql", "utf8"));
     await db.exec(readFileSync("supabase/migrations/20261109010000_room_call_join_created_flag.sql", "utf8"));
+    await db.exec(readFileSync("supabase/migrations/20261109020000_room_call_default_cap.sql", "utf8"));
 
     async function as<T>(actor: string, sql: string, values: unknown[] = []): Promise<T> {
       await db.query("select set_config('test.actor',$1,false)", [actor]);
@@ -131,6 +132,39 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
     );
     expect(rows.rows).toHaveLength(1);
     expect(rows.rows[0]!.left_at).toBeNull();
+
+    // End the still-active call so the next join actually starts a fresh one.
+    await as(admin, "public.room_call_end($1)", [fresh!.id]);
+
+    // No cap requested: stays at the ceiling (8) - an explicit product
+    // decision, not a bug. A smaller cap is only ever applied when someone
+    // actually asks for it (next assertion).
+    const defaulted = await as<Joined>(host, "public.room_call_join($1)", [room]);
+    expect(defaulted!.maxParticipants).toBe(8);
+    await as(admin, "public.room_call_end($1)", [defaulted!.id]);
+
+    // A caller who wants a smaller, more reliable call can still ask for one.
+    const chosen = await as<Joined>(host, "public.room_call_join($1, 6)", [room]);
+    expect(chosen!.maxParticipants).toBe(6);
+    await as(admin, "public.room_call_end($1)", [chosen!.id]);
+
+    // Out-of-range requests are clamped, not rejected - the route already
+    // validates range before this is ever reached, so this is a defensive
+    // floor/ceiling, not a validation surface.
+    const tooHigh = await as<Joined>(host, "public.room_call_join($1, 999)", [room]);
+    expect(tooHigh!.maxParticipants).toBe(8);
+    await as(admin, "public.room_call_end($1)", [tooHigh!.id]);
+
+    const tooLow = await as<Joined>(host, "public.room_call_join($1, 0)", [room]);
+    expect(tooLow!.maxParticipants).toBe(2);
+    await as(admin, "public.room_call_end($1)", [tooLow!.id]);
+
+    // The cap requested by whoever joins *second* is ignored - it was
+    // already fixed when the call was created.
+    const capAtCreation = await as<Joined>(host, "public.room_call_join($1, 2)", [room]);
+    const joinerIgnoredCap = await as<Joined>(guest, "public.room_call_join($1, 8)", [room]);
+    expect(joinerIgnoredCap!.id).toBe(capAtCreation!.id);
+    expect(joinerIgnoredCap!.maxParticipants).toBe(2);
   } finally {
     await db.close();
   }
