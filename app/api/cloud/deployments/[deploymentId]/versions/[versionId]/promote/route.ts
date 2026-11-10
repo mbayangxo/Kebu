@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ deploymentId: string; versionId: string }> };
 
-export async function POST(_req: Request, { params }: Params) {
+export async function POST(req: Request, { params }: Params) {
+  const blocked = assertSameOriginMutation(req);
+  if (blocked) return blocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
