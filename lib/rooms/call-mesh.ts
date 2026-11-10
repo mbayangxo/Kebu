@@ -12,19 +12,23 @@
 export const MAX_MESH_PARTICIPANTS = 8;
 
 // Full mesh has no shared/relay path: each participant uploads one video
-// stream per *other* participant, so going from 4 to 8 doesn't add capacity
-// gracefully, it roughly doubles every phone's simultaneous upload load.
-// Kebu's users are mobile-first on mid/low-end Android over African mobile
-// networks where uplink is usually the scarce resource, so a call defaults
-// small; whoever starts it can still opt into a larger one from
-// MESH_PARTICIPANT_OPTIONS. Kept in sync with room_calls.max_participants'
-// column default in supabase/migrations/20261109020000_room_call_default_cap.sql.
-export const DEFAULT_MESH_PARTICIPANTS = 4;
+// stream per *other* participant, so a call at the 8-participant ceiling
+// means 7 simultaneous uploads per phone - a real cost on mid/low-end
+// Android over African mobile networks, where uplink is usually the scarce
+// resource. That tradeoff was weighed explicitly and the decision was to
+// keep 8 as the default rather than shrink it: Kebu's group/family/team
+// calls matter more than protecting every connection from ever straining,
+// and whoever starts a call already sees a size picker (MESH_PARTICIPANT_OPTIONS)
+// if they'd rather keep it smaller for a known-weak connection. This is not
+// an oversight - a smaller default was tried and reverted on explicit
+// product decision. Kept in sync with room_calls.max_participants' column
+// default in supabase/migrations/20261109020000_room_call_default_cap.sql.
+export const DEFAULT_MESH_PARTICIPANTS = MAX_MESH_PARTICIPANTS;
 
 export const MESH_PARTICIPANT_OPTIONS: { value: number; label: string }[] = [
-  { value: 4, label: "Small call (up to 4) — recommended" },
-  { value: 6, label: "Medium call (up to 6) — needs a steady connection" },
-  { value: MAX_MESH_PARTICIPANTS, label: "Large call (up to 8) — may struggle on slower connections" },
+  { value: MAX_MESH_PARTICIPANTS, label: "Up to 8 (default)" },
+  { value: 6, label: "Up to 6 — if your connection is slow" },
+  { value: 4, label: "Up to 4 — smallest, most reliable on a weak connection" },
 ];
 
 export type SignalMessage =

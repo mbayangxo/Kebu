@@ -1,13 +1,11 @@
--- Lower the default mesh-call size and let the call's starter pick a cap
--- within the existing 2-8 range, instead of every call silently defaulting
--- to the ceiling. Full mesh means each participant uploads one video stream
--- per *other* participant with no shared/relay path, so going from 4 to 8
--- participants doesn't add capacity gracefully - it roughly doubles each
--- phone's simultaneous upload load. Kebu's users are mobile-first on
--- mid/low-end Android over African mobile networks where uplink is usually
--- the scarce resource, so a small call should stay small by default; a
--- larger one is still available for whoever explicitly asks for it.
-create or replace function public.room_call_join(p_room uuid, p_max_participants int default 4)
+-- Let the call's starter pick a cap within the existing 2-8 range, instead
+-- of every call silently defaulting to the ceiling with no way to choose
+-- smaller. The default itself stays 8 (an explicit product decision, not an
+-- oversight - see lib/rooms/call-mesh.ts's DEFAULT_MESH_PARTICIPANTS comment
+-- for the mobile-bandwidth tradeoff that was weighed and kept): whoever
+-- wants a smaller, more reliable call on a weak connection can now ask for
+-- one via the size picker, without changing what happens when nobody asks.
+create or replace function public.room_call_join(p_room uuid, p_max_participants int default 8)
 returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -28,7 +26,7 @@ begin
     -- own check constraint just gets pulled back into range instead of
     -- failing the whole join, since the UI already only offers in-range
     -- choices and this is a floor/ceiling, not a validation surface.
-    requested_cap := least(greatest(coalesce(p_max_participants, 4), 2), 8);
+    requested_cap := least(greatest(coalesce(p_max_participants, 8), 2), 8);
     insert into public.room_calls(room_id, started_by, max_participants)
       values (p_room, actor, requested_cap)
       returning * into call_row;
@@ -61,4 +59,6 @@ grant execute on function public.room_call_join(uuid, int) to authenticated;
 -- explicitly so there's exactly one room_call_join to keep in sync with.
 drop function if exists public.room_call_join(uuid);
 
-alter table public.room_calls alter column max_participants set default 4;
+-- Already 8 from 20261108020000; restated for clarity now that the
+-- function above also treats 8 as its explicit default, not an oversight.
+alter table public.room_calls alter column max_participants set default 8;

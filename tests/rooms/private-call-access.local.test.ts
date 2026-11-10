@@ -129,13 +129,14 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
     // End the still-active call so the next join actually starts a fresh one.
     await as(admin, "public.room_call_end($1)", [fresh!.id]);
 
-    // No cap requested: falls back to the lowered mobile-first default (4),
-    // not the old ceiling (8).
+    // No cap requested: stays at the ceiling (8) - an explicit product
+    // decision, not a bug. A smaller cap is only ever applied when someone
+    // actually asks for it (next assertion).
     const defaulted = await as<Joined>(host, "public.room_call_join($1)", [room]);
-    expect(defaulted!.maxParticipants).toBe(4);
+    expect(defaulted!.maxParticipants).toBe(8);
     await as(admin, "public.room_call_end($1)", [defaulted!.id]);
 
-    // A caller-chosen cap within range is honored exactly.
+    // A caller who wants a smaller, more reliable call can still ask for one.
     const chosen = await as<Joined>(host, "public.room_call_join($1, 6)", [room]);
     expect(chosen!.maxParticipants).toBe(6);
     await as(admin, "public.room_call_end($1)", [chosen!.id]);
