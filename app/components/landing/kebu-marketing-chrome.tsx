@@ -34,16 +34,16 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
       <div
-        className="h-[4px] w-full"
+        className="h-[3px] w-full"
         style={{ background: `linear-gradient(90deg, ${C.red}, ${C.orange}, ${C.orangeLight})` }}
       />
       <nav style={{ borderBottom: `1px solid ${C.border}` }}>
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 h-[68px] flex items-center justify-between gap-4">
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 h-[62px] flex items-center justify-between gap-4">
           <Link href="/" className="flex-shrink-0">
             <KebuWordmark size={36} dark />
           </Link>
 
-          <div className="hidden lg:flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <div className="hidden lg:flex items-center gap-5 text-[11px] font-semibold tracking-[0.02em]">
             {KEBU_MARKETING_NAV.map(({ label, href }) => (
               <Link
                 key={href}
@@ -59,7 +59,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/create"
-              className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border"
+              className="hidden sm:inline-flex text-[10px] font-semibold px-3 py-1.5 rounded-md border"
               style={{ borderColor: C.border, color: C.muted }}
             >
               Builder
@@ -67,7 +67,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
             <KebuAuthHeaderCTA orange={C.orange} white={C.white} />
             <button
               type="button"
-              className="lg:hidden rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
+              className="lg:hidden rounded-md border px-2.5 py-1.5 text-[10px] font-semibold"
               style={{ borderColor: C.border, color: C.muted }}
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
@@ -101,10 +101,10 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
               type="button"
               onClick={() => setMenuOpen(false)}
               aria-label="Close menu"
-              className="w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold"
+              className="w-10 h-10 flex items-center justify-center rounded-lg text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               style={{ color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.08)" }}
             >
-              ✕
+              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="M3 3l10 10M13 3 3 13" strokeLinecap="round"/></svg>
             </button>
           </div>
 
@@ -135,7 +135,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
             {!profileLoading && !profile ? (
               <Link
                 href="/login"
-                className="block w-full text-center py-4 rounded-full text-sm font-bold uppercase tracking-[0.1em]"
+                className="block w-full text-center py-3.5 rounded-lg text-sm font-semibold"
                 style={{ border: "2px solid rgba(255,255,255,0.25)", color: C.white }}
                 onClick={() => setMenuOpen(false)}
               >
@@ -144,7 +144,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
             ) : null}
             <Link
               href={profile ? "/dashboard" : "/signup"}
-              className="block w-full text-center py-4 rounded-full text-sm font-bold uppercase tracking-[0.1em]"
+              className="block w-full text-center py-3.5 rounded-lg text-sm font-semibold"
               style={{ background: C.white, color: C.black }}
               onClick={() => setMenuOpen(false)}
             >
@@ -167,8 +167,7 @@ export function KebuMarketingFooter() {
               <KebuWordmark size={28} dark />
             </div>
             <p className="text-xs leading-relaxed" style={{ color: C.faint }}>
-              Africa&apos;s AI business builder and opportunity operating system — for youth who want to build something
-              real.
+              One Kebu for creating, working, selling, communicating and finding opportunities.
             </p>
           </div>
           <div>

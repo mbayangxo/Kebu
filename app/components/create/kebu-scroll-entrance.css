@@ -66,4 +66,29 @@
   .kebu-entrance-list.kebu-entered > *:nth-child(5) { transition-delay: 0.33s; opacity: 1; transform: none; }
   .kebu-entrance-list.kebu-entered > *:nth-child(6) { transition-delay: 0.40s; opacity: 1; transform: none; }
   .kebu-entrance-list.kebu-entered > *:nth-child(n+7) { transition-delay: 0.45s; opacity: 1; transform: none; }
+
+  /*
+   * Structured motion specs (Phase 3B) — CSS custom-property-driven entrance.
+   * JS stamps --km-* properties from the SectionMotionEntry transform fields.
+   * These defaults produce a generic fade-up if JS hasn't set the vars yet.
+   */
+  .kebu-spec-entrance {
+    opacity: var(--km-op-from, 0);
+    transform:
+      translateX(var(--km-tx-from, 0px))
+      translateY(var(--km-ty-from, 24px))
+      scale(var(--km-sc-from, 1));
+    will-change: opacity, transform;
+  }
+
+  .kebu-spec-entrance.kebu-entered {
+    opacity: var(--km-op-to, 1);
+    transform:
+      translateX(var(--km-tx-to, 0px))
+      translateY(var(--km-ty-to, 0px))
+      scale(var(--km-sc-to, 1));
+    transition:
+      opacity var(--km-dur, 400ms) var(--km-ease, ease-out) var(--km-delay, 0ms),
+      transform var(--km-dur, 400ms) var(--km-ease, ease-out) var(--km-delay, 0ms);
+  }
 }

@@ -1,0 +1,35 @@
+{
+  "source": "Artist supplied these four JPEGs and the 16.021333-second Yaw Laa Taan design demo in this conversation. JPEGs preserve original bytes. Video is H.264/AAC re-encoded for web delivery with faststart; audio is remuxed from the original AAC without re-encoding. This is a preview, not a full released track. No faces were generated or edited.",
+  "assets": [
+    {
+      "file": "gold-portraits.jpeg",
+      "bytes": 736784,
+      "sha256": "ef00876c281bf9c7539ea1ce17e3dcc97134e9ab637925081914be103d257297"
+    },
+    {
+      "file": "pink-portrait.jpeg",
+      "bytes": 511570,
+      "sha256": "fbf58dbe5417804f83ef846e8d695905d1ec780618516fe3a30c3d181f295be9"
+    },
+    {
+      "file": "yaw-laa-taan-cover.jpeg",
+      "bytes": 649344,
+      "sha256": "6c4426c1d27b78a2fb52745f855ea11cd43a59b1d9184616d439a25f6061b8f9"
+    },
+    {
+      "file": "yaw-laa-taan-preview.m4a",
+      "bytes": 262351,
+      "sha256": "b4742de7ab1fe412aeb648e92822b075ef0428b1430a9f185e2ec8b14a429ebd"
+    },
+    {
+      "file": "yaw-laa-taan-preview.mp4",
+      "bytes": 3594297,
+      "sha256": "ab06c82ef1a67a0b1deda0fd33f7c166d0561e2da28d46405dfb708532265754"
+    },
+    {
+      "file": "yaw-laa-taan-storyboard.jpeg",
+      "bytes": 709256,
+      "sha256": "8f087b6b68bb256db677945a1d44873cf0f92c8bc2edfdf8e3cb9af9f671136e"
+    }
+  ]
+}

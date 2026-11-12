@@ -14,25 +14,25 @@ export default async function StudioTemplatesPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#FFF8F0" }}>
+    <div className="min-h-screen" style={{ background: "#F7F5F1" }}>
       <header className="border-b border-black/10 bg-white/80 backdrop-blur px-4 py-4">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-4">
           <div>
             <Link href="/studio" className="text-xs underline opacity-60">
               ← Studio
             </Link>
             <p className="text-xs font-bold uppercase tracking-widest text-orange-600 mt-2">Discover</p>
-            <h1 className="font-display text-2xl font-bold mt-1">Template gallery</h1>
+            <h1 className="font-display text-2xl font-bold mt-1">Themes & templates</h1>
             <p className="text-sm opacity-70 mt-1">
-              Browse by category or size — pick one, customize names, open the canvas.
+              Start from a complete visual direction, then make every layer yours. Search by format, use case or style.
             </p>
           </div>
           <Link
             href="/studio/new"
             className="rounded-full px-4 py-2 text-sm font-bold text-white"
-            style={{ background: "#E05A2B" }}
+            style={{ background: "#FF6A00" }}
           >
-            AI campaign
+            Create from scratch
           </Link>
         </div>
       </header>

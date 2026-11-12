@@ -1,0 +1,724 @@
+-- Approved S5 page lifecycle extension. Additive follow-up; no frozen migration edits.
+alter table public.project_pages add column order_key text;
+alter table public.project_pages add column kcd_unknown jsonb;
+alter table public.creative_op_journal add column removed_pages jsonb;
+update public.project_pages p set order_key=k.keys[r.rn] from
+ (select id,project_id,row_number() over(partition by project_id order by sort_order,id)::int rn from public.project_pages) r,
+ (select project_id,public.kcd_evenly_spaced_keys(count(*)::int) keys from public.project_pages group by project_id) k where p.id=r.id and r.project_id=k.project_id;
+alter table public.project_pages add constraint project_pages_order_key_unique unique(project_id,order_key) deferrable initially immediate;
+alter table public.project_pages drop constraint project_pages_project_id_slug_key;
+alter table public.project_pages add constraint project_pages_project_id_slug_key unique(project_id,slug) deferrable initially immediate;
+alter table public.project_pages add constraint project_pages_kcd_unknown_object check(kcd_unknown is null or jsonb_typeof(kcd_unknown)='object');
+
+create or replace function public.kcd__validate_page(p_page jsonb,p_op int) returns void language plpgsql as $$
+begin
+ if jsonb_typeof(p_page) is distinct from 'object' or not public.kcd__is_uuid(p_page->'id',false) then perform public.kcd__fail('KCD_INVALID','Invalid page identity',p_op); end if;
+ if jsonb_typeof(p_page->'title') is distinct from 'string' or length(btrim(p_page->>'title')) not between 1 and 120 or jsonb_typeof(p_page->'slug') is distinct from 'string' or (p_page->>'slug') !~ '^[a-z0-9]+(-[a-z0-9]+)*$' or length(p_page->>'slug') not between 1 and 60 then perform public.kcd__fail('KCD_INVALID','Invalid page title or slug',p_op); end if;
+ if jsonb_typeof(p_page->'orderKey') is distinct from 'string' or not public.kcd_order_key_valid(p_page->>'orderKey') then perform public.kcd__fail('KCD_INVALID','Invalid page order key',p_op); end if;
+ if jsonb_typeof(p_page->'deviceLayout') is distinct from 'object' or exists(select 1 from jsonb_object_keys(p_page->'deviceLayout') k where k not in ('tablet','mobile')) then perform public.kcd__fail('KCD_INVALID','Invalid page device layouts',p_op); end if;
+ if p_page ? 'unknown' and jsonb_typeof(p_page->'unknown') <> 'object' then perform public.kcd__fail('KCD_INVALID','Invalid page unknown data',p_op); end if;
+end $$;
+
+create or replace function public.kcd_page_version_guard() returns trigger language plpgsql set search_path=public,pg_temp as $$
+begin
+ if tg_op='INSERT' and new.order_key is null then
+   perform 1 from public.projects where id=new.project_id for update;
+   new.order_key := public.kcd_order_key_after((select order_key from public.project_pages where project_id=new.project_id order by order_key collate "C" desc nulls last limit 1));
+ end if;
+ if tg_op='UPDATE' and current_setting('kcd.applying',true) is distinct from 'on' and (new.title,new.slug,new.sort_order,new.device_layouts,new.order_key,new.kcd_unknown) is distinct from (old.title,old.slug,old.sort_order,old.device_layouts,old.order_key,old.kcd_unknown) then new.layout_version:=old.layout_version+1; end if;
+ return new;
+end $$;
+create trigger kcd_page_version_guard before insert or update on public.project_pages for each row execute function public.kcd_page_version_guard();
+-- Preserve 3B page order when a project later opts in.
+create or replace function public.kcd_document_schema_transition()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if new.document_schema_version is not distinct from old.document_schema_version then return new; end if;
+  if new.document_schema_version = 'kcd-1' then
+    perform set_config('kcd.applying', 'on', true);
+    set constraints public.project_sections_sibling_order_key deferred;
+    set constraints public.project_pages_order_key_unique deferred;
+    with ranked_pages as (
+      select id, row_number() over(order by sort_order,id)::int rn,
+             count(*) over()::int n from public.project_pages where project_id=new.id
+    )
+    update public.project_pages p
+    set order_key=(public.kcd_evenly_spaced_keys(r.n))[r.rn], sort_order=r.rn-1,
+        layout_version=p.layout_version + case when p.order_key=(public.kcd_evenly_spaced_keys(r.n))[r.rn] and p.sort_order=r.rn-1 then 0 else 1 end
+    from ranked_pages r where p.id=r.id;
+    set constraints public.project_pages_order_key_unique immediate;
+    with ranked as (
+      select s.id,
+             row_number() over (partition by s.page_id order by s.sort_order, s.order_key collate "C", s.id) as rn,
+             count(*)     over (partition by s.page_id) as n
+      from   public.project_sections s
+      join   public.project_pages pg on pg.id = s.page_id
+      where  pg.project_id = new.id and s.parent_id is null
+    )
+    update public.project_sections s
+    set    order_key = (public.kcd_evenly_spaced_keys(r.n::int))[r.rn],
+           sort_order = r.rn - 1,
+           node_version = s.node_version + case when s.order_key = (public.kcd_evenly_spaced_keys(r.n::int))[r.rn] then 0 else 1 end
+    from   ranked r
+    where  s.id = r.id;
+    set constraints public.project_sections_sibling_order_key immediate;
+    perform set_config('kcd.applying', 'off', true);
+  else
+    if exists (
+      select 1 from public.project_sections s join public.project_pages pg on pg.id = s.page_id
+      where  pg.project_id = new.id and (s.parent_id is not null or s.section_type in ('section', 'group'))
+    ) then
+      raise exception 'project % contains nested or native elements and cannot return to the 3B path', new.id
+        using errcode = 'check_violation';
+    end if;
+  end if;
+  return new;
+end $$;
+
+create or replace function public.kcd__apply(p_project_id uuid, p_tx jsonb)
+returns jsonb language plpgsql as $$
+declare
+  v_ops      jsonb := p_tx -> 'ops';
+  v_expect   jsonb := p_tx -> 'expect';
+  v_op       jsonb;
+  v_i        int := -1;
+  v_name     text;
+  v_addr     text[] := '{}';
+  v_conf     jsonb := '[]';
+  v_touched  uuid[] := '{}';
+  v_inserted uuid[] := '{}';
+  v_restored jsonb := '{}';
+  v_removed  jsonb := '{}';
+  v_pages    uuid[] := '{}';
+  v_new_pages uuid[] := '{}';
+  v_restored_pages jsonb := '{}';
+  v_removed_pages jsonb := '{}';
+  v_page_data jsonb;
+  v_page_row public.project_pages;
+  v_slots    text[] := '{}';
+  v_rebal    text[] := '{}';
+  v_keys     jsonb := '{}';
+  v_node     public.project_sections;
+  v_rules    public.kcd_node_types;
+  v_n        jsonb;
+  v_batch    uuid[];
+  v_top      uuid;
+  v_id       uuid;
+  v_parent   uuid;
+  v_page     uuid;
+  v_segs     text[];
+  v_props    jsonb;
+  v_bucket   jsonb;
+  v_ver      bigint;
+  v_type     text;
+  v_key      text;
+  v_slot     text;
+  v_layouts  jsonb;
+  v_comp     jsonb;
+  v_cur      uuid;
+  v_actual   bigint;
+  v_versions jsonb := '{}';
+  v_k        text;
+  v_kids     record;
+  v_new      text[];
+  v_idx      int;
+begin
+  perform set_config('kcd.applying', 'on', true);
+  set constraints public.project_sections_sibling_order_key deferred;
+  set constraints public.project_pages_order_key_unique deferred;
+  set constraints public.project_pages_project_id_slug_key deferred;
+
+  -- Expected versions (core addressedIds / checkVersions): every existing node or page addressed.
+  for v_op in select * from jsonb_array_elements(v_ops) loop
+    v_name := v_op ->> 'op';
+    if v_name in ('insertNode', 'insertSubtree', 'restoreSubtree', 'insertPage', 'restorePage') then continue; end if;
+    if v_name in ('setDeviceComposition', 'updatePage', 'movePage', 'removePage') then
+      if public.kcd__is_uuid(v_op -> 'pageId', false)
+         and exists (select 1 from public.project_pages where id = (v_op ->> 'pageId')::uuid and project_id = p_project_id) then
+        v_addr := v_addr || (v_op ->> 'pageId');
+        if v_name = 'removePage' then v_addr := v_addr || coalesce((select array_agg(id::text) from public.project_sections where page_id = (v_op ->> 'pageId')::uuid), '{}'); end if;
+      end if;
+    elsif public.kcd__is_uuid(v_op -> 'id', false) and (public.kcd__node(p_project_id, (v_op ->> 'id')::uuid)).id is not null then
+      v_addr := v_addr || (v_op ->> 'id');
+    end if;
+  end loop;
+  select coalesce(array_agg(distinct a order by a), '{}') into v_addr from unnest(v_addr) a;
+  -- Lock addressed rows in id order (the project row is already locked by the caller).
+  perform 1 from public.project_sections where id = any (v_addr::uuid[]) order by id for update;
+  perform 1 from public.project_pages    where id = any (v_addr::uuid[]) order by id for update;
+  foreach v_k in array v_addr loop
+    select node_version into v_actual from public.project_sections where id = v_k::uuid;
+    if not found then select layout_version into v_actual from public.project_pages where id = v_k::uuid; end if;
+    if not (v_expect ? v_k) then perform public.kcd__fail('KCD_INVALID', format('Missing expected version for %s', v_k)); end if;
+    if (v_expect ->> v_k)::bigint <> v_actual then
+      v_conf := v_conf || jsonb_build_object('id', v_k, 'expected', (v_expect ->> v_k)::bigint, 'actual', v_actual);
+    end if;
+  end loop;
+  if jsonb_array_length(v_conf) > 0 then
+    raise exception using errcode = 'KCCON', message = 'Changed elsewhere — reload to continue', detail = v_conf::text;
+  end if;
+
+  for v_op in select * from jsonb_array_elements(v_ops) loop
+    v_i := v_i + 1;
+    v_name := v_op ->> 'op';
+
+    if v_name in ('insertPage', 'restorePage') then
+      v_page_data := v_op -> 'page';
+      perform public.kcd__validate_page(v_page_data, v_i);
+      v_page := (v_page_data ->> 'id')::uuid;
+      if exists(select 1 from public.project_pages where id=v_page) or exists(select 1 from public.project_sections where id=v_page) then perform public.kcd__fail('KCD_INVALID','Page identity already exists',v_i); end if;
+      if (select count(*) from public.project_pages where project_id=p_project_id) >= 12 then perform public.kcd__fail('KCD_INVALID','Maximum 12 pages per site',v_i); end if;
+      v_ver := 1;
+      if v_name = 'insertPage' then
+        if not public.kcd__is_uuid(v_page_data->'id',true) or v_removed_pages ? v_page::text or exists(select 1 from public.creative_op_journal where project_id=p_project_id and status='committed' and removed_pages ? v_page::text) then perform public.kcd__fail('KCD_INVALID','New page identity cannot reuse a tombstone',v_i); end if;
+        v_new_pages := v_new_pages || v_page;
+      else
+        if v_removed_pages ? v_page::text then
+          v_ver := (v_removed_pages->>v_page::text)::bigint;
+          v_removed_pages := v_removed_pages - v_page::text;
+        else
+          select (removed_pages->>v_page::text)::bigint into v_ver from public.creative_op_journal where project_id=p_project_id and status='committed' and removed_pages ? v_page::text order by id desc limit 1;
+        end if;
+        if v_ver is null or v_ver <> (v_page_data->>'layoutVersion')::bigint then perform public.kcd__fail('KCD_INVALID','Page must be restored at its recorded version',v_i); end if;
+        v_ver := v_ver + 1; v_restored_pages := v_restored_pages || jsonb_build_object(v_page::text,v_ver);
+      end if;
+      v_layouts := '{}'::jsonb;
+      foreach v_key in array array['tablet','mobile'] loop
+        if v_page_data->'deviceLayout' ? v_key then v_layouts := v_layouts || jsonb_build_object(v_key,public.kcd__composition(v_page_data->'deviceLayout'->v_key,v_i)); end if;
+      end loop;
+      insert into public.project_pages(id,project_id,slug,title,sort_order,order_key,layout_version,device_layouts,kcd_unknown)
+      values(v_page,p_project_id,v_page_data->>'slug',v_page_data->>'title',0,v_page_data->>'orderKey',v_ver,nullif(v_layouts,'{}'::jsonb),v_page_data->'unknown') returning * into v_page_row;
+      if v_name = 'restorePage' then
+        v_n := v_op->'nodes';
+        if jsonb_typeof(v_n) is distinct from 'array' then perform public.kcd__fail('KCD_INVALID','Restored page elements must be an array',v_i); end if;
+      v_batch := '{}';
+      v_top := null;
+      for v_idx in 0 .. jsonb_array_length(v_n) - 1 loop
+        v_op := v_n -> v_idx;
+        if jsonb_typeof(v_op) is distinct from 'object' or not public.kcd__is_uuid(v_op -> 'id', false) then
+          perform public.kcd__fail('KCD_INVALID', 'Restored elements need their original ids', v_i);
+        end if;
+        v_id := (v_op ->> 'id')::uuid;
+        if exists (select 1 from public.project_pages where id = v_id) or exists (select 1 from public.project_sections where id = v_id) then perform public.kcd__fail('KCD_INVALID', format('Element %s already exists', v_id), v_i); end if;
+        if jsonb_typeof(v_op -> 'version') is distinct from 'number' or (v_op ->> 'version')::numeric < 1
+           or (v_op ->> 'version')::numeric <> floor((v_op ->> 'version')::numeric) then
+          perform public.kcd__fail('KCD_INVALID', 'Restored elements need their recorded version', v_i);
+        end if;
+        if jsonb_typeof(v_op -> 'orderKey') is distinct from 'string' or not public.kcd_order_key_valid(v_op ->> 'orderKey') then
+          perform public.kcd__fail('KCD_INVALID', 'Invalid order key', v_i);
+        end if;
+        if not public.kcd__is_uuid(v_op -> 'pageId', false) then perform public.kcd__fail('KCD_INVALID', 'pageId must be a UUID', v_i); end if;
+        v_page := (v_op ->> 'pageId')::uuid;
+        if v_page <> v_page_row.id then perform public.kcd__fail('KCD_INVALID', 'Restored element belongs to another page', v_i); end if;
+        v_parent := case when public.kcd__is_uuid(v_op -> 'parentId', false) then (v_op ->> 'parentId')::uuid else null end;
+        if v_op -> 'parentId' is not null and jsonb_typeof(v_op -> 'parentId') <> 'null' and v_parent is null then
+          perform public.kcd__fail('KCD_INVALID', 'parentId must be a UUID or null', v_i);
+        end if;
+        v_type := v_op ->> 'type';
+        select * into v_rules from public.kcd_node_types where type = v_type;
+        if not found then perform public.kcd__fail('KCD_INVALID', format('Unknown element type "%s"', v_type), v_i); end if;
+        if v_parent is not null and v_parent = any (v_batch) then
+          if (select page_id from public.project_sections where id = v_parent) <> v_page then
+            perform public.kcd__fail('KCD_INVALID', 'An element and its parent must be on the same page', v_i);
+          end if;
+        else
+          if v_parent is not null then perform public.kcd__fail('KCD_INVALID', 'Restore page nodes parents first', v_i); end if;
+          v_top := v_id;
+          perform public.kcd__check_placement(p_project_id, v_page, v_parent, v_type, v_i);
+        end if;
+        -- Only ids removed in THIS document may come back: in this transaction, or as recorded
+        -- by the journal at their removed version.
+        if v_removed ? v_id::text then
+          v_ver := (v_removed ->> v_id::text)::bigint;
+          v_removed := v_removed - v_id::text;
+          v_touched := v_touched || v_id;
+        else
+          select (removed_nodes ->> v_id::text)::bigint into v_ver
+          from public.creative_op_journal
+          where project_id = p_project_id and status = 'committed' and removed_nodes ? v_id::text
+          order by id desc limit 1;
+          if v_ver is null then
+            perform public.kcd__fail('KCD_INVALID', format('Element %s was not removed from this document', v_id), v_i);
+          end if;
+          if v_ver <> (v_op ->> 'version')::bigint then
+            perform public.kcd__fail('KCD_INVALID', format('Element %s must be restored at its removed version %s', v_id, v_ver), v_i);
+          end if;
+          v_ver := v_ver + 1;
+          v_restored := v_restored || jsonb_build_object(v_id::text, v_ver);
+        end if;
+        insert into public.project_sections (id, page_id, parent_id, section_type, sort_order, props, order_key, node_version, type_version)
+        values (v_id, v_page, v_parent, v_rules.storage_type, 0, public.kcd__stored_props(v_op - 'version', v_i), v_op ->> 'orderKey', v_ver,
+                coalesce((v_op ->> 'typeVersion')::int, v_rules.version));
+        v_batch := v_batch || v_id;
+        v_slots := v_slots || public.kcd__slot(v_page, v_parent);
+      end loop;
+
+      end if;
+    elsif v_name in ('updatePage','movePage','removePage') then
+      if not public.kcd__is_uuid(v_op->'pageId',false) then perform public.kcd__fail('KCD_INVALID','Page id is required',v_i); end if;
+      v_page := (v_op->>'pageId')::uuid;
+      select * into v_page_row from public.project_pages where id=v_page and project_id=p_project_id;
+      if not found then perform public.kcd__fail('KCD_INVALID','Page does not exist',v_i); end if;
+      if v_name = 'removePage' then
+        if (select count(*) from public.project_pages where project_id=p_project_id) <= 1 then perform public.kcd__fail('KCD_INVALID','Cannot delete the last page',v_i); end if;
+        for v_kids in select id,node_version from public.project_sections where page_id=v_page loop
+          if v_kids.id = any(v_inserted) then v_inserted := array_remove(v_inserted,v_kids.id);
+          elsif v_restored ? v_kids.id::text then v_restored := v_restored-v_kids.id::text;
+          else v_removed := v_removed || jsonb_build_object(v_kids.id::text,v_kids.node_version); end if;
+          v_touched := array_remove(v_touched,v_kids.id);
+        end loop;
+        if v_page=any(v_new_pages) then v_new_pages:=array_remove(v_new_pages,v_page);
+        elsif v_restored_pages ? v_page::text then v_restored_pages:=v_restored_pages-v_page::text;
+        else v_removed_pages:=v_removed_pages || jsonb_build_object(v_page::text,v_page_row.layout_version); end if;
+        v_pages:=array_remove(v_pages,v_page);
+        delete from public.project_pages where id=v_page;
+      elsif v_name = 'movePage' then
+        if jsonb_typeof(v_op->'orderKey') is distinct from 'string' or not public.kcd_order_key_valid(v_op->>'orderKey') then perform public.kcd__fail('KCD_INVALID','Invalid page order key',v_i); end if;
+        if v_page_row.order_key is distinct from v_op->>'orderKey' then
+          update public.project_pages set order_key=v_op->>'orderKey',updated_at=now() where id=v_page;
+          v_pages:=v_pages || v_page;
+        end if;
+      else
+        if (v_op ? 'title' and (jsonb_typeof(v_op->'title') is distinct from 'string' or length(btrim(v_op->>'title')) not between 1 and 120)) or (v_op ? 'slug' and (jsonb_typeof(v_op->'slug') is distinct from 'string' or (v_op->>'slug') !~ '^[a-z0-9]+(-[a-z0-9]+)*$' or length(v_op->>'slug') not between 1 and 60)) then perform public.kcd__fail('KCD_INVALID','Invalid page title or slug',v_i); end if;
+        if (v_op ? 'title' and v_page_row.title is distinct from v_op->>'title') or (v_op ? 'slug' and v_page_row.slug is distinct from v_op->>'slug') then
+          update public.project_pages set title=coalesce(v_op->>'title',title),slug=coalesce(v_op->>'slug',slug),updated_at=now() where id=v_page;
+          v_pages:=v_pages || v_page;
+        end if;
+      end if;
+    elsif v_name in ('insertNode', 'insertSubtree') then
+      if v_name = 'insertNode' then
+        if jsonb_typeof(v_op -> 'node') is distinct from 'object' then perform public.kcd__fail('KCD_INVALID', 'Element must be an object', v_i); end if;
+        v_n := jsonb_build_array((v_op -> 'node') || jsonb_build_object('pageId', v_op -> 'pageId', 'parentId', v_op -> 'parentId', 'orderKey', v_op -> 'orderKey'));
+      else
+        v_n := v_op -> 'nodes';
+        if jsonb_typeof(v_n) is distinct from 'array' or jsonb_array_length(v_n) = 0 then
+          perform public.kcd__fail('KCD_INVALID', 'insertSubtree needs at least one element', v_i);
+        end if;
+      end if;
+      v_batch := '{}';
+      for v_idx in 0 .. jsonb_array_length(v_n) - 1 loop
+        v_op := v_n -> v_idx;
+        if jsonb_typeof(v_op) is distinct from 'object' then perform public.kcd__fail('KCD_INVALID', 'Element must be an object', v_i); end if;
+        if not public.kcd__is_uuid(v_op -> 'id', true) then perform public.kcd__fail('KCD_INVALID', 'New element ids must be UUID v4', v_i); end if;
+        v_id := (v_op ->> 'id')::uuid;
+        if exists (select 1 from public.project_pages where id = v_id) or exists (select 1 from public.project_sections where id = v_id) or v_removed ? v_id::text
+           or exists (select 1 from public.creative_op_journal where project_id = p_project_id and status = 'committed' and removed_nodes ? v_id::text) then
+          perform public.kcd__fail('KCD_INVALID', format('Element id %s is already in use', v_id), v_i);
+        end if;
+        if jsonb_typeof(v_op -> 'parentId') = 'null' or v_op -> 'parentId' is null then v_parent := null;
+        elsif public.kcd__is_uuid(v_op -> 'parentId', false) then v_parent := (v_op ->> 'parentId')::uuid;
+        else perform public.kcd__fail('KCD_INVALID', 'parentId must be a UUID or null', v_i);
+        end if;
+        if v_name = 'insertSubtree' and v_parent is not null and not (v_parent = any (v_batch))
+           and exists (select 1 from jsonb_array_elements(v_n) m where m ->> 'id' = v_parent::text) then
+          perform public.kcd__fail('KCD_INVALID', 'insertSubtree must list parents before their children', v_i);
+        end if;
+        if not public.kcd__is_uuid(v_op -> 'pageId', false) then perform public.kcd__fail('KCD_INVALID', 'pageId must be a UUID', v_i); end if;
+        v_page := (v_op ->> 'pageId')::uuid;
+        v_type := v_op ->> 'type';
+        select * into v_rules from public.kcd_node_types where type = v_type;
+        if not found then perform public.kcd__fail('KCD_INVALID', format('Unknown element type "%s"', v_type), v_i); end if;
+        if (v_op ->> 'typeVersion') is distinct from v_rules.version::text then
+          perform public.kcd__fail('KCD_INVALID', format('"%s" must be created at version %s', v_type, v_rules.version), v_i);
+        end if;
+        if not public.kcd_order_key_valid(v_op ->> 'orderKey') or jsonb_typeof(v_op -> 'orderKey') <> 'string' then
+          perform public.kcd__fail('KCD_INVALID', 'Invalid order key', v_i);
+        end if;
+        perform public.kcd__check_placement(p_project_id, v_page, v_parent, v_type, v_i);
+        insert into public.project_sections (id, page_id, parent_id, section_type, sort_order, props, order_key, node_version, type_version)
+        values (v_id, v_page, v_parent, v_rules.storage_type, 0, public.kcd__stored_props(v_op, v_i), v_op ->> 'orderKey', 1, v_rules.version);
+        v_inserted := v_inserted || v_id;
+        v_batch := v_batch || v_id;
+        v_slots := v_slots || public.kcd__slot(v_page, v_parent);
+      end loop;
+
+    elsif v_name = 'removeNode' then
+      if not public.kcd__is_uuid(v_op -> 'id', false) then perform public.kcd__fail('KCD_INVALID', 'Element id is required', v_i); end if;
+      v_node := public.kcd__node(p_project_id, (v_op ->> 'id')::uuid);
+      if v_node.id is null then perform public.kcd__fail('KCD_INVALID', format('Element %s does not exist', v_op ->> 'id'), v_i); end if;
+      for v_kids in
+        with recursive sub as (
+          select id, node_version from public.project_sections where id = v_node.id
+          union all
+          select s.id, s.node_version from public.project_sections s join sub on s.parent_id = sub.id
+        ) select * from sub
+      loop
+        if v_kids.id = any (v_inserted) then v_inserted := array_remove(v_inserted, v_kids.id);
+        elsif v_restored ? v_kids.id::text then v_restored := v_restored - v_kids.id::text;
+        else v_removed := v_removed || jsonb_build_object(v_kids.id::text, v_kids.node_version);
+        end if;
+        v_touched := array_remove(v_touched, v_kids.id);
+      end loop;
+      delete from public.project_sections where id = v_node.id;
+      v_slots := v_slots || public.kcd__slot(v_node.page_id, v_node.parent_id);
+
+    elsif v_name = 'restoreSubtree' then
+      v_n := v_op -> 'nodes';
+      if jsonb_typeof(v_n) is distinct from 'array' or jsonb_array_length(v_n) = 0 then
+        perform public.kcd__fail('KCD_INVALID', 'restoreSubtree needs at least one element', v_i);
+      end if;
+      v_batch := '{}';
+      v_top := null;
+      for v_idx in 0 .. jsonb_array_length(v_n) - 1 loop
+        v_op := v_n -> v_idx;
+        if jsonb_typeof(v_op) is distinct from 'object' or not public.kcd__is_uuid(v_op -> 'id', false) then
+          perform public.kcd__fail('KCD_INVALID', 'Restored elements need their original ids', v_i);
+        end if;
+        v_id := (v_op ->> 'id')::uuid;
+        if exists (select 1 from public.project_pages where id = v_id) or exists (select 1 from public.project_sections where id = v_id) then perform public.kcd__fail('KCD_INVALID', format('Element %s already exists', v_id), v_i); end if;
+        if jsonb_typeof(v_op -> 'version') is distinct from 'number' or (v_op ->> 'version')::numeric < 1
+           or (v_op ->> 'version')::numeric <> floor((v_op ->> 'version')::numeric) then
+          perform public.kcd__fail('KCD_INVALID', 'Restored elements need their recorded version', v_i);
+        end if;
+        if jsonb_typeof(v_op -> 'orderKey') is distinct from 'string' or not public.kcd_order_key_valid(v_op ->> 'orderKey') then
+          perform public.kcd__fail('KCD_INVALID', 'Invalid order key', v_i);
+        end if;
+        if not public.kcd__is_uuid(v_op -> 'pageId', false) then perform public.kcd__fail('KCD_INVALID', 'pageId must be a UUID', v_i); end if;
+        v_page := (v_op ->> 'pageId')::uuid;
+        v_parent := case when public.kcd__is_uuid(v_op -> 'parentId', false) then (v_op ->> 'parentId')::uuid else null end;
+        if v_op -> 'parentId' is not null and jsonb_typeof(v_op -> 'parentId') <> 'null' and v_parent is null then
+          perform public.kcd__fail('KCD_INVALID', 'parentId must be a UUID or null', v_i);
+        end if;
+        v_type := v_op ->> 'type';
+        select * into v_rules from public.kcd_node_types where type = v_type;
+        if not found then perform public.kcd__fail('KCD_INVALID', format('Unknown element type "%s"', v_type), v_i); end if;
+        if v_parent is not null and v_parent = any (v_batch) then
+          if (select page_id from public.project_sections where id = v_parent) <> v_page then
+            perform public.kcd__fail('KCD_INVALID', 'An element and its parent must be on the same page', v_i);
+          end if;
+        else
+          if v_top is not null then perform public.kcd__fail('KCD_INVALID', 'restoreSubtree restores exactly one subtree, parents first', v_i); end if;
+          v_top := v_id;
+          perform public.kcd__check_placement(p_project_id, v_page, v_parent, v_type, v_i);
+        end if;
+        -- Only ids removed in THIS document may come back: in this transaction, or as recorded
+        -- by the journal at their removed version.
+        if v_removed ? v_id::text then
+          v_ver := (v_removed ->> v_id::text)::bigint;
+          v_removed := v_removed - v_id::text;
+          v_touched := v_touched || v_id;
+        else
+          select (removed_nodes ->> v_id::text)::bigint into v_ver
+          from public.creative_op_journal
+          where project_id = p_project_id and status = 'committed' and removed_nodes ? v_id::text
+          order by id desc limit 1;
+          if v_ver is null then
+            perform public.kcd__fail('KCD_INVALID', format('Element %s was not removed from this document', v_id), v_i);
+          end if;
+          if v_ver <> (v_op ->> 'version')::bigint then
+            perform public.kcd__fail('KCD_INVALID', format('Element %s must be restored at its removed version %s', v_id, v_ver), v_i);
+          end if;
+          v_ver := v_ver + 1;
+          v_restored := v_restored || jsonb_build_object(v_id::text, v_ver);
+        end if;
+        insert into public.project_sections (id, page_id, parent_id, section_type, sort_order, props, order_key, node_version, type_version)
+        values (v_id, v_page, v_parent, v_rules.storage_type, 0, public.kcd__stored_props(v_op - 'version', v_i), v_op ->> 'orderKey', v_ver,
+                coalesce((v_op ->> 'typeVersion')::int, v_rules.version));
+        v_batch := v_batch || v_id;
+        v_slots := v_slots || public.kcd__slot(v_page, v_parent);
+      end loop;
+
+    elsif v_name = 'setDeviceComposition' then
+      if (v_op ->> 'device') not in ('tablet', 'mobile') or v_op ->> 'device' is null then perform public.kcd__fail('KCD_INVALID', 'Unknown device', v_i); end if;
+      if not public.kcd__is_uuid(v_op -> 'pageId', false)
+         or not exists (select 1 from public.project_pages where id = (v_op ->> 'pageId')::uuid and project_id = p_project_id) then
+        perform public.kcd__fail('KCD_INVALID', format('Page %s does not exist', v_op ->> 'pageId'), v_i);
+      end if;
+      v_page := (v_op ->> 'pageId')::uuid;
+      v_comp := v_op -> 'composition';
+      select coalesce(device_layouts, '{}'::jsonb) - (v_op ->> 'device') into v_layouts from public.project_pages where id = v_page;
+      if v_comp is not null and jsonb_typeof(v_comp) <> 'null' then
+        v_comp := public.kcd__composition(v_comp, v_i);
+        if v_comp <> '{}'::jsonb then v_layouts := v_layouts || jsonb_build_object(v_op ->> 'device', v_comp); end if;
+      end if;
+      update public.project_pages set device_layouts = nullif(v_layouts, '{}'::jsonb), updated_at = now() where id = v_page;
+      if not (v_page = any (v_pages)) then v_pages := v_pages || v_page; end if;
+
+    elsif v_name in ('moveNode', 'setProp', 'unsetProp', 'setOverride', 'clearOverride', 'setA11y', 'setVisibility', 'setLocked', 'setResponsiveState') then
+      if not public.kcd__is_uuid(v_op -> 'id', false) then perform public.kcd__fail('KCD_INVALID', 'Element id is required', v_i); end if;
+      v_node := public.kcd__node(p_project_id, (v_op ->> 'id')::uuid);
+      if v_node.id is null then perform public.kcd__fail('KCD_INVALID', format('Element %s does not exist', v_op ->> 'id'), v_i); end if;
+      v_type := public.kcd_node_type(v_node.section_type, v_node.parent_id);
+      select * into v_rules from public.kcd_node_types where type = v_type;
+      v_props := v_node.props;
+
+      if v_name = 'moveNode' then
+        if v_op -> 'parentId' is null or jsonb_typeof(v_op -> 'parentId') = 'null' then v_parent := null;
+        elsif public.kcd__is_uuid(v_op -> 'parentId', false) then v_parent := (v_op ->> 'parentId')::uuid;
+        else perform public.kcd__fail('KCD_INVALID', 'parentId must be a UUID or null', v_i);
+        end if;
+        if jsonb_typeof(v_op -> 'orderKey') is distinct from 'string' or not public.kcd_order_key_valid(v_op ->> 'orderKey') then
+          perform public.kcd__fail('KCD_INVALID', 'Invalid order key', v_i);
+        end if;
+        v_cur := v_parent;
+        while v_cur is not null loop
+          if v_cur = v_node.id then perform public.kcd__fail('KCD_INVALID', 'An element cannot be moved inside itself', v_i); end if;
+          select parent_id into v_cur from public.project_sections where id = v_cur;
+        end loop;
+        perform public.kcd__check_placement(p_project_id, v_node.page_id, v_parent, v_type, v_i);
+        if v_node.parent_id is not distinct from v_parent and v_node.order_key = v_op ->> 'orderKey' then continue; end if;
+        update public.project_sections set parent_id = v_parent, order_key = v_op ->> 'orderKey', updated_at = now() where id = v_node.id;
+        v_slots := v_slots || public.kcd__slot(v_node.page_id, v_node.parent_id) || public.kcd__slot(v_node.page_id, v_parent);
+
+      elsif v_name in ('setProp', 'unsetProp') then
+        v_segs := public.kcd__parse_path(v_op -> 'path', v_i);
+        if v_name = 'setProp' then
+          if not (v_op ? 'value') then perform public.kcd__fail('KCD_INVALID', 'setProp needs a value (use unsetProp to clear)', v_i); end if;
+          v_props := public.kcd__write_path(v_props, v_segs, v_op -> 'value', false, v_i);
+        else
+          if public.kcd__read_path(v_props, v_segs) is null then continue; end if;
+          v_props := public.kcd__write_path(v_props, v_segs, null, true, v_i);
+        end if;
+
+      elsif v_name = 'setOverride' then
+        if (v_op ->> 'device') is null or (v_op ->> 'device') not in ('tablet', 'mobile') then perform public.kcd__fail('KCD_INVALID', 'Unknown device', v_i); end if;
+        v_key := v_op ->> 'key';
+        if jsonb_typeof(v_op -> 'key') is distinct from 'string' or v_key = '' or v_key in ('deviceOverrides', '_motion', '_a11y', '_visibility', '_interaction', '_dataBinding', '_locked', '__proto__', 'prototype', 'constructor') then
+          perform public.kcd__fail('KCD_INVALID', 'Invalid override key', v_i);
+        end if;
+        if not (v_op ? 'value') then perform public.kcd__fail('KCD_INVALID', 'setOverride needs a value (use clearOverride to clear)', v_i); end if;
+        if not (v_key = any (v_rules.overridable)) then
+          perform public.kcd__fail('KCD_INVALID', format('"%s" cannot be set per device', v_key), v_i);
+        end if;
+        v_props := public.kcd__write_path(v_props, array['deviceOverrides', v_op ->> 'device', v_key], v_op -> 'value', false, v_i);
+
+      elsif v_name = 'clearOverride' then
+        if (v_op ->> 'device') is null or (v_op ->> 'device') not in ('tablet', 'mobile') then perform public.kcd__fail('KCD_INVALID', 'Unknown device', v_i); end if;
+        v_bucket := public.kcd__read_path(v_props, array['deviceOverrides', v_op ->> 'device']);
+        if v_bucket is null or jsonb_typeof(v_bucket) <> 'object' or v_bucket = '{}'::jsonb then continue; end if;
+        if v_op ? 'key' and jsonb_typeof(v_op -> 'key') <> 'null' then
+          if not (v_bucket ? (v_op ->> 'key')) then continue; end if;
+          v_bucket := v_bucket - (v_op ->> 'key');
+        else
+          v_bucket := '{}'::jsonb;
+        end if;
+        if v_bucket = '{}'::jsonb then
+          v_props := jsonb_set(v_props, '{deviceOverrides}', (v_props -> 'deviceOverrides') - (v_op ->> 'device'));
+        else
+          v_props := jsonb_set(v_props, array['deviceOverrides', v_op ->> 'device'], v_bucket);
+        end if;
+        if v_props -> 'deviceOverrides' = '{}'::jsonb then v_props := v_props - 'deviceOverrides'; end if;
+
+      elsif v_name = 'setResponsiveState' then
+        v_n := v_op -> 'value';
+        if v_n is null or jsonb_typeof(v_n) = 'null' then
+          v_props := v_props #- '{deviceOverrides,_state}';
+          if v_props -> 'deviceOverrides' = '{}'::jsonb then v_props := v_props - 'deviceOverrides'; end if;
+        else
+          if jsonb_typeof(v_n) <> 'object'
+             or jsonb_typeof(v_n -> 'mode') is distinct from 'string'
+             or (v_n ->> 'mode') not in ('auto', 'custom', 'needs-review')
+             or (v_n - 'mode' - 'baseHash') <> '{}'::jsonb
+             or (v_n ? 'baseHash' and (jsonb_typeof(v_n -> 'baseHash') <> 'string' or length(v_n ->> 'baseHash') > 32)) then
+            perform public.kcd__fail('KCD_INVALID', 'Invalid responsive state', v_i);
+          end if;
+          v_props := public.kcd__write_path(v_props, array['deviceOverrides', '_state'], v_n, false, v_i);
+        end if;
+
+      else -- setA11y / setVisibility / setLocked: null removes the field
+        v_key := case v_name when 'setA11y' then '_a11y' when 'setVisibility' then '_visibility' else '_locked' end;
+        if v_op -> 'value' is null or jsonb_typeof(v_op -> 'value') = 'null' then
+          v_props := v_props - v_key;
+        else
+          if v_name = 'setLocked' and jsonb_typeof(v_op -> 'value') <> 'boolean' then perform public.kcd__fail('KCD_INVALID', 'locked must be true or false', v_i); end if;
+          if v_name <> 'setLocked' and jsonb_typeof(v_op -> 'value') <> 'object' then perform public.kcd__fail('KCD_INVALID', format('%s value must be an object', v_name), v_i); end if;
+          v_props := v_props || jsonb_build_object(v_key, v_op -> 'value');
+        end if;
+      end if;
+
+      if v_name <> 'moveNode' then
+        -- Server-only enrichment after TypeScript validates the original intent and applies
+        -- the frozen legacy save boundary. Direct owner RPCs have the S4 content-validation
+        -- exposure (owners can already write their own props); structure stays SQL-owned.
+        if v_op ? 'normalizedProps' then
+          if v_type not like 'legacy-section:%' or jsonb_typeof(v_op -> 'normalizedProps') <> 'object' then
+            perform public.kcd__fail('KCD_INVALID', 'Normalized props require a legacy section object', v_i);
+          end if;
+          v_props := v_op -> 'normalizedProps';
+        end if;
+        if octet_length(v_props::text) > 320 * 1024 then perform public.kcd__fail('KCD_LIMIT', format('Element %s is too large', v_node.id), v_i); end if;
+        update public.project_sections set props = v_props, updated_at = now() where id = v_node.id;
+      end if;
+      if not (v_node.id = any (v_inserted)) and not (v_restored ? v_node.id::text) and not (v_node.id = any (v_touched)) then
+        v_touched := v_touched || v_node.id;
+      end if;
+
+    else
+      perform public.kcd__fail('KCD_INVALID', format('Unknown operation "%s"', v_name), v_i);
+    end if;
+  end loop;
+
+  -- Siblings: unique positions, child limits, rebalance (core finishSlots), in slot order.
+  select coalesce(array_agg(distinct s order by s), '{}') into v_slots from unnest(v_slots) s;
+  foreach v_slot in array v_slots loop
+    v_page := split_part(v_slot, '|', 1)::uuid;
+    v_parent := nullif(split_part(v_slot, '|', 2), '')::uuid;
+    if v_parent is not null and not exists (select 1 from public.project_sections where id = v_parent) then continue; end if;
+    if exists (select 1 from public.project_sections where page_id = v_page and parent_id is not distinct from v_parent
+               group by order_key having count(*) > 1) then
+      perform public.kcd__fail('KCD_INVALID', 'Two elements share the same position');
+    end if;
+    if v_parent is not null then
+      select * into v_rules from public.kcd_node_types
+      where type = (select public.kcd_node_type(section_type, parent_id) from public.project_sections where id = v_parent);
+      if v_rules.max_children is not null and
+         (select count(*) from public.project_sections where parent_id = v_parent) > v_rules.max_children then
+        perform public.kcd__fail('KCD_INVALID', format('"%s" can hold at most %s elements', v_rules.type, v_rules.max_children));
+      end if;
+    end if;
+    if exists (select 1 from public.project_sections where page_id = v_page and parent_id is not distinct from v_parent and length(order_key) > 24) then
+      v_new := public.kcd_evenly_spaced_keys((select count(*)::int from public.project_sections where page_id = v_page and parent_id is not distinct from v_parent));
+      v_idx := 0;
+      for v_kids in
+        select id, order_key from public.project_sections
+        where page_id = v_page and parent_id is not distinct from v_parent
+        order by order_key collate "C", id
+      loop
+        v_idx := v_idx + 1;
+        if v_kids.order_key = v_new[v_idx] then continue; end if;
+        update public.project_sections set order_key = v_new[v_idx], updated_at = now() where id = v_kids.id;
+        v_keys := v_keys || jsonb_build_object(v_kids.id::text, v_new[v_idx]);
+        if not (v_kids.id = any (v_inserted)) and not (v_restored ? v_kids.id::text) and not (v_kids.id = any (v_touched)) then
+          v_touched := v_touched || v_kids.id;
+        end if;
+      end loop;
+      v_rebal := v_rebal || coalesce(v_parent, v_page)::text;
+    end if;
+    -- 3B readers use sort_order for page roots: keep it dense in KCD order.
+    if v_parent is null then
+      update public.project_sections s set sort_order = r.rn - 1
+      from (select id, row_number() over (order by order_key collate "C", id) as rn
+            from public.project_sections where page_id = v_page and parent_id is null) r
+      where s.id = r.id and s.sort_order <> r.rn - 1;
+    end if;
+  end loop;
+
+  -- Versions: +1 once per touched existing node / page; inserted = 1; restored as recorded + 1.
+  update public.project_sections set node_version = node_version + 1 where id = any (v_touched);
+  select coalesce(jsonb_object_agg(id::text, node_version), '{}') into v_versions from public.project_sections where id = any (v_touched);
+  v_versions := v_versions || coalesce((select jsonb_object_agg(i::text, 1) from unnest(v_inserted) i), '{}') || v_restored;
+  update public.project_pages set layout_version = layout_version + 1 where id = any (v_pages) and not(id=any(v_new_pages)) and not(v_restored_pages ? id::text);
+  v_versions := v_versions || coalesce((select jsonb_object_agg(id::text, layout_version) from public.project_pages where id = any (v_pages)), '{}');
+  v_versions := v_versions || coalesce((select jsonb_object_agg(i::text,1) from unnest(v_new_pages) i),'{}') || v_restored_pages;
+  update public.project_pages p set sort_order=r.rn-1 from (select id,row_number() over(order by order_key collate "C",id) rn from public.project_pages where project_id=p_project_id) r where p.id=r.id and p.sort_order <> r.rn-1;
+  update public.projects set updated_at = now() where id = p_project_id;
+
+  set constraints public.project_sections_sibling_order_key immediate;
+  set constraints public.project_pages_order_key_unique immediate;
+  set constraints public.project_pages_project_id_slug_key immediate;
+  perform set_config('kcd.applying', 'off', true);
+  return jsonb_build_object(
+    'versions', v_versions,
+    'removedPages', coalesce((select jsonb_agg(k order by k) from jsonb_object_keys(v_removed_pages) k),'[]'),
+    'removedPageVersions', v_removed_pages,
+    'removed', coalesce((select jsonb_agg(k order by k) from jsonb_object_keys(v_removed) k), '[]'),
+    'removedNodes', v_removed,
+    'rebalanced', to_jsonb(v_rebal),
+    'orderKeys', v_keys
+  );
+end $$;
+
+
+create or replace function public.apply_node_ops(p_project_id uuid, p_tx jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_tx_id   uuid;
+  v_origin  text;
+  v_ops     jsonb;
+  v_types   text[];
+  v_prior   public.creative_op_journal;
+  v_result  jsonb;
+  v_state   text;
+  v_msg     text;
+  v_detail  text;
+  v_status  text;
+  v_code    text;
+begin
+  if v_uid is not null and not exists (select 1 from public.projects where id = p_project_id and owner_id = v_uid) then
+    raise exception 'access denied: project % does not belong to caller', p_project_id using errcode = 'insufficient_privilege';
+  end if;
+  if not exists (select 1 from public.projects where id = p_project_id) then
+    raise exception 'project % not found', p_project_id using errcode = 'no_data_found';
+  end if;
+  if p_tx is null or jsonb_typeof(p_tx) <> 'object' or not public.kcd__is_uuid(p_tx -> 'txId', false) then
+    raise exception 'malformed transaction: txId must be a UUID' using errcode = 'invalid_parameter_value';
+  end if;
+  v_tx_id := (p_tx ->> 'txId')::uuid;
+  v_origin := p_tx ->> 'origin';
+  v_ops := p_tx -> 'ops';
+  if v_origin is null or v_origin not in ('user', 'ai', 'system', 'migration')
+     or jsonb_typeof(v_ops) is distinct from 'array'
+     or jsonb_typeof(p_tx -> 'expect') is distinct from 'object' then
+    raise exception 'malformed transaction' using errcode = 'invalid_parameter_value';
+  end if;
+
+  -- One writer per document at a time (single active editor, §8), deadlock-free.
+  perform 1 from public.projects where id = p_project_id for update;
+
+  -- Idempotency: a committed txId returns its recorded result.
+  select * into v_prior from public.creative_op_journal where tx_id = v_tx_id and status = 'committed';
+  if found then
+    if v_prior.project_id <> p_project_id then
+      raise exception 'transaction % belongs to another project', v_tx_id using errcode = 'invalid_parameter_value';
+    end if;
+    return jsonb_build_object('status', 'committed', 'replayed', true, 'versions', v_prior.result_versions,
+                              'removed', coalesce((select jsonb_agg(k order by k) from jsonb_object_keys(coalesce(v_prior.removed_nodes, '{}')) k), '[]'), 'removedPages', coalesce((select jsonb_agg(k order by k) from jsonb_object_keys(coalesce(v_prior.removed_pages,'{}')) k),'[]'));
+  end if;
+
+  select coalesce(array_agg(distinct t order by t), '{}') into v_types
+  from jsonb_array_elements(v_ops) o, lateral (select o ->> 'op' as t) x where t is not null;
+
+  begin
+    if jsonb_array_length(v_ops) = 0 then perform public.kcd__fail('KCD_INVALID', 'A transaction needs at least one operation'); end if;
+    if jsonb_array_length(v_ops) > 500 then perform public.kcd__fail('KCD_LIMIT', 'Too many operations'); end if;
+    if octet_length(p_tx::text) > 2560 * 1024 then perform public.kcd__fail('KCD_LIMIT', 'Transaction too large'); end if;
+    if jsonb_typeof(p_tx -> 'label') is distinct from 'string' or length(p_tx ->> 'label') > 120 then
+      perform public.kcd__fail('KCD_INVALID', 'label must be a short string');
+    end if;
+    if exists (select 1 from jsonb_each(p_tx -> 'expect') e
+               where jsonb_typeof(e.value) <> 'number' or (e.value #>> '{}')::numeric < 1
+                  or (e.value #>> '{}')::numeric <> floor((e.value #>> '{}')::numeric)) then
+      perform public.kcd__fail('KCD_INVALID', 'Invalid expected version');
+    end if;
+    if not exists (select 1 from public.projects where id = p_project_id and document_schema_version = 'kcd-1') then
+      perform public.kcd__fail('KCD_INVALID', 'This site is not using the Kebu Creative Document format');
+    end if;
+    v_result := public.kcd__apply(p_project_id, p_tx);
+  exception when sqlstate 'KCINV' or sqlstate 'KCLIM' or sqlstate 'KCCON' or sqlstate '23505' then
+    get stacked diagnostics v_state = returned_sqlstate, v_msg = message_text, v_detail = pg_exception_detail;
+    perform set_config('kcd.applying', 'off', true);
+    v_status := case v_state when 'KCCON' then 'conflicted' else 'rejected' end;
+    v_code := case v_state when 'KCCON' then 'KCD_CONFLICT' when 'KCLIM' then 'KCD_LIMIT' else 'KCD_INVALID' end;
+    if v_state = '23505' then v_msg := 'Two elements share the same position'; v_detail := null; end if;
+    insert into public.creative_op_journal (tx_id, project_id, actor_id, execution_path, origin, op_types, op_count, expected_versions, status, error_code, diagnostic)
+    values (v_tx_id, p_project_id, v_uid, case when v_uid is null then 'service' else 'owner' end, v_origin, v_types, jsonb_array_length(v_ops),
+            p_tx -> 'expect', v_status, v_code,
+            case when v_state = 'KCCON' then jsonb_build_object('conflicts', v_detail::jsonb)
+                 when v_detail is not null then v_detail::jsonb else null end);
+    if v_state = 'KCCON' then
+      return jsonb_build_object('status', v_status, 'code', v_code, 'message', v_msg, 'conflicts', v_detail::jsonb);
+    end if;
+    return jsonb_build_object('status', v_status, 'code', v_code, 'message', v_msg,
+                              'opIndex', case when v_detail is not null then v_detail::jsonb -> 'opIndex' else null end);
+  end;
+
+  insert into public.creative_op_journal (tx_id, project_id, actor_id, execution_path, origin, op_types, op_count, expected_versions,
+                                          result_versions, removed_nodes, removed_pages, status)
+  values (v_tx_id, p_project_id, v_uid, case when v_uid is null then 'service' else 'owner' end, v_origin, v_types, jsonb_array_length(v_ops),
+          p_tx -> 'expect', v_result -> 'versions', nullif(v_result -> 'removedNodes', '{}'::jsonb), nullif(v_result->'removedPageVersions','{}'::jsonb), 'committed');
+  return (v_result - 'removedNodes' - 'removedPageVersions') || jsonb_build_object('status', 'committed', 'replayed', false);
+end $$;
+
+
+revoke execute on function public.kcd__apply(uuid,jsonb),public.kcd__validate_page(jsonb,int),public.kcd_page_version_guard() from public,anon,authenticated;
+revoke execute on function public.apply_node_ops(uuid,jsonb) from public,anon;
+grant execute on function public.apply_node_ops(uuid,jsonb) to authenticated,service_role;
+create or replace function public.kcd_operation_protocol() returns integer language sql immutable set search_path='' as $$ select 3 $$;
+revoke execute on function public.kcd_operation_protocol() from public,anon;
+grant execute on function public.kcd_operation_protocol() to authenticated,service_role;
+notify pgrst,'reload schema';

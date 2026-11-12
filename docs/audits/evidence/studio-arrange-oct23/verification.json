@@ -1,0 +1,70 @@
+{
+  "runtime": "367d82d1e483d6308a04aa16695dd2fd532d2217",
+  "base": "a588e46d160487a7c876292ada70ce29a58ac2cd",
+  "originalRegression": {
+    "passed": 0,
+    "failed": 3
+  },
+  "local": {
+    "arrangeUnitPassed": 12,
+    "existingCanvasPassed": 10,
+    "focusedBrowserPassed": 3,
+    "fullStudio": {
+      "startTime": "2026-10-23T19:22:11.961Z",
+      "duration": 216824.098,
+      "expected": 52,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "auth": "explicit isolated loopback fixture",
+    "hostedAcceptance": false,
+    "normalCleanup": true,
+    "preliminaryCi": {
+      "testsPassed": 6618,
+      "testsSkipped": 338,
+      "lintErrors": 0,
+      "existingWarnings": 346,
+      "build": "passed",
+      "limitation": "before named-alert accessibility follow-up"
+    }
+  },
+  "qaBranchAttempt": {
+    "userRenewedAuthorization": true,
+    "project": "tnygqgcqlnlsmjpygrca",
+    "branch": "kebu-hosted-qa-oct23",
+    "error": "PaymentRequiredException: Branching is supported only on the Pro plan or above",
+    "created": false,
+    "planChanged": false
+  },
+  "remote": {
+    "ci": {
+      "id": 40010858925,
+      "status": "success",
+      "testsPassed": 6618,
+      "testsSkipped": 338,
+      "lintErrors": 0,
+      "existingWarnings": 346,
+      "build": "passed"
+    },
+    "studio": {
+      "id": 40010858749,
+      "status": "success",
+      "fullCases": 52,
+      "mandatoryTouchCases": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0,
+      "normalCleanup": true
+    },
+    "publicSmoke": {
+      "id": 40011165162,
+      "status": "success"
+    }
+  },
+  "preview": {
+    "state": "READY",
+    "url": "https://kebu-1njz338cu-mbayangxos-projects.vercel.app",
+    "deployment": "dpl_EXpzBq5kWi33ycLQKLJNdY9nocmB"
+  }
+}

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 import {
   BRAND_DNA_SELECT,
   rowToBrandDna,
@@ -20,6 +23,8 @@ type Params = { params: Promise<{ id: string }> };
  * Persists designs and links them on the campaign project.
  */
 export async function POST(_req: Request, { params }: Params) {
+  const originError = assertSameOriginMutation(_req);
+  if (originError) return originError;
   const limited = builderRateLimit(_req);
   if (limited) return limited;
 
@@ -27,13 +32,16 @@ export async function POST(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { data: row, error } = await supabase
+  let campaignQuery = supabase
     .from("studio_campaign_projects")
     .select(CAMPAIGN_SELECT)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .eq("id", id);
+  campaignQuery = workspace.activeBusinessId
+    ? campaignQuery.eq("business_id", workspace.activeBusinessId)
+    : campaignQuery.is("business_id", null);
+  const { data: row, error } = await campaignQuery.maybeSingle();
 
   if (error || !row) {
     return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
@@ -47,14 +55,12 @@ export async function POST(_req: Request, { params }: Params) {
       .from("business_brand_kits")
       .select(BRAND_DNA_SELECT)
       .eq("id", campaign.brand_kit_id)
-      .eq("owner_id", user.id)
       .maybeSingle();
     if (kit) dna = rowToBrandDna(kit as Record<string, unknown>);
   } else if (campaign.business_id) {
     const { data: kit } = await supabase
       .from("business_brand_kits")
       .select(BRAND_DNA_SELECT)
-      .eq("owner_id", user.id)
       .eq("business_id", campaign.business_id)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -62,7 +68,12 @@ export async function POST(_req: Request, { params }: Params) {
     if (kit) dna = rowToBrandDna(kit as Record<string, unknown>);
   }
 
-  const pack = await generateCampaignDesignPack({ campaign, dna });
+  const meter = await assertAiGenerationAllowance(supabase, user.id,
+    process.env.ANTHROPIC_API_KEY?.trim() ? { action: "studio_generate" } : undefined);
+  if (!meter.ok) {
+    return NextResponse.json({ error: meter.error, upgradeHint: meter.upgradeHint }, { status: meter.status });
+  }
+  const pack = await generateCampaignDesignPack({ campaign, dna, userId: user.id });
   const createdIds: string[] = [];
   const designsOut: { id: string; title: string; design_type: string }[] = [];
 
@@ -103,7 +114,6 @@ export async function POST(_req: Request, { params }: Params) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("owner_id", user.id)
     .select(CAMPAIGN_SELECT)
     .single();
 

@@ -1,7 +1,8 @@
-import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-defaults";
-import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
+import { defaultMaylecorHomeProps, defaultTrackListProps } from "./maylecor-defaults";
+import { defaultCutoutCollageProps } from "./legally-blonde-defaults";
 import { defaultKdirectionHomeProps, defaultKdirectionPageProps } from "./kdirection-defaults";
 import { DEFAULT_HERO_PROPS } from "./schemas";
+import { NEW_HERO_HEIGHT } from "./hero-section";
 import type { z } from "zod";
 import { sectionTypeSchema } from "./website-schema";
 
@@ -11,7 +12,7 @@ type SectionType = z.infer<typeof sectionTypeSchema>;
 export function defaultSectionProps(type: SectionType): Record<string, unknown> {
   switch (type) {
     case "hero":
-      return DEFAULT_HERO_PROPS;
+      return { ...DEFAULT_HERO_PROPS, minHeight: NEW_HERO_HEIGHT };
     case "navigation":
       return {
         brand: "My site",
@@ -135,9 +136,12 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
     case "maylecor-home":
       return defaultMaylecorHomeProps();
     case "maylecor-music":
-      return defaultMaylecorMusicProps();
+      // Neutral "Track list" defaults for any musician — May's own real art/socials/tracks
+      // come from defaultMaylecorMusicProps(), called directly by her own template/page
+      // definitions (maylecor-site-pages.ts, templates-seed.ts), never through this path.
+      return defaultTrackListProps();
     case "legally-blonde-hero":
-      return defaultLegallyBlondeHeroProps();
+      return defaultCutoutCollageProps();
     case "kdirection-home":
       return defaultKdirectionHomeProps();
     case "kdirection-page":

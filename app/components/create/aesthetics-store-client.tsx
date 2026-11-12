@@ -10,6 +10,14 @@ import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { formatUsdFromCents } from "@/lib/billing/pricing";
 import { UploadAestheticButton } from "@/app/components/create/upload-aesthetic-button";
 
+const CHECKOUT_METHOD_LABELS: Record<string, string> = {
+  joko: "JOKO (Cauris)",
+  wave: "Wave",
+  orange_money: "Orange Money",
+  card: "Card",
+  paypal: "PayPal",
+};
+
 type CatalogCard = {
   slug: string;
   name: string;
@@ -80,6 +88,18 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
   const [sellName, setSellName] = useState("");
   const [sellPrice, setSellPrice] = useState("5");
   const [sellDesc, setSellDesc] = useState("");
+  const [availableMethods, setAvailableMethods] = useState<string[]>(["joko"]);
+  const [checkoutMethod, setCheckoutMethod] = useState("joko");
+
+  useEffect(() => {
+    fetch("/api/payments/checkout-methods", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        const methods = Object.entries(data.methods ?? {}).filter(([, ok]) => ok).map(([id]) => id);
+        if (methods.length) { setAvailableMethods(methods); setCheckoutMethod(methods[0]!); }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const billingNote = useMemo(() => {
     const b = search.get("billing");
@@ -143,8 +163,8 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           kind === "catalog"
-            ? { kind: "catalog", catalogSlug: idOrSlug }
-            : { kind: "marketplace", marketplaceId: idOrSlug },
+            ? { kind: "catalog", catalogSlug: idOrSlug, method: checkoutMethod }
+            : { kind: "marketplace", marketplaceId: idOrSlug, method: checkoutMethod },
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -467,6 +487,19 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
                     <p className="text-xs font-bold mt-2">
                       {m.priceCents > 0 ? formatUsdFromCents(m.priceCents) : "Free"}
                     </p>
+                    {m.priceCents > 0 && availableMethods.length > 1 ? (
+                      <select
+                        aria-label="Pay with"
+                        value={checkoutMethod}
+                        onChange={(e) => setCheckoutMethod(e.target.value)}
+                        className="mt-2 w-full rounded-full px-2 py-1.5 text-[10px] font-semibold"
+                        style={{ border: `1px solid ${KEBU.border}` }}
+                      >
+                        {availableMethods.map((meth) => (
+                          <option key={meth} value={meth}>{CHECKOUT_METHOD_LABELS[meth] ?? meth}</option>
+                        ))}
+                      </select>
+                    ) : null}
                     <button
                       type="button"
                       disabled={busy === m.id}

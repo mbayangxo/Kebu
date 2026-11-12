@@ -1,0 +1,108 @@
+/**
+ * Pure signaling logic for a full-mesh group call: every participant holds
+ * one RTCPeerConnection per other participant. Kept free of DOM/RTCPeerConnection
+ * types so it's unit-testable; app/components/rooms/call-room.tsx wires it to
+ * real peer connections and a Supabase Realtime broadcast channel.
+ */
+
+// Kept in sync with max_participants' check constraint in
+// supabase/migrations/20261108020000_room_calls_mesh.sql — a full mesh's
+// connection count grows as n*(n-1)/2, which is why this stays small; a
+// larger room needs a media server (SFU), out of scope for this slice.
+export const MAX_MESH_PARTICIPANTS = 8;
+
+// Full mesh has no shared/relay path: each participant uploads one video
+// stream per *other* participant, so a call at the 8-participant ceiling
+// means 7 simultaneous uploads per phone - a real cost on mid/low-end
+// Android over African mobile networks, where uplink is usually the scarce
+// resource. That tradeoff was weighed explicitly and the decision was to
+// keep 8 as the default rather than shrink it: Kebu's group/family/team
+// calls matter more than protecting every connection from ever straining,
+// and whoever starts a call already sees a size picker (MESH_PARTICIPANT_OPTIONS)
+// if they'd rather keep it smaller for a known-weak connection. This is not
+// an oversight - a smaller default was tried and reverted on explicit
+// product decision. Kept in sync with room_calls.max_participants' column
+// default in supabase/migrations/20261109020000_room_call_default_cap.sql.
+export const DEFAULT_MESH_PARTICIPANTS = MAX_MESH_PARTICIPANTS;
+
+export const MESH_PARTICIPANT_OPTIONS: { value: number; label: string }[] = [
+  { value: MAX_MESH_PARTICIPANTS, label: "Up to 8 (default)" },
+  { value: 6, label: "Up to 6 — if your connection is slow" },
+  { value: 4, label: "Up to 4 — smallest, most reliable on a weak connection" },
+];
+
+export type SignalMessage =
+  | { type: "screen"; from: string; to: string; enabled: boolean }
+  | { type: "offer"; from: string; to: string; sdp: string; screenSharing?: boolean }
+  | { type: "answer"; from: string; to: string; sdp: string; screenSharing?: boolean }
+  | { type: "candidate"; from: string; to: string; candidate: RTCIceCandidateInitLike };
+
+export type RTCIceCandidateInitLike = {
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+  usernameFragment?: string | null;
+};
+
+/**
+ * Deterministic, order-independent tie-break for who offers to whom: the
+ * lexicographically smaller id always initiates. Both sides compute this the
+ * same way, so exactly one side offers per pair — no glare, no clock/join-order
+ * dependency.
+ */
+export function shouldInitiateOffer(selfId: string, peerId: string): boolean {
+  return selfId < peerId;
+}
+
+/** Validates an incoming broadcast payload before touching any peer connection. */
+export function parseSignalMessage(raw: unknown): SignalMessage | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.from !== "string" || !r.from || typeof r.to !== "string" || !r.to) return null;
+  if (r.type === "screen") {
+    return typeof r.enabled === "boolean" ? { type: "screen", from: r.from, to: r.to, enabled: r.enabled } : null;
+  }
+  if (r.type === "offer" || r.type === "answer") {
+    if (typeof r.sdp !== "string" || !r.sdp) return null;
+    if (r.screenSharing !== undefined && typeof r.screenSharing !== "boolean") return null;
+    return { type: r.type, from: r.from, to: r.to, sdp: r.sdp, ...(r.screenSharing === undefined ? {} : { screenSharing: r.screenSharing }) };
+  }
+  if (r.type === "candidate") {
+    if (!r.candidate || typeof r.candidate !== "object") return null;
+    const c = r.candidate as Record<string, unknown>;
+    if (c.candidate !== undefined && typeof c.candidate !== "string") return null;
+    return {
+      type: "candidate",
+      from: r.from,
+      to: r.to,
+      candidate: {
+        candidate: typeof c.candidate === "string" ? c.candidate : undefined,
+        sdpMid: typeof c.sdpMid === "string" ? c.sdpMid : null,
+        sdpMLineIndex: typeof c.sdpMLineIndex === "number" ? c.sdpMLineIndex : null,
+        usernameFragment: typeof c.usernameFragment === "string" ? c.usernameFragment : null,
+      },
+    };
+  }
+  return null;
+}
+
+/** Presence state (as returned by `channel.presenceState()`) -> live peer ids, self excluded. */
+export function activePeerIds(state: Record<string, Array<{ userId?: unknown }>>, selfId: string): string[] {
+  const ids = new Set<string>();
+  for (const entries of Object.values(state)) {
+    for (const entry of entries) {
+      if (typeof entry.userId === "string" && entry.userId && entry.userId !== selfId) ids.add(entry.userId);
+    }
+  }
+  return [...ids];
+}
+
+/** A video grid's column count for a given live tile count (self + remotes). */
+export function gridColumns(tileCount: number): number {
+  if (tileCount <= 1) return 1;
+  if (tileCount <= 4) return 2;
+  if (tileCount <= 6) return 3;
+  return 4;
+}
+
+export type PeerConnectionState = "connecting" | "connected" | "failed" | "closed";

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
+import { markKebuPurchasePaid } from "@/lib/payments/mark-purchase-paid";
+import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
 import { paypalCaptureOrder, paypalConfigured } from "@/lib/payments/paypal-adapter";
 
 export const dynamic = "force-dynamic";
@@ -139,42 +141,29 @@ export async function POST(req: NextRequest) {
           provider: "paypal",
         });
         if (paid.ok) {
-          return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
+          await fulfillPaidDigitalOrderDurable(admin, paid.orderId);
+  return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
         }
       }
     }
     return NextResponse.json({ error: "Missing custom_id / reference." }, { status: 400 });
   }
 
-  const paid = await markShopOrderPaidByProviderRef(admin, {
+  let result = await markKebuPurchasePaid(admin, {
     reference,
     paymentId: resource?.id ?? null,
     provider: "paypal",
   });
-  if (!paid.ok) {
-    const retry = await markShopOrderPaidByProviderRef(admin, {
-      reference,
-      paymentId: resource?.id ?? null,
-    });
-    if (!retry.ok) return NextResponse.json({ error: retry.error }, { status: 404 });
-    console.info(
-      JSON.stringify({
-        event: "shop.order_paid_paypal",
-        orderId: retry.orderId,
-        projectId: retry.projectId,
-        reference,
-      }),
-    );
-    return NextResponse.json({ ok: true, kind: "shop_order", orderId: retry.orderId });
+  if (!result.ok) {
+    result = await markKebuPurchasePaid(admin, { reference, paymentId: resource?.id ?? null });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 404 });
   }
 
-  console.info(
-    JSON.stringify({
-      event: "shop.order_paid_paypal",
-      orderId: paid.orderId,
-      projectId: paid.projectId,
-      reference,
-    }),
-  );
-  return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
+  console.info(JSON.stringify({ event: "kebu.purchase_paid_paypal", kind: result.kind, reference }));
+
+  if (result.kind === "shop_order") {
+    await fulfillPaidDigitalOrderDurable(admin, result.orderId);
+    return NextResponse.json({ ok: true, kind: "shop_order", orderId: result.orderId });
+  }
+  return NextResponse.json({ ok: true, kind: result.kind });
 }

@@ -1,0 +1,423 @@
+{
+  "observedAt": "2026-10-24T01:21:35.667Z",
+  "project": "tnygqgcqlnlsmjpygrca",
+  "organization": {
+    "id": "zdoqqcrxrbxkbxobjrsp",
+    "name": "Kebu",
+    "plan": "free",
+    "tier": "tier_free",
+    "opt_in_tags": [],
+    "allowed_release_channels": [
+      "ga",
+      "preview"
+    ]
+  },
+  "projects": [
+    {
+      "id": "tnygqgcqlnlsmjpygrca",
+      "ref": "tnygqgcqlnlsmjpygrca",
+      "organization_id": "zdoqqcrxrbxkbxobjrsp",
+      "organization_slug": "zdoqqcrxrbxkbxobjrsp",
+      "name": "Kebu",
+      "region": "us-west-2",
+      "status": "ACTIVE_HEALTHY",
+      "database": {
+        "host": "db.tnygqgcqlnlsmjpygrca.supabase.co",
+        "version": "17.6.1.155",
+        "postgres_engine": "17",
+        "release_channel": "ga"
+      },
+      "created_at": "2026-08-05T00:57:33.337567Z"
+    }
+  ],
+  "branches": [
+    {
+      "id": "85a4ef46-f39a-45f6-b9d1-655d1a4d483b",
+      "name": "main",
+      "project_ref": "tnygqgcqlnlsmjpygrca",
+      "is_default": true,
+      "git_branch": "main",
+      "persistent": false,
+      "status": "MIGRATIONS_FAILED",
+      "created_at": "2026-09-15T00:18:48.08179+00:00",
+      "updated_at": "2026-09-15T00:18:48.08179+00:00",
+      "parent_project_ref": "tnygqgcqlnlsmjpygrca",
+      "with_data": false,
+      "preview_project_status": "ACTIVE_HEALTHY"
+    }
+  ],
+  "yande": {
+    "scope": "yande-schema-and-grants-only",
+    "checks": [
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "anonExecute": false,
+          "serviceExecute": true,
+          "securityDefiner": false,
+          "authenticatedExecute": false
+        },
+        "requirement": "function:reserve_account_ai_generation"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "anonSelect": true,
+          "anonAnyWrite": false,
+          "serviceInsert": true,
+          "authenticatedSelect": true,
+          "authenticatedAnyWrite": false
+        },
+        "requirement": "grants:account_ai_usage_events"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "anonSelect": null,
+          "anonAnyWrite": null,
+          "serviceInsert": null,
+          "authenticatedSelect": null,
+          "authenticatedAnyWrite": null
+        },
+        "requirement": "grants:yande_interactions"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:account_ai_usage_events"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:studio_campaign_projects"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:studio_generation_runs"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:yande_interactions"
+      }
+    ],
+    "observedAt": "2026-10-24T01:13:26.02706+00:00",
+    "checksPassed": false,
+    "failedChecks": 2,
+    "releaseCertification": "not-established-by-this-query",
+    "authenticatedAcceptance": "not-established-by-this-query"
+  },
+  "release": {
+    "scope": "schema-and-grants-only",
+    "checks": [
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:aesthetic_library.provider"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:aesthetic_library.provider_reference"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:create_designs.updated_at"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:creative_asset_library.provider"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:creative_asset_library.provider_reference"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:project_pages.layout_version"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:project_sections.node_version"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:project_sections.order_key"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:project_sections.parent_id"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:project_sections.type_version"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:projects.document_schema_version"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "anonExecute": false,
+          "serviceExecute": true,
+          "authenticatedExecute": true
+        },
+        "requirement": "function:public.apply_experience_plan(uuid,jsonb)"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "anonExecute": false,
+          "serviceExecute": true,
+          "authenticatedExecute": true
+        },
+        "requirement": "function:public.apply_node_ops(uuid,jsonb)"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "anonExecute": false,
+          "serviceExecute": true,
+          "authenticatedExecute": true
+        },
+        "requirement": "function:public.kcd_operation_protocol()"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "anonExecute": false,
+          "serviceExecute": true,
+          "authenticatedExecute": false
+        },
+        "requirement": "function:public.publish_kcd_document(uuid,uuid,text,jsonb,jsonb,text)"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:aesthetic_library"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:creative_asset_library"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:creative_op_journal"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:deployments"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:developer_profiles"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:job_listings"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:kcd_node_types"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mail_attachments"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:mail_forwarding_rules"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mail_messages"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mail_threads"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mailboxes"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:marketplace_creative_assets"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:marketplace_templates"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:network_profiles"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:personal_connections"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:project_pages"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:project_sections"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:projects"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:search_documents"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:website_versions"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:worker_profiles"
+      }
+    ],
+    "observedAt": "2026-10-24T01:13:25.043953+00:00",
+    "failedChecks": 10,
+    "postgresVersion": "17.6",
+    "schemaChecksPassed": false,
+    "releaseCertification": "not-established-by-this-query",
+    "authenticatedAcceptance": "not-established-by-this-query"
+  },
+  "catalogsOnly": true,
+  "userRowsRead": false,
+  "writes": false,
+  "ordinaryManagedAuthAccepted": false,
+  "branchStatusNote": "The main branch MIGRATIONS_FAILED metadata is dated September15; the visible production project is ACTIVE_HEALTHY. This is not evidence of a new production outage.",
+  "qaProvisioned": false,
+  "planUpgraded": false,
+  "existingQaBranchRetryAuthorized": true,
+  "recurringOrganizationUpgradeAuthorized": false,
+  "pricingReference": {
+    "url": "https://supabase.com/pricing",
+    "proStartsAtUsdPerMonth": 25,
+    "publishedBranchUsdPerHour": 0.01344,
+    "additionalUsagePossible": true
+  }
+}

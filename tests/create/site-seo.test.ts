@@ -6,6 +6,8 @@ import {
   extractTextFromDefinition,
   mergeSiteSeo,
   siteMetadataFromDefinition,
+  siteJsonLdScriptPayload,
+  validateCustomCss,
 } from "@/lib/create/site-seo";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
@@ -103,6 +105,57 @@ describe("site seo", () => {
     expect(containsUnsafeSiteContent('{"x":"<script>alert(1)</script>"}')).toBe(true);
     expect(containsUnsafeSiteContent('{"x":"onerror=alert(1)"}')).toBe(true);
     expect(containsUnsafeSiteContent('{"x":"Hello world"}')).toBe(false);
+  });
+
+  it("siteJsonLdScriptPayload escapes </script to prevent script tag breakout", () => {
+    // A business name containing </script> in the SEO payload must not break out of the
+    // <script type="application/ld+json"> tag when rendered via dangerouslySetInnerHTML.
+    const payload = siteJsonLdScriptPayload({
+      seo: { ...defaultSiteSeo(), ogTitle: 'Evil </script><script>alert(1)</script> Name' },
+      title: 'Evil </script><script>alert(1)</script> Name',
+      canonicalBase: "https://evil.example",
+    });
+    expect(payload).not.toContain("</script>");
+    // The escaped form is still valid JSON (the parser treats \/ same as /)
+    expect(() => JSON.parse(payload)).not.toThrow();
+  });
+
+  describe("validateCustomCss", () => {
+    it("passes safe CSS", () => {
+      expect(validateCustomCss("body { color: red; font-size: 16px; }")).toBeNull();
+    });
+
+    it("blocks @import rules", () => {
+      expect(validateCustomCss("@import url('https://evil.com/track.css');")).not.toBeNull();
+    });
+
+    it("blocks CSS expression()", () => {
+      expect(validateCustomCss("width: expression(document.body.clientWidth)")).not.toBeNull();
+    });
+
+    it("blocks javascript: in url()", () => {
+      expect(validateCustomCss("background: url('javascript:alert(1)')")).not.toBeNull();
+    });
+
+    it("blocks vbscript: in url()", () => {
+      expect(validateCustomCss("background: url(vbscript:...)")).not.toBeNull();
+    });
+
+    it("blocks non-image data: URIs", () => {
+      expect(validateCustomCss("background: url('data:text/html,<h1>x</h1>')")).not.toBeNull();
+    });
+
+    it("allows image data: URIs", () => {
+      expect(validateCustomCss("background: url('data:image/png;base64,abc')")).toBeNull();
+    });
+
+    it("blocks targeting builder structural selectors", () => {
+      expect(validateCustomCss("[data-kebu-builder] { display: none }")).not.toBeNull();
+    });
+
+    it("returns null for empty CSS", () => {
+      expect(validateCustomCss("")).toBeNull();
+    });
   });
 
   it("validates definition with seo block", () => {

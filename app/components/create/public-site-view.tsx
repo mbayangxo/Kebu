@@ -1,5 +1,6 @@
 "use client";
 
+import type { KcdDocument } from "@/lib/creative-core";
 import { useEffect } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import { SiteAnalyticsBeacon } from "@/app/components/create/site-analytics-beacon";
@@ -13,12 +14,14 @@ import { dataModeSiteClass } from "@/lib/create/data-mode";
 
 function PublicSiteInner({
   definition,
+  nativeDocument,
   subdomain,
   pageSlug = "home",
   projectId,
   siteBase,
 }: {
   definition: WebsiteDefinition;
+  nativeDocument?: KcdDocument;
   subdomain: string;
   pageSlug?: string;
   projectId?: string;
@@ -57,6 +60,7 @@ function PublicSiteInner({
       <SiteAnalyticsBeacon subdomain={subdomain} path={pageSlug === "home" ? "/" : `/${pageSlug}`} />
       <SiteRenderer
         definition={definition}
+        nativeDocument={nativeDocument}
         mode="live"
         pageSlug={pageSlug}
         siteBase={siteBase}
@@ -70,12 +74,14 @@ function PublicSiteInner({
 
 export function PublicSiteView({
   definition,
+  nativeDocument,
   subdomain,
   pageSlug = "home",
   projectId,
   siteBase: siteBaseProp,
 }: {
   definition: WebsiteDefinition;
+  nativeDocument?: KcdDocument;
   subdomain: string;
   pageSlug?: string;
   projectId?: string;
@@ -88,6 +94,7 @@ export function PublicSiteView({
     <DataModeProvider>
       <PublicSiteInner
         definition={definition}
+        nativeDocument={nativeDocument}
         subdomain={subdomain}
         pageSlug={pageSlug}
         projectId={projectId}

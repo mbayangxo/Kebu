@@ -1,17 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/create/auth";
+import {
+  hasVerifiedAfricanOpportunityAccess,
+  loadAfricanOpportunityEntitlement,
+} from "@/lib/entitlements/african-opportunity-access";
 import { listOpportunityListings } from "@/lib/opportunity/listings";
 import { OPPORTUNITY_TRUST_LABELS } from "@/lib/opportunity/trust-labels";
 import type { FundingType, Sector } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-/** Public Opportunity OS program listings (grants, loans, tenders, …) from Supabase. */
+/** Verified-African Opportunity OS program listings from Supabase. */
 export async function GET(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key || url.includes("placeholder")) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+  }
+
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const { supabase, user } = auth;
+  const entitlement = await loadAfricanOpportunityEntitlement({
+    supabase,
+    userId: user.id,
+    sync: false,
+  });
+  if (!hasVerifiedAfricanOpportunityAccess(entitlement)) {
+    return NextResponse.json(
+      { error: "Verified African Opportunity access required.", needsEntitlement: true, entitlement },
+      { status: 403 },
+    );
   }
 
   const { searchParams } = req.nextUrl;
@@ -21,7 +40,6 @@ export async function GET(req: NextRequest) {
   const diaspora = searchParams.get("diaspora") === "true";
   const q = searchParams.get("q");
 
-  const supabase = await createClient();
   const { listings, error, missingTable } = await listOpportunityListings(supabase, {
     type,
     sector,

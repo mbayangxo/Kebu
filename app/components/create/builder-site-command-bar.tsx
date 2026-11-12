@@ -68,7 +68,7 @@ export function BuilderSiteCommandBar({
       <button
         type="button"
         onClick={() => setOpenPersist(true)}
-        className="fixed bottom-5 right-5 z-[60] flex items-center gap-2 rounded-full border bg-white px-3 py-2 shadow-lg"
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-[60] flex min-h-10 items-center gap-2 rounded-full border bg-white px-3 py-2 shadow-lg sm:bottom-5 sm:right-5"
         style={{ borderColor: BUILDER.border }}
         aria-label="Open Ask your site"
         title="Ask your site"
@@ -83,7 +83,7 @@ export function BuilderSiteCommandBar({
 
   return (
     <aside
-      className="fixed inset-y-0 right-0 z-[60] flex w-[min(100%,360px)] flex-col border-l bg-white shadow-xl"
+      className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[82dvh] flex-col rounded-t-2xl border-t bg-white shadow-xl sm:inset-y-0 sm:left-auto sm:w-[min(100%,360px)] sm:max-h-none sm:rounded-none sm:border-l sm:border-t-0"
       style={{ borderColor: BUILDER.border }}
       aria-label="Ask Yande to change your site"
     >
@@ -103,7 +103,7 @@ export function BuilderSiteCommandBar({
         <button
           type="button"
           onClick={() => setOpenPersist(false)}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
           style={{ color: BUILDER.muted, background: BUILDER.surfaceMuted }}
           aria-label="Close Ask your site"
         >
@@ -235,14 +235,14 @@ export function BuilderSiteCommandBar({
               placeholder='e.g. "Make the homepage feel more expensive"'
               disabled={busy}
               rows={4}
-              className="w-full resize-none rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5500]/30 disabled:opacity-60"
+              className="w-full resize-none rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6A00]/25 disabled:opacity-60"
               style={{ border: `1px solid ${BUILDER.border}`, background: "#fff" }}
             />
             <button
               type="button"
               disabled={busy || !value.trim()}
               onClick={onPreview}
-              className="mt-2 w-full rounded-md px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+              className="mt-2 w-full rounded-md px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50"
               style={{ background: BUILDER.orange }}
             >
               {busy ? "…" : "Preview"}

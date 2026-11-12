@@ -1,4 +1,5 @@
 import type { KebuPersonalizationSummary } from "@/lib/account/kebu-personalization";
+import type { KebuSetup } from "@/lib/account/kebu-setup";
 
 export type HomeUpdate = {
   id: string;
@@ -54,5 +55,6 @@ export type HomeSummary = {
     exploreHref: string;
   };
   personalization: KebuPersonalizationSummary;
+  setup: KebuSetup;
   updates: HomeUpdate[];
 };

@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { StudioSaveQueue, validStudioSaveReceipt } from "@/lib/studio/save-queue";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addAssetToComposition,
   addClipFromAsset,
   addMarker,
   addStoryboardScene,
+  addTrack,
   attachSoundtrack,
   compileStoryboardToClips,
   compositionDurationMs,
+  COMPOSITION_TRACK_KINDS,
   deleteClip,
   deleteMarker,
   maybeSnapTime,
   newCompositionId,
   primaryVideoTrackId,
   removeStoryboardScene,
+  removeTrack,
   splitClipAt,
   updateClip,
   updateStoryboardScene,
@@ -36,10 +40,24 @@ import {
   type AudioReactivePreset,
 } from "@/lib/studio/keyframes";
 import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
+import { downsamplePeaks, normalizeClipVolume, duckMusicUnderVoice, cutClipsOnBeats, fitSequenceToDuration, setTrackMix, setMasterVolume, effectiveClipVolume } from "@/lib/studio/audio-engine";
+import { deleteClips, moveClips, rippleDeleteClip, linkClips, unlinkClips, linkedClipIds, trimClipEdge, slipClip, setTrackState } from "@/lib/studio/timeline-operations";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { timelineRecordingToWav } from "@/lib/studio/wav-export";
+import { exportStudioComposition } from "@/lib/studio/composition-browser-export";
+import {
+  cacheRemoteStudioMedia,
+  getCachedStudioVideoMedia,
+  getStudioVideoOfflineDraft,
+  putStudioVideoOfflineDraft,
+  pruneStudioVideoMediaCache,
+  studioOfflineMediaKey,
+  studioVideoOfflineSupported,
+} from "@/lib/studio/video-offline-drafts";
 
 const HISTORY_CAP = 40;
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+type SaveState = "idle" | "pending" | "saving" | "saved" | "offline" | "conflict" | "error";
 
 /** Full Timeline: multi-track + music-aware V1 → keyframes V2 → AI music edit V3. */
 export default function StudioVideoEditorPage() {
@@ -50,10 +68,29 @@ export default function StudioVideoEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const saveQueue = useMemo(() => new StudioSaveQueue(projectId), [projectId]);
+  const cacheQueue = useMemo(() => new StudioSaveQueue(projectId + ":offline"), [projectId]);
+  const [serverUpdatedAt, setServerRevision] = useState<string | null>(null);
+  const setServerUpdatedAt = useCallback((revision: string | null) => {
+    saveQueue.reset(revision);
+    setServerRevision(revision);
+  }, [saveQueue]);
+  useEffect(() => () => { saveQueue.cancel(); cacheQueue.cancel(); }, [saveQueue, cacheQueue]);
+  const [conflictServer, setConflictServer] = useState<{ composition: StudioComposition; title: string; updatedAt: string } | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [sourceDesignId, setSourceDesignId] = useState<string | null>(null);
+  const [sourceRefreshBusy, setSourceRefreshBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [offlineCacheBusy, setOfflineCacheBusy] = useState(false);
+  const [offlineMediaUrls, setOfflineMediaUrls] = useState<Record<string, string>>({});
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+  const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(60);
+  const [rippleEditing, setRippleEditing] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [musicBusy, setMusicBusy] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("cut every 4 beats");
@@ -70,22 +107,126 @@ export default function StudioVideoEditorPage() {
   const musicRef = useRef<HTMLInputElement>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compRef = useRef<StudioComposition | null>(null);
+  const lastSavedRef = useRef<{ composition: StudioComposition; title: string } | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const soundtrackRef = useRef<HTMLAudioElement>(null);
+  const timelineGestureBaseline = useRef<StudioComposition | null>(null);
+  const offlineObjectUrls = useRef<string[]>([]);
+
+  const replaceOfflineObjectUrls = useCallback((next: Record<string, string>) => {
+    for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
+    offlineObjectUrls.current = Object.values(next).filter((url) => url.startsWith("blob:"));
+    setOfflineMediaUrls(next);
+  }, []);
+
+  const hydrateOfflineMedia = useCallback(async (uid: string, composition: StudioComposition) => {
+    if (!studioVideoOfflineSupported()) return;
+    const canonical = [...new Set([
+      ...composition.assets.map((asset) => asset.url),
+      ...composition.clips.map((clip) => clip.sourceUrl).filter((url): url is string => Boolean(url)),
+      ...(composition.music?.soundtrackUrl ? [composition.music.soundtrackUrl] : []),
+    ])];
+    const pairs = await Promise.all(canonical.map(async (url) => {
+      const cached = await getCachedStudioVideoMedia(studioOfflineMediaKey(uid, projectId, url)).catch(() => null);
+      return cached ? [url, URL.createObjectURL(cached.blob)] as const : null;
+    }));
+    replaceOfflineObjectUrls(Object.fromEntries(pairs.filter((pair): pair is readonly [string, string] => Boolean(pair))));
+  }, [projectId, replaceOfflineObjectUrls]);
+
+  useEffect(() => () => {
+    for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
+  }, []);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/studio/video/${projectId}`, { credentials: "include" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Project not found.");
-      return;
+    const isCurrent = saveQueue.current();
+    try {
+      const res = await fetch(`/api/studio/video/${projectId}`, { credentials: "include", cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!isCurrent()) return;
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Project not found.");
+        return;
+      }
+
+      const supabase = createBrowserSupabaseClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const nextUserId = sessionData.session?.user.id ?? null;
+      const serverComposition = data.project.composition as StudioComposition;
+      const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : null;
+      const nextBusinessId = typeof data.project.business_id === "string" ? data.project.business_id : null;
+      const nextSourceDesignId = typeof data.project.source_design_id === "string" ? data.project.source_design_id : null;
+      let initialComposition = serverComposition;
+      let initialTitle = data.project.title as string;
+      let hasDirtyLocal = false;
+      let baseRevision = nextUpdatedAt;
+      let recoveredConflict = false;
+
+      if (nextUserId && studioVideoOfflineSupported()) {
+        const local = await getStudioVideoOfflineDraft(nextUserId, projectId).catch(() => null);
+        if (local?.dirty) {
+          initialComposition = local.composition;
+          initialTitle = local.title;
+          hasDirtyLocal = true;
+          baseRevision = local.serverUpdatedAt;
+          recoveredConflict = local.serverUpdatedAt !== nextUpdatedAt;
+        }
+      }
+
+      if (!isCurrent()) return;
+      setUserId(nextUserId);
+      setBusinessId(nextBusinessId);
+      setSourceDesignId(nextSourceDesignId);
+      setTitle(initialTitle);
+      setComp(initialComposition);
+      setServerUpdatedAt(baseRevision);
+      lastSavedRef.current = { composition: serverComposition, title: data.project.title };
+      if (recoveredConflict && nextUpdatedAt) {
+        saveQueue.pause();
+        setConflictServer({ composition: serverComposition, title: data.project.title, updatedAt: nextUpdatedAt });
+      }
+      compRef.current = initialComposition;
+      setHistory([]);
+      setFuture([]);
+      setSaveState(recoveredConflict ? "conflict" : hasDirtyLocal ? "offline" : "idle");
+      setError(recoveredConflict ? "Your recovered draft and the server version differ. Choose which version to keep." : null);
+      if (nextUserId) void hydrateOfflineMedia(nextUserId, initialComposition);
+    } catch {
+      if (!isCurrent()) return;
+      if (!studioVideoOfflineSupported()) {
+        setError("You are offline and this video is not available locally yet.");
+        return;
+      }
+      try {
+        const supabase = createBrowserSupabaseClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const offlineUserId = sessionData.session?.user.id ?? null;
+        if (!offlineUserId) {
+          setError("Reconnect to verify your Kebu account before opening an offline Studio video.");
+          return;
+        }
+        const local = await getStudioVideoOfflineDraft(offlineUserId, projectId);
+        if (!local) {
+          setError("You are offline and this video has not been saved on this device yet.");
+          return;
+        }
+        if (!isCurrent()) return;
+        setUserId(offlineUserId);
+        setBusinessId(local.businessId);
+        setSourceDesignId(local.sourceDesignId ?? null);
+        setTitle(local.title);
+        setComp(local.composition);
+        compRef.current = local.composition;
+        setServerUpdatedAt(local.serverUpdatedAt);
+        setHistory([]);
+        setFuture([]);
+        setSaveState("offline");
+        setError(null);
+        void hydrateOfflineMedia(offlineUserId, local.composition);
+      } catch {
+        setError("Could not open the offline Studio video draft.");
+      }
     }
-    setTitle(data.project.title);
-    setComp(data.project.composition);
-    compRef.current = data.project.composition;
-    setHistory([]);
-    setFuture([]);
-  }, [projectId]);
+  }, [projectId, hydrateOfflineMedia, setServerUpdatedAt, saveQueue]);
 
   useEffect(() => {
     void load();
@@ -105,47 +246,203 @@ export default function StudioVideoEditorPage() {
       .catch(() => undefined);
   }, [projectId]);
 
+  const loadConflictSnapshot = useCallback(async (isActive: () => boolean = () => true) => {
+    try {
+      const latestRes = await fetch(`/api/studio/video/${projectId}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const latest = await latestRes.json().catch(() => ({}));
+      if (!isActive()) return;
+      if (!latestRes.ok || !latest.project?.composition || typeof latest.project.updated_at !== "string") {
+        setError("A newer Studio video exists, but Kebu could not load it for comparison.");
+        return;
+      }
+      setConflictServer({
+        composition: latest.project.composition as StudioComposition,
+        title: typeof latest.project.title === "string" ? latest.project.title : title,
+        updatedAt: latest.project.updated_at,
+      });
+    } catch {
+      if (isActive()) setError("A newer Studio video exists, but Kebu could not load it while offline.");
+    }
+  }, [projectId, title]);
+
+  const titleRef = useRef(title);
+  useEffect(() => { titleRef.current = title; }, [title]);
+
   const persist = useCallback(
     async (next: StudioComposition, nextTitle?: string) => {
-      setSaveState("saving");
-      const res = await fetch(`/api/studio/video/${projectId}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          composition: next,
-          title: nextTitle ?? title,
-        }),
+      const effectiveTitle = nextTitle ?? title;
+      if (next !== compRef.current || effectiveTitle !== titleRef.current) return;
+      const isCurrent = saveQueue.current();
+      const writeLatestDraft = async (acknowledged?: StudioComposition) => {
+        if (!userId || !studioVideoOfflineSupported()) return false;
+        let written = false;
+        try {
+          await cacheQueue.run(async cacheContext => {
+            while (isCurrent() && cacheContext.active()) {
+              const snapshot = compRef.current ?? next, snapshotTitle = titleRef.current;
+              await putStudioVideoOfflineDraft({
+                userId, projectId, title: snapshotTitle, composition: snapshot,
+                businessId, sourceDesignId, serverUpdatedAt: saveQueue.getRevision(), savedAt: new Date().toISOString(),
+                dirty: snapshot !== acknowledged || snapshotTitle !== effectiveTitle,
+              });
+              if (compRef.current === snapshot && titleRef.current === snapshotTitle) { written = true; return; }
+            }
+          });
+          return written;
+        } catch { return false; }
+      };
+      const localSaved = await writeLatestDraft();
+      if (!isCurrent()) return;
+      return saveQueue.run(async context => {
+        if (!context.active() || context.blocked()) return;
+        if (compRef.current !== next || titleRef.current !== effectiveTitle) return;
+        if (!navigator.onLine) {
+          setSaveState(localSaved ? "offline" : "error");
+          if (!localSaved) setError("Could not save this video on your device. Keep this tab open and reconnect."); return;
+        }
+        if (!context.revision()) {
+          setSaveState("error"); setError("Reconnect and load the server version before syncing this video."); return;
+        }
+        setSaveState("saving");
+        try {
+          const res = await fetch(`/api/studio/video/${projectId}`, {
+            method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ composition: next, title: effectiveTitle, expectedUpdatedAt: context.revision() }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!context.active()) return;
+          if (res.status === 409 && data.code === "studio_video_version_conflict") {
+            context.conflict(); setSaveState("conflict");
+            setError("This video changed in another tab or device. Your local draft is kept. Choose which version to keep.");
+            await loadConflictSnapshot(context.active); return;
+          }
+          if (!res.ok || !validStudioSaveReceipt(data.project, projectId)) {
+            context.conflict(); setSaveState("error");
+            setError(typeof data.error === "string" ? data.error : "Could not confirm this save. Reload before retrying; your draft is kept."); return;
+          }
+          const revision = data.project.updated_at;
+          context.acknowledge(revision); setServerRevision(revision);
+          lastSavedRef.current = { composition: next, title: effectiveTitle };
+          const cached = await writeLatestDraft(next);
+          const dirty = compRef.current !== next || titleRef.current !== effectiveTitle;
+          if (!context.active()) return;
+          setSaveState(dirty ? "pending" : "saved");
+          setError(dirty && !cached ? "New edits could not be cached on this device. Keep this tab open until they sync." : null);
+          if (!dirty) setTimeout(() => {
+            if (context.active() && compRef.current === next && titleRef.current === effectiveTitle && context.revision() === revision) setSaveState("idle");
+          }, 1600);
+        } catch {
+          if (!context.active()) return;
+          setSaveState(localSaved ? "offline" : "error");
+          if (!localSaved) setError("Save failed and the local draft could not be stored. Keep this tab open and reconnect.");
+        }
       });
-      if (res.ok) {
-        setSaveState("saved");
-        setTimeout(() => setSaveState("idle"), 1600);
-      } else {
-        setSaveState("error");
-      }
     },
-    [projectId, title],
+    [projectId, title, userId, businessId, sourceDesignId, loadConflictSnapshot, saveQueue, cacheQueue],
   );
+
+  async function applyServerConflictVersion() {
+    if (!conflictServer) return;
+    const server = conflictServer;
+    compRef.current = server.composition;
+    lastSavedRef.current = { composition: server.composition, title: server.title };
+    setComp(server.composition);
+    titleRef.current = server.title;
+    setTitle(server.title);
+    setServerUpdatedAt(server.updatedAt);
+    setHistory([]);
+    setFuture([]);
+    setSelectedClipId(null);
+    setSelectedClipIds([]);
+    setConflictServer(null);
+    setSaveState("saved");
+    setError(null);
+    if (userId && studioVideoOfflineSupported()) {
+      await cacheQueue.run(async context => {
+        let stable = false;
+        while (!stable && context.active()) {
+          const snapshot = compRef.current ?? server.composition, snapshotTitle = titleRef.current;
+          await putStudioVideoOfflineDraft({ userId, projectId, title: snapshotTitle, composition: snapshot,
+            businessId, sourceDesignId, serverUpdatedAt: saveQueue.getRevision(), savedAt: new Date().toISOString(),
+            dirty: snapshot !== server.composition || snapshotTitle !== server.title,
+          });
+          stable = compRef.current === snapshot && titleRef.current === snapshotTitle;
+        }
+      }).catch(() => setError("The selected video version could not be cached on this device."));
+    }
+    if (userId) void hydrateOfflineMedia(userId, server.composition);
+    setTimeout(() => setSaveState("idle"), 1600);
+  }
+
+  async function keepLocalConflictVersion() {
+    if (!conflictServer || !compRef.current) return;
+    setServerUpdatedAt(conflictServer.updatedAt);
+    setConflictServer(null);
+    await persist(compRef.current, title);
+  }
 
   function applyComp(next: StudioComposition, recordHistory = true) {
     if (recordHistory && compRef.current) {
-      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), compRef.current!]);
+      const previous = compRef.current;
+      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), previous]);
       setFuture([]);
     }
     compRef.current = next;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
     setComp(next);
   }
 
+  function beginTimelineGesture() {
+    if (!timelineGestureBaseline.current && compRef.current) {
+      timelineGestureBaseline.current = compRef.current;
+    }
+  }
+
+  function applyTimelineGesture(next: StudioComposition) {
+    compRef.current = next;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    setComp(next);
+  }
+
+  function commitTimelineGesture() {
+    const baseline = timelineGestureBaseline.current;
+    timelineGestureBaseline.current = null;
+    if (!baseline || !compRef.current || baseline === compRef.current) return;
+    setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), baseline]);
+    setFuture([]);
+  }
+
   useEffect(() => {
-    if (!comp) return;
+    if (!comp || (lastSavedRef.current?.composition === comp && lastSavedRef.current.title === title)) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
-      void persist(comp);
+      if (lastSavedRef.current?.composition !== comp || lastSavedRef.current.title !== title) void persist(comp);
     }, 1200);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [comp, persist]);
+  }, [comp, title, persist]);
+
+  useEffect(() => {
+    function onOnline() {
+      if (!compRef.current || saveQueue.isBlocked()) return;
+      void persist(compRef.current);
+    }
+    function onOffline() {
+      setSaveState(current => current === "conflict" || current === "error" ? current : "offline");
+    }
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    if (!navigator.onLine) setSaveState("offline");
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [persist, saveQueue]);
+
 
   useEffect(() => {
     if (!playing || !comp) return;
@@ -179,12 +476,13 @@ export default function StudioVideoEditorPage() {
       el.load();
       return;
     }
-    if (el.src !== clip.sourceUrl) el.src = clip.sourceUrl;
+    const resolvedClipUrl = offlineMediaUrls[clip.sourceUrl] ?? clip.sourceUrl;
+    if (el.src !== resolvedClipUrl) el.src = resolvedClipUrl;
     const local = (playheadMs - clip.startMs) * clip.speed + clip.sourceInMs;
     const xf = clipTransformAtTime(comp, clip, playheadMs);
     el.style.opacity = String(xf.opacity);
     el.style.transform = `translate(${xf.x}px, ${xf.y}px) scale(${xf.scale}) rotate(${xf.rotation}deg)`;
-    el.volume = Math.min(1, xf.volume);
+    el.volume = Math.min(1, effectiveClipVolume(comp,clip.id) * xf.volume);
     el.playbackRate = Math.max(0.1, Math.min(8, clip.speed));
     el.style.filter = cssFilterFromGrade({
       brightness: clip.brightness ?? 0,
@@ -198,13 +496,14 @@ export default function StudioVideoEditorPage() {
     }
     if (playing) void el.play().catch(() => undefined);
     else el.pause();
-  }, [comp, playheadMs, playing]);
+  }, [comp, playheadMs, playing, offlineMediaUrls]);
 
   useEffect(() => {
     const audio = soundtrackRef.current;
     const url = comp?.music?.soundtrackUrl;
     if (!audio || !url) return;
-    if (audio.src !== url) audio.src = url;
+    const resolvedUrl = offlineMediaUrls[url] ?? url;
+    if (audio.src !== resolvedUrl) audio.src = resolvedUrl;
     try {
       if (Math.abs(audio.currentTime * 1000 - playheadMs) > 180) {
         audio.currentTime = playheadMs / 1000;
@@ -214,7 +513,19 @@ export default function StudioVideoEditorPage() {
     }
     if (playing) void audio.play().catch(() => undefined);
     else audio.pause();
-  }, [comp?.music?.soundtrackUrl, playheadMs, playing]);
+  }, [comp?.music?.soundtrackUrl, playheadMs, playing, offlineMediaUrls]);
+
+  useEffect(() => {
+    function onTimelineKey(e: KeyboardEvent) {
+      const target=e.target as HTMLElement|null;
+      if(target?.closest("input,textarea,select,[contenteditable=true]")||!compRef.current)return;
+      const current=compRef.current, ids=selectedClipIds.length?selectedClipIds:(selectedClipId?[selectedClipId]:[]);
+      if((e.key==="Delete"||e.key==="Backspace")&&ids.length){e.preventDefault();const next=deleteClips(current,ids);if("error"in next)setError(next.error);else{applyComp(next);setSelectedClipId(null);setSelectedClipIds([])}}
+      if((e.key==="ArrowLeft"||e.key==="ArrowRight")&&ids.length){e.preventDefault();const next=moveClips(current,ids,(e.key==="ArrowLeft"?-1:1)*(e.shiftKey?1000:100));if("error"in next)setError(next.error);else applyComp(next)}
+      if(e.key.toLowerCase()==="s"&&selectedClipId){e.preventDefault();const next=splitClipAt(current,selectedClipId,playheadMs);if("error"in next)setError(next.error);else applyComp(next)}
+    }
+    window.addEventListener("keydown",onTimelineKey);return()=>window.removeEventListener("keydown",onTimelineKey);
+  },[selectedClipId,selectedClipIds,playheadMs]);
 
   function setPlayhead(ms: number, fromUser = true) {
     if (!comp) return;
@@ -251,6 +562,7 @@ export default function StudioVideoEditorPage() {
         url: data.url,
         fileName: file.name.slice(0, 200),
         durationMs: kind === "image" ? 3000 : null,
+        provider: "upload",
       };
       let next = addAssetToComposition(comp, asset);
       const placed = addClipFromAsset(next, asset.id, { atMs: playheadMs });
@@ -402,26 +714,162 @@ export default function StudioVideoEditorPage() {
     setNote(`Nested sequence “${data.project.title}” placed on timeline.`);
   }
 
+  async function refreshLinkedDesign() {
+    if (!sourceDesignId || !compRef.current || sourceRefreshBusy) return;
+    if (!navigator.onLine) {
+      setNote("Reconnect before refreshing the linked design. Your current video remains available offline."); return;
+    }
+    setSourceRefreshBusy(true); setError(null);
+    try {
+      await persist(compRef.current, titleRef.current);
+      await saveQueue.run(async context => {
+        if (context.blocked() || !context.revision() || !compRef.current) return;
+        const baseline = compRef.current, baselineTitle = titleRef.current;
+        const res = await fetch(`/api/studio/video/${projectId}/refresh-source-design`, {
+          method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expectedUpdatedAt: context.revision() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!context.active()) return;
+        if (res.status === 409 && data.code === "studio_video_version_conflict") {
+          context.conflict(); setSaveState("conflict");
+          setError("This video changed somewhere else. Choose which version to keep before refreshing the linked design.");
+          await loadConflictSnapshot(context.active); return;
+        }
+        if (!res.ok || !validStudioSaveReceipt(data.project, projectId) || !data.project.composition) {
+          context.conflict(); setSaveState("error");
+          setError(typeof data.error === "string" ? data.error : "Could not confirm the linked design refresh. Reload before retrying."); return;
+        }
+        context.acknowledge(data.project.updated_at); setServerRevision(data.project.updated_at);
+        if (compRef.current === baseline && titleRef.current === baselineTitle) {
+          const next = data.project.composition as StudioComposition;
+          applyComp(next);
+          lastSavedRef.current = { composition: next, title: baselineTitle };
+          setSaveState("saved");
+          setNote("Linked design refreshed. Video-specific timing and motion are preserved.");
+        } else {
+          setSaveState("pending");
+          setNote("Newer edits were kept. Refresh the linked design again after they finish saving.");
+        }
+        if (userId && studioVideoOfflineSupported()) {
+          await cacheQueue.run(async cacheContext => {
+          let stable = false;
+          while (!stable && context.active() && cacheContext.active() && compRef.current) {
+            const snapshot = compRef.current, snapshotTitle = titleRef.current;
+            await putStudioVideoOfflineDraft({ userId, projectId, title: snapshotTitle, composition: snapshot,
+              businessId, sourceDesignId, serverUpdatedAt: context.revision(), savedAt: new Date().toISOString(),
+              dirty: lastSavedRef.current?.composition !== snapshot || lastSavedRef.current.title !== snapshotTitle,
+            });
+            stable = compRef.current === snapshot && titleRef.current === snapshotTitle;
+          }
+          });
+        }
+      });
+    } catch {
+      setSaveState("error"); setError("The linked design could not be refreshed. Your current edits are kept.");
+    } finally { setSourceRefreshBusy(false); }
+  }
+
+  async function cacheProjectOffline() {
+    if (!comp || !userId || offlineCacheBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNote("Reconnect once to cache this project's media for offline editing.");
+      return;
+    }
+
+    setOfflineCacheBusy(true);
+    setError(null);
+    const canonical = [...new Set([
+      ...comp.assets.map((asset) => asset.url),
+      ...comp.clips.map((clip) => clip.sourceUrl).filter((url): url is string => Boolean(url)),
+      ...(comp.music?.soundtrackUrl ? [comp.music.soundtrackUrl] : []),
+    ])];
+
+    let cached = 0;
+    let skipped = 0;
+    for (const url of canonical) {
+      try {
+        await cacheRemoteStudioMedia(userId, projectId, url);
+        cached += 1;
+      } catch {
+        skipped += 1;
+      }
+    }
+
+    const pruned = await pruneStudioVideoMediaCache(userId, projectId).catch(() => ({ removed: 0, bytesRemaining: 0 }));
+    await hydrateOfflineMedia(userId, comp);
+    setOfflineCacheBusy(false);
+    setNote(
+      skipped
+        ? `Offline cache updated · ${cached} media saved · ${skipped} could not be cached (large or unavailable)${pruned.removed ? ` · ${pruned.removed} older cached file${pruned.removed === 1 ? "" : "s"} pruned` : ""}.`
+        : `Available offline · ${cached} media file${cached === 1 ? "" : "s"} cached on this device${pruned.removed ? ` · ${pruned.removed} older cached file${pruned.removed === 1 ? "" : "s"} pruned` : ""}.`,
+    );
+  }
+
+  async function exportVideo(format: "webm" | "wav" = "webm") {
+    if (!comp || exportBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNote("Offline export works only when every media file used by this video is already available to the browser. Reconnect if export cannot load media.");
+    }
+
+    setExportBusy(true);
+    setExportProgress(0);
+    setError(null);
+    setPlaying(false);
+    try {
+      const result = await exportStudioComposition(comp, {
+        scale: 0.5,
+        fps: Math.min(24, comp.frameRate),
+        onProgress(progress) {
+          setExportProgress(Math.round((progress.frame / progress.totalFrames) * 100));
+        },
+        resolveMediaUrl(url) {
+          return offlineMediaUrls[url] ?? url;
+        },
+      });
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+
+      const blob = format === "wav" ? await timelineRecordingToWav(result.blob) : result.blob;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = (title.trim() || "kebu-studio-video").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 100) + `.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      setNote(`${format === "wav" ? "WAV audio" : "Video"} exported · ${(result.durationMs / 1000).toFixed(1)}s · includes timeline visuals and available audio.`);
+    } catch {
+      setError("Could not export this timeline. Check that its media and audio are available.");
+    } finally {
+      setExportBusy(false);
+      setExportProgress(0);
+    }
+  }
+
   function undo() {
-    setHistory((h) => {
-      if (!h.length || !compRef.current) return h;
-      const prev = h[h.length - 1]!;
-      setFuture((f) => [compRef.current!, ...f].slice(0, HISTORY_CAP));
-      compRef.current = prev;
-      setComp(prev);
-      return h.slice(0, -1);
-    });
+    const current = compRef.current, previous = history[history.length - 1];
+    if (!current || !previous) return;
+    setHistory((h) => h.slice(0, -1));
+    setFuture((f) => [current, ...f].slice(0, HISTORY_CAP));
+    timelineGestureBaseline.current = null;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    compRef.current = previous;
+    setComp(previous);
   }
 
   function redo() {
-    setFuture((f) => {
-      if (!f.length || !compRef.current) return f;
-      const next = f[0]!;
-      setHistory((h) => [...h, compRef.current!].slice(-HISTORY_CAP));
-      compRef.current = next;
-      setComp(next);
-      return f.slice(1);
-    });
+    const current = compRef.current, next = future[0];
+    if (!current || !next) return;
+    setFuture((f) => f.slice(1));
+    setHistory((h) => [...h, current].slice(-HISTORY_CAP));
+    timelineGestureBaseline.current = null;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    compRef.current = next;
+    setComp(next);
   }
 
   function runAiEdit() {
@@ -456,40 +904,69 @@ export default function StudioVideoEditorPage() {
   }
 
   const totalMs = compositionDurationMs(comp);
+  const previewWidth = Math.min(360, (comp.width / comp.height) * 280);
+  const previewScale = previewWidth / comp.width;
   const selected = comp.clips.find((c) => c.id === selectedClipId) ?? null;
   const tracks = [...comp.tracks].sort((a, b) => a.order - b.order);
-  const peaks = comp.music?.peaks ?? [];
+  const peaks = downsamplePeaks(comp.music?.peaks ?? [], 240);
   const beats = comp.music?.beatsMs ?? [];
   const saveLabel =
     saveState === "saving"
       ? "Saving…"
       : saveState === "saved"
         ? "Saved"
-        : saveState === "error"
-          ? "Save failed"
-          : "Autosave on";
+        : saveState === "offline"
+          ? "Offline — changes not synced"
+          : saveState === "conflict"
+            ? "Sync conflict — choose a version"
+            : saveState === "pending"
+              ? "Unsaved changes"
+              : saveState === "error"
+              ? "Save failed"
+              : "Autosave on";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#14121f] text-white">
+    <div className="min-h-screen flex flex-col bg-[#101010] text-white selection:bg-[#FF6A00]/30">
       <audio ref={soundtrackRef} preload="auto" className="hidden" />
-      <header className="shrink-0 border-b border-white/10 px-3 py-2 flex flex-wrap items-center gap-2">
-        <Link href="/studio" className="text-xs underline opacity-60">
+      <header className="shrink-0 border-b border-white/[.08] bg-[#151515] px-3 py-2 flex flex-wrap items-center gap-2">
+        <Link href="/studio" className="rounded-md px-2 py-1 text-[10px] text-white/50 hover:bg-white/[.06] hover:text-white">
           ← Studio
         </Link>
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          aria-label="Video title"
+          onChange={(e) => { titleRef.current = e.target.value; setSaveState(current => saveQueue.isBlocked() ? current : "pending"); setTitle(e.target.value); }}
           onBlur={() => void persist(comp, title)}
           className="bg-transparent font-display font-bold text-sm min-w-[140px] flex-1 border-b border-transparent focus:border-orange-500 outline-none"
         />
         <span className="text-[10px] uppercase tracking-wider opacity-50">{saveLabel}</span>
+        {sourceDesignId ? (
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/studio/${sourceDesignId}`}
+              className="rounded-md border border-white/10 px-2 py-1 text-[9px] font-bold text-white/60 hover:bg-white/[.06] hover:text-white"
+              title="Open the editable source design"
+            >
+              Source design
+            </Link>
+            <button
+              type="button"
+              disabled={sourceRefreshBusy || saveState === "conflict"}
+              onClick={() => void refreshLinkedDesign()}
+              className="rounded-md border border-orange-400/25 bg-orange-500/10 px-2 py-1 text-[9px] font-bold text-orange-200 disabled:opacity-40"
+              title="Refresh semantic design layers without flattening or replacing video-specific timing and motion"
+            >
+              {sourceRefreshBusy ? "Refreshing…" : "Refresh design"}
+            </button>
+          </div>
+        ) : null}
         {comp.music?.bpm ? (
           <span className="text-[10px] font-mono text-emerald-300/90">
             {comp.music.bpm} BPM
             {comp.music.confidence != null ? ` · ${Math.round(comp.music.confidence * 100)}%` : ""}
           </span>
         ) : null}
-        <button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
+        <label className="flex items-center gap-1 text-[10px] opacity-70">Master<input aria-label="Master volume" type="range" min="0" max="2" step=".05" value={comp.masterVolume} onChange={e=>applyComp(setMasterVolume(comp,Number(e.target.value)))}/></label><button type="button" onClick={()=>applyComp(duckMusicUnderVoice(comp))} className="rounded-lg px-2 py-1 text-xs bg-white/10">Duck music</button><button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Undo
         </button>
         <button type="button" disabled={!future.length} onClick={redo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
@@ -497,19 +974,51 @@ export default function StudioVideoEditorPage() {
         </button>
         <button
           type="button"
+          disabled={offlineCacheBusy || !userId}
+          onClick={() => void cacheProjectOffline()}
+          className="rounded-full border border-white/15 px-3 py-1.5 text-[10px] font-bold text-white/70 disabled:opacity-40"
+          title="Cache project media on this device for low-bandwidth and offline editing"
+        >
+          {offlineCacheBusy ? "Caching…" : Object.keys(offlineMediaUrls).length ? `Offline · ${Object.keys(offlineMediaUrls).length}` : "Make offline"}
+        </button>
+        <button
+          type="button"
+          disabled={exportBusy || saveState === "conflict"}
+          onClick={() => void exportVideo()}
+          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+          title="Record the current Studio composition to WebM with timeline media and available audio"
+        >
+          {exportBusy ? `Exporting ${exportProgress}%` : "Export video"}
+        </button>
+        <button type="button" disabled={exportBusy} onClick={() => void exportVideo("wav")} className="rounded-lg border border-white/20 px-3 py-2 text-xs">Download WAV audio</button>
+        <button
+          type="button"
+          disabled={saveState === "conflict"}
           onClick={() => void persist(comp)}
-          className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
+          className="rounded-full px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
           style={{ background: "#E05A2B" }}
         >
           Save now
         </button>
       </header>
 
+      {conflictServer ? (
+        <div className="flex flex-col gap-2 border-b border-amber-300/20 bg-amber-950/40 px-3 py-2 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-black uppercase tracking-[.14em] text-amber-200">Studio sync conflict</p>
+            <p className="mt-0.5 text-[10px] text-amber-100/70">A newer server version exists. Kebu kept your local composition offline, so nothing has to be silently overwritten.</p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button type="button" onClick={() => void applyServerConflictVersion()} className="rounded-full border border-white/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Use server version</button>
+            <button type="button" onClick={() => void keepLocalConflictVersion()} className="rounded-full bg-[#FF6A00] px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Keep my version</button>
+          </div>
+        </div>
+      ) : null}
       {error ? <p className="px-3 py-1 text-xs text-red-300 bg-red-950/40">{error}</p> : null}
       {note ? <p className="px-3 py-1 text-xs text-emerald-200/90 bg-emerald-950/30">{note}</p> : null}
 
       <div className="flex flex-1 min-h-0">
-        <aside className="w-[200px] shrink-0 border-r border-white/10 flex flex-col bg-[#1a1828]">
+        <aside className="hidden w-[220px] shrink-0 border-r border-white/[.08] bg-[#151515] lg:flex lg:flex-col">
           <div className="p-2 border-b border-white/10 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Media</p>
             <input
@@ -748,20 +1257,28 @@ export default function StudioVideoEditorPage() {
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 bg-[#0c0b14]">
+        <main className="flex-1 flex flex-col min-w-0 bg-[#0d0d0d]">
           <div className="flex-1 flex items-center justify-center p-4 min-h-[200px]">
             <div
               className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-white/10"
               style={{
-                width: Math.min(360, (comp.width / comp.height) * 280),
+                width: previewWidth,
                 aspectRatio: `${comp.width} / ${comp.height}`,
               }}
             >
-              <video
-                ref={videoPreviewRef}
-                className="absolute inset-0 w-full h-full object-contain transition-opacity"
-                playsInline
-              />
+              <video ref={videoPreviewRef} className="absolute inset-0 w-full h-full object-contain transition-opacity" playsInline />
+              {comp.clips
+                .filter((clip) => clip.designLayer && playheadMs >= clip.startMs && playheadMs < clip.startMs + clip.durationMs)
+                .map((clip) => (
+                  <SemanticDesignVideoLayer
+                    key={clip.id}
+                    composition={comp}
+                    clip={clip}
+                    playheadMs={playheadMs}
+                    previewScale={previewScale}
+                    resolveMediaUrl={(url) => offlineMediaUrls[url] ?? url}
+                  />
+                ))}
               {(() => {
                 const capTrack = comp.tracks.find((t) => t.kind === "caption");
                 if (!capTrack) return null;
@@ -789,10 +1306,10 @@ export default function StudioVideoEditorPage() {
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-white/10">
             <button
               type="button"
-              className="rounded-lg px-3 py-1 text-xs font-bold bg-white/15"
+              className="grid h-8 w-8 place-items-center rounded-full bg-white text-black text-[10px] font-bold"
               onClick={() => setPlaying((p) => !p)}
             >
-              {playing ? "Pause" : "Play"}
+              {playing ? "Ⅱ" : "▶"}
             </button>
             <span className="text-[11px] font-mono opacity-60">
               {(playheadMs / 1000).toFixed(1)}s / {(totalMs / 1000).toFixed(1)}s
@@ -803,8 +1320,9 @@ export default function StudioVideoEditorPage() {
                 checked={comp.snapToBeats}
                 onChange={(e) => applyComp({ ...comp, snapToBeats: e.target.checked })}
               />
-              Snap to beats
+              Magnetic snap
             </label>
+            <label className="flex items-center gap-1 text-[10px] opacity-70"><input type="checkbox" checked={rippleEditing} onChange={(e)=>setRippleEditing(e.target.checked)}/>Ripple edit</label>
             <button
               type="button"
               className="rounded-lg px-2 py-1 text-[10px] font-bold bg-white/10"
@@ -828,7 +1346,7 @@ export default function StudioVideoEditorPage() {
           </div>
         </main>
 
-        <aside className="w-[240px] shrink-0 border-l border-white/10 bg-[#1a1828] p-3 overflow-y-auto">
+        <aside className="hidden w-[280px] shrink-0 border-l border-white/[.08] bg-[#151515] p-3 overflow-y-auto xl:block">
           <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-2">Inspector</p>
           {!selected ? (
             <div className="space-y-2 text-[11px] opacity-50 leading-relaxed">
@@ -851,10 +1369,12 @@ export default function StudioVideoEditorPage() {
                 const next = updateClip(comp, selected.id, patch);
                 if (!("error" in next)) applyComp(next);
               }}
+              onAudioAction={(action)=>{const next=action==="normalize"?normalizeClipVolume(comp,selected.id):cutClipsOnBeats(comp,selected.id,action==="downbeats");if("error"in next)setError(next.error);else applyComp(next)}}
               onDelete={() => {
-                applyComp(deleteClip(comp, selected.id));
-                setSelectedClipId(null);
+                const track=comp.tracks.find(t=>t.id===selected.trackId); if(track?.locked){setError("Track is locked.");return;}
+                applyComp(deleteClip(comp, selected.id)); setSelectedClipId(null);
               }}
+              onRippleDelete={() => { const next=rippleDeleteClip(comp,selected.id); if("error" in next)setError(next.error); else {applyComp(next);setSelectedClipId(null);} }}
               onSplit={() => {
                 const next = splitClipAt(comp, selected.id, playheadMs);
                 if ("error" in next) setError(next.error);
@@ -908,18 +1428,16 @@ export default function StudioVideoEditorPage() {
         </aside>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 bg-[#12101c] px-2 py-2 space-y-1 max-h-[320px] overflow-auto">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 px-1">
-          Timeline · multi-track · music-aware
-        </p>
+      <div className="shrink-0 border-t border-white/[.08] bg-[#111] px-2 py-2 space-y-1 max-h-[42vh] overflow-auto">
+        <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1">{COMPOSITION_TRACK_KINDS.map((kind) => (<button key={kind} type="button" title={`Add a ${kind} track`} onClick={()=>{const n=addTrack(comp,{kind});if("error"in n)setError(n.error);else{applyComp(n);setNote(`Added a ${kind} track.`)}}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">+{kind}</button>))}<button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=fitSequenceToDuration(comp,selectedClipIds,15000);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Fit 15s</button><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
         <div className="relative" style={{ minWidth: (totalMs / 1000) * pxPerSec + 80 }}>
           <div className="h-5 ml-14 relative border-b border-white/10 mb-1">
-            {Array.from({ length: Math.ceil(totalMs / 1000) + 1 }).map((_, i) => (
-              <span key={i} className="absolute text-[9px] opacity-40 font-mono" style={{ left: i * pxPerSec }}>
-                {i}s
+            {Array.from({ length: Math.min(600, Math.ceil(totalMs / Math.max(1000, Math.ceil(totalMs / 600 / 1000) * 1000)) + 1) }).map((_, i) => (
+              <span key={i} className="absolute text-[9px] opacity-40 font-mono" style={{ left: i * pxPerSec * Math.max(1, Math.ceil(totalMs / 600 / 1000)) }}>
+                {i * Math.max(1, Math.ceil(totalMs / 600 / 1000))}s
               </span>
             ))}
-            {beats.map((b) => (
+            {beats.filter((_,i)=>beats.length<=1200||i%Math.ceil(beats.length/1200)===0).map((b) => (
               <span
                 key={`b-${b}`}
                 className="absolute top-0 bottom-0 w-px bg-emerald-400/40"
@@ -956,9 +1474,7 @@ export default function StudioVideoEditorPage() {
 
           {tracks.map((track) => (
             <div key={track.id} className="flex items-stretch gap-1 mb-1">
-              <div className="w-14 shrink-0 text-[10px] font-semibold opacity-60 flex items-center px-1">
-                {track.name}
-              </div>
+              <div className="w-14 shrink-0 text-[9px] font-semibold flex items-center gap-0.5 px-0.5"><span className="min-w-0 flex-1 truncate opacity-60">{track.name}</span>{track.kind==="audio"||track.kind==="music"?<><input aria-label={`${track.name} volume`} className="w-10" type="range" min="0" max="2" step=".1" value={track.volume} onChange={e=>applyComp(setTrackMix(comp,track.id,{volume:Number(e.target.value)}))}/><button type="button" title={track.solo?"Unsolo":"Solo"} onClick={()=>applyComp(setTrackMix(comp,track.id,{solo:!track.solo}))} className={track.solo?"text-emerald-300":"opacity-40"}>S</button></>:null}<button type="button" title={track.muted?"Unmute":"Mute"} onClick={()=>applyComp(setTrackMix(comp,track.id,{muted:!track.muted}))} className={track.muted?"text-amber-300":"opacity-40"}>{track.muted?"M":"m"}</button><button type="button" title={track.locked?"Unlock":"Lock"} onClick={()=>applyComp(setTrackState(comp,track.id,{locked:!track.locked}))} className={track.locked?"text-orange-300":"opacity-40"}>{track.locked?"L":"l"}</button><button type="button" title="Remove track" aria-label={`Remove ${track.name} track`} onClick={()=>{const n=removeTrack(comp,track.id);if("error"in n)setError(n.error);else{applyComp(n);setNote(`Removed ${track.name}.`)}}} className="opacity-40 hover:text-red-300">×</button></div>
               <div
                 className="relative h-10 flex-1 rounded bg-black/40 border border-white/5"
                 style={{ width: (totalMs / 1000) * pxPerSec }}
@@ -971,21 +1487,16 @@ export default function StudioVideoEditorPage() {
                       key={clip.id}
                       clip={clip}
                       pxPerSec={pxPerSec}
-                      selected={clip.id === selectedClipId}
+                      selected={selectedClipIds.includes(clip.id) || clip.id === selectedClipId}
                       locked={track.locked}
-                      onSelect={() => setSelectedClipId(clip.id)}
-                      onMove={(startMs) => {
-                        const snapped = maybeSnapTime(comp, Math.max(0, startMs));
-                        const next = updateClip(comp, clip.id, { startMs: snapped });
-                        if (!("error" in next)) applyComp(next);
-                      }}
-                      onTrim={(durationMs) => {
-                        const end = maybeSnapTime(comp, clip.startMs + Math.max(200, durationMs));
-                        const next = updateClip(comp, clip.id, {
-                          durationMs: Math.max(200, end - clip.startMs),
-                        });
-                        if (!("error" in next)) applyComp(next);
-                      }}
+                      onSelect={(additive) => {setSelectedClipId(clip.id);setSelectedClipIds(prev=>additive?(prev.includes(clip.id)?prev.filter(id=>id!==clip.id):[...prev,clip.id]):linkedClipIds(comp,clip.id));}}
+                      onGestureStart={beginTimelineGesture}
+                      onGestureEnd={commitTimelineGesture}
+                      onMove={(startMs) => {const current=compRef.current??comp;const currentClip=current.clips.find(x=>x.id===clip.id)??clip;const ids=selectedClipIds.includes(clip.id)?selectedClipIds:linkedClipIds(current,clip.id);const next=moveClips(current,ids,startMs-currentClip.startMs);if(!("error" in next))applyTimelineGesture(next);}}
+                      onTrim={(edge,deltaMs) => {const current=compRef.current??comp;const next=trimClipEdge(current,clip.id,edge,deltaMs,{ripple:rippleEditing});if(!("error" in next))applyTimelineGesture(next);}}
+                      onSlip={(deltaMs)=>{const current=compRef.current??comp;const next=slipClip(current,clip.id,deltaMs);if(!("error" in next))applyTimelineGesture(next);}}
+                      compKeyframes={comp.keyframes.filter(k=>k.clipId===clip.id).map(k=>k.timeMs)}
+                      wavePeaks={downsamplePeaks(comp.assets.find(a=>a.url===clip.sourceUrl)?.peaks??[],48)}
                     />
                   ))}
               </div>
@@ -993,7 +1504,7 @@ export default function StudioVideoEditorPage() {
           ))}
 
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-emerald-400 pointer-events-none z-20"
+            className="absolute top-0 bottom-0 w-px bg-[#FF6A00] pointer-events-none z-20 shadow-[0_0_0_1px_rgba(255,106,0,.08)]"
             style={{ left: 56 + (playheadMs / 1000) * pxPerSec }}
           />
           <input
@@ -1012,24 +1523,198 @@ export default function StudioVideoEditorPage() {
   );
 }
 
+function semanticMediaFilter(layer: NonNullable<CompositionClip["designLayer"]>) {
+  const brightness = 1 + (layer.brightness ?? 0);
+  const contrast = 1 + (layer.contrast ?? 0);
+  const saturation = 1 + (layer.saturation ?? 0);
+  const grayscale = Math.max(0, Math.min(1, layer.grayscale ?? 0));
+  const blur = Math.max(0, layer.blur ?? 0);
+  return `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) grayscale(${grayscale}) blur(${blur}px)`;
+}
+
+function SemanticDesignVideoLayer({
+  composition,
+  clip,
+  playheadMs,
+  previewScale,
+  resolveMediaUrl,
+}: {
+  composition: StudioComposition;
+  clip: CompositionClip;
+  playheadMs: number;
+  previewScale: number;
+  resolveMediaUrl: (url: string) => string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const layer = clip.designLayer!;
+  const xf = clipTransformAtTime(composition, clip, playheadMs);
+  const width = Math.max(1, clip.designWidth ?? 200) * previewScale;
+  const height = Math.max(1, clip.designHeight ?? (layer.fontSize ?? 48) * 1.4) * previewScale;
+  const cropW = Math.max(0.05, Math.min(1, layer.cropW ?? 1));
+  const cropH = Math.max(0.05, Math.min(1, layer.cropH ?? 1));
+  const cropX = Math.max(0, Math.min(1 - cropW, layer.cropX ?? 0));
+  const cropY = Math.max(0, Math.min(1 - cropH, layer.cropY ?? 0));
+
+  useEffect(() => {
+    if (layer.type !== "video" || !videoRef.current) return;
+    const video = videoRef.current;
+    const localMs = Math.max(0, (playheadMs - clip.startMs) * clip.speed + clip.sourceInMs);
+    const apply = () => {
+      const target = localMs / 1000;
+      if (Math.abs(video.currentTime - target) > 0.12) {
+        try { video.currentTime = target; } catch { /* media can still be loading */ }
+      }
+    };
+    if (video.readyState >= 1) apply();
+    else video.addEventListener("loadedmetadata", apply, { once: true });
+  }, [clip.sourceInMs, clip.speed, clip.startMs, layer.type, playheadMs]);
+
+  const outer: React.CSSProperties = {
+    position: "absolute",
+    left: xf.x * previewScale,
+    top: xf.y * previewScale,
+    width,
+    height,
+    opacity: xf.opacity,
+    transform: `scale(${xf.scale}) rotate(${xf.rotation}deg)`,
+    transformOrigin: "top left",
+    overflow: "hidden",
+    borderRadius: layer.type === "ellipse" ? 9999 : (layer.cornerRadius ?? 0) * previewScale,
+    boxShadow: layer.shadowBlur
+      ? `${(layer.shadowX ?? 0) * previewScale}px ${(layer.shadowY ?? 0) * previewScale}px ${layer.shadowBlur * previewScale}px ${layer.shadowColor ?? "#00000055"}`
+      : undefined,
+    pointerEvents: "none",
+  };
+
+  if (layer.type === "text") {
+    return (
+      <div
+        style={{
+          ...outer,
+          color: layer.color ?? "#FFFFFF",
+          fontFamily: layer.fontFamily,
+          fontWeight: layer.fontWeight,
+          fontStyle: layer.fontStyle,
+          fontSize: Math.max(5, (layer.fontSize ?? 48) * previewScale),
+          lineHeight: layer.lineHeight ?? 1.2,
+          letterSpacing: layer.letterSpacing != null ? layer.letterSpacing * previewScale : undefined,
+          textAlign: layer.textAlign,
+          textDecoration: layer.textDecoration === "none" ? undefined : layer.textDecoration,
+          textTransform: layer.textTransform === "none" ? undefined : layer.textTransform,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {layer.text}
+      </div>
+    );
+  }
+
+  if (layer.type === "image" && layer.imageUrl) {
+    return (
+      <div style={outer}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={resolveMediaUrl(layer.imageUrl)}
+          alt=""
+          style={{
+            width: `${100 / cropW}%`,
+            height: `${100 / cropH}%`,
+            maxWidth: "none",
+            marginLeft: `${(-cropX / cropW) * 100}%`,
+            marginTop: `${(-cropY / cropH) * 100}%`,
+            objectFit: "fill",
+            transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+            filter: semanticMediaFilter(layer),
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (layer.type === "video" && layer.videoUrl) {
+    return (
+      <div style={outer}>
+        <video
+          ref={videoRef}
+          src={resolveMediaUrl(layer.videoUrl)}
+          muted
+          playsInline
+          preload="metadata"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: layer.objectFit ?? "cover",
+            transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+            filter: semanticMediaFilter(layer),
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (layer.type === "ellipse") {
+    return <div style={{ ...outer, background: layer.fill ?? "transparent", border: layer.strokeWidth ? `${layer.strokeWidth * previewScale}px solid ${layer.stroke ?? "#111111"}` : undefined }} />;
+  }
+
+  if (layer.type === "line") {
+    return (
+      <div style={{ ...outer, overflow: "visible" }}>
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "50%",
+            height: Math.max(1, (layer.strokeWidth ?? 2) * previewScale),
+            transform: "translateY(-50%)",
+            background: layer.stroke ?? layer.fill ?? "#FFFFFF",
+          }}
+        />
+        {layer.text === "→" ? <span style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-55%)", color: layer.stroke ?? layer.fill ?? "#FFFFFF", fontSize: Math.max(8, 22 * previewScale) }}>›</span> : null}
+      </div>
+    );
+  }
+
+  if (layer.type === "icon") {
+    return <div style={{ ...outer, display: "flex", alignItems: "center", justifyContent: "center", color: layer.color ?? "#FFFFFF", fontSize: Math.max(8, (layer.fontSize ?? 48) * previewScale), fontWeight: 700 }}>{layer.text || "★"}</div>;
+  }
+
+  if (layer.type === "frame") {
+    return <div style={{ ...outer, border: `${Math.max(1, (layer.strokeWidth ?? 4) * previewScale)}px solid ${layer.stroke ?? "#FFFFFF"}`, background: layer.fill ?? "transparent" }} />;
+  }
+
+  return <div style={{ ...outer, background: layer.fill ?? "transparent", border: layer.strokeWidth ? `${layer.strokeWidth * previewScale}px solid ${layer.stroke ?? "#111111"}` : undefined }} />;
+}
+
 function TimelineClipBlock({
   clip,
   pxPerSec,
   selected,
   locked,
   onSelect,
+  onGestureStart,
+  onGestureEnd,
   onMove,
   onTrim,
+  onSlip,
+  compKeyframes,
+  wavePeaks,
 }: {
   clip: CompositionClip;
   pxPerSec: number;
   selected: boolean;
   locked: boolean;
-  onSelect: () => void;
+  onSelect: (additive: boolean) => void;
+  onGestureStart: () => void;
+  onGestureEnd: () => void;
   onMove: (startMs: number) => void;
-  onTrim: (durationMs: number) => void;
+  onTrim: (edge: "left"|"right", deltaMs: number) => void;
+  onSlip: (deltaMs:number)=>void;
+  compKeyframes?: number[];
+  wavePeaks?: number[];
 }) {
-  const drag = useRef<{ mode: "move" | "trim"; originX: number; startMs: number; durationMs: number } | null>(
+  const drag = useRef<{ mode: "move" | "trim-left" | "trim-right" | "slip"; originX: number; startMs: number; durationMs: number } | null>(
     null,
   );
 
@@ -1039,13 +1724,14 @@ function TimelineClipBlock({
       tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect();
+        onSelect(e.metaKey || e.ctrlKey || e.shiftKey);
       }}
       onPointerDown={(e) => {
         if (locked || e.button !== 0) return;
         e.stopPropagation();
-        onSelect();
-        const mode = (e.target as HTMLElement).dataset.handle === "trim" ? "trim" : "move";
+        onSelect(e.metaKey || e.ctrlKey || e.shiftKey);
+        onGestureStart();
+        const handle=(e.target as HTMLElement).dataset.handle; const mode=e.altKey?"slip":handle==="trim-left"?"trim-left":handle==="trim-right"?"trim-right":"move";
         drag.current = {
           mode,
           originX: e.clientX,
@@ -1058,15 +1744,18 @@ function TimelineClipBlock({
         if (!drag.current) return;
         const dx = e.clientX - drag.current.originX;
         const dMs = Math.round((dx / pxPerSec) * 1000);
-        if (drag.current.mode === "move") onMove(drag.current.startMs + dMs);
-        else onTrim(drag.current.durationMs + dMs);
+        if(drag.current.mode==="move")onMove(drag.current.startMs+dMs);else if(drag.current.mode==="slip")onSlip(dMs);else onTrim(drag.current.mode==="trim-left"?"left":"right",dMs);
       }}
       onPointerUp={() => {
+        if (drag.current) onGestureEnd();
         drag.current = null;
       }}
-      className={`absolute top-1 bottom-1 rounded px-1 text-[10px] font-semibold truncate cursor-grab active:cursor-grabbing ${
-        selected ? "ring-2 ring-orange-400 bg-orange-600/90" : "bg-sky-700/80 hover:bg-sky-600/90"
-      }`}
+      onPointerCancel={() => {
+        if (drag.current) onGestureEnd();
+        drag.current = null;
+      }}
+      aria-pressed={selected}
+      className={`group absolute top-1 bottom-1 rounded-[5px] px-2 text-[9px] font-semibold truncate cursor-grab outline-none transition-[background,box-shadow] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-[#FF6A00] ${selected ? "bg-[#3a3a3a] ring-1 ring-[#FF6A00] shadow-[inset_3px_0_0_#FF6A00]" : "bg-[#292929] ring-1 ring-white/[.08] hover:bg-[#333]"}` }
       style={{
         left: (clip.startMs / 1000) * pxPerSec,
         width: Math.max(12, (clip.durationMs / 1000) * pxPerSec),
@@ -1074,10 +1763,12 @@ function TimelineClipBlock({
       title={clip.name}
     >
       {clip.name}
+      {wavePeaks?.length?<span className="absolute inset-x-2 bottom-1 flex h-2 items-end gap-px opacity-45 pointer-events-none">{wavePeaks.map((p,i)=><i key={i} className="flex-1 bg-white min-w-px" style={{height:`${Math.max(15,p*100)}%`}}/>)}</span>:null}
+      {compKeyframes?.map((time)=><span key={time} title={`Keyframe ${time}ms`} className="absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rotate-45 bg-yellow-200" style={{left:`${Math.max(2,Math.min(96,(time/clip.durationMs)*100))}%`}}/>)}
       {(clip.fadeInMs > 0 || clip.fadeOutMs > 0) && (
         <span className="absolute inset-y-0 left-0 w-1 bg-white/40 rounded-l" />
       )}
-      <span data-handle="trim" className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" />
+      <span data-handle="trim-left" aria-label="Trim clip start" className="absolute left-0 top-1 bottom-1 w-2 cursor-ew-resize rounded-l opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 bg-white/35" /><span data-handle="trim-right" aria-label="Trim clip end" className="absolute right-0 top-1 bottom-1 w-2 cursor-ew-resize rounded-r opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 bg-white/35" />
     </div>
   );
 }
@@ -1087,6 +1778,8 @@ function ClipInspector({
   playheadLocalMs,
   onChange,
   onDelete,
+  onRippleDelete,
+  onAudioAction,
   onSplit,
   onKeyframe,
   onReactive,
@@ -1096,6 +1789,8 @@ function ClipInspector({
   playheadLocalMs: number;
   onChange: (patch: Partial<CompositionClip>) => void;
   onDelete: () => void;
+  onRippleDelete: () => void;
+  onAudioAction: (action:"normalize"|"beats"|"downbeats")=>void;
   onSplit: () => void;
   onKeyframe: (property: "opacity" | "scale" | "x" | "y" | "rotation" | "volume", value: number) => void;
   onReactive: (preset: AudioReactivePreset) => void;
@@ -1104,6 +1799,7 @@ function ClipInspector({
   return (
     <div className="space-y-2 text-xs">
       <p className="font-semibold truncate">{clip.name}</p>
+      {clip.designLayer ? <div className="rounded-xl border border-orange-400/20 bg-orange-400/5 p-2 space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-300">Editable design layer</p><p className="text-[10px] opacity-50">Linked to {clip.sourceDesignLayerId?.slice(0,12) ?? "design layer"} · remains semantic in Video.</p>{clip.designLayer.type==="text"?<label className="block opacity-80">Text<textarea rows={3} className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.designLayer.text??""} onChange={e=>onChange({designLayer:{...clip.designLayer!,text:e.target.value.slice(0,500)}})}/></label>:null}<div className="grid grid-cols-2 gap-2"><label className="block opacity-80">X<input type="number" className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.x} onChange={e=>onChange({x:Number(e.target.value)||0})}/></label><label className="block opacity-80">Y<input type="number" className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.y} onChange={e=>onChange({y:Number(e.target.value)||0})}/></label><label className="block opacity-80">Width<input type="number" min={1} className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.designWidth??1} onChange={e=>onChange({designWidth:Math.max(1,Number(e.target.value)||1)})}/></label><label className="block opacity-80">Height<input type="number" min={1} className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.designHeight??1} onChange={e=>onChange({designHeight:Math.max(1,Number(e.target.value)||1)})}/></label></div>{clip.designLayer.fill!==undefined?<label className="block opacity-80">Fill<input type="text" className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.designLayer.fill??""} onChange={e=>onChange({designLayer:{...clip.designLayer!,fill:e.target.value.slice(0,40)}})}/></label>:null}{clip.designLayer.color!==undefined?<label className="block opacity-80">Text color<input type="text" className="mt-1 w-full rounded bg-black/40 border border-white/10 px-2 py-1" value={clip.designLayer.color??""} onChange={e=>onChange({designLayer:{...clip.designLayer!,color:e.target.value.slice(0,40)}})}/></label>:null}</div>:null}
       <label className="block opacity-80">
         Start (ms)
         <input

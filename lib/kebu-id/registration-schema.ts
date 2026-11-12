@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isValidLegalStructure, isValidRegion, getCountryModule } from "@/lib/kebu-id/countries";
-import { businessCategorySchema, AFRICAN_COUNTRY_CODES } from "@/lib/kebu-id/schemas";
+import { businessCategorySchema, AFRICAN_COUNTRY_CODES, safeWebsiteUrlSchema } from "@/lib/kebu-id/schemas";
 
 export const registerBusinessSchema = z
   .object({
@@ -25,11 +25,7 @@ export const registerBusinessSchema = z
     description: z.string().trim().min(20).max(1000),
     businessEmail: z.string().trim().email().max(254),
     businessPhone: z.string().trim().min(5).max(40),
-    website: z
-      .string()
-      .trim()
-      .url()
-      .max(300)
+    website: safeWebsiteUrlSchema
       .optional()
       .or(z.literal(""))
       .transform((v) => (v ? v : undefined)),

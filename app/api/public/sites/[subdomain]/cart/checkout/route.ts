@@ -136,11 +136,13 @@ export async function POST(req: Request, { params }: Params) {
     customerEmail,
     paymentPreference: parsed.data.paymentPreference ?? "whatsapp",
     discountCode: parsed.data.discountCode,
+    affiliateCode: parsed.data.affiliateCode,
     giftCardCode: parsed.data.giftCardCode,
     customerUserId,
     gift: parsed.data,
     buyerCountry: parsed.data.buyerCountry ?? null,
     sellerCountry: "SN",
+    shippingOptionId: parsed.data.shippingOptionId ?? null,
   });
 
   if (!created.ok) {

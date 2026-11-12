@@ -1,6 +1,8 @@
+import { decodePublicSnapshot } from "./public-site-snapshot";
+import type { KcdDocument } from "@/lib/creative-core";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient, type SupabaseClient } from "@supabase/supabase-js";
-import { websiteDefinitionSchema, type WebsiteDefinition } from "@/lib/create/website-schema";
+import { type WebsiteDefinition } from "@/lib/create/website-schema";
 import { mergeSiteSeo, type SiteSeo } from "@/lib/create/site-seo";
 import { kebuSitePreviewPath, liveSiteUrl, plannedKebuAfricaHost } from "@/lib/create/site-urls";
 import { projectHostingIsPaid } from "@/lib/billing/subscriptions";
@@ -11,6 +13,7 @@ export type PublicDeployment = {
   publicPath: string;
   publishedAt: string | null;
   definition: WebsiteDefinition;
+  nativeDocument?: KcdDocument;
   seo: SiteSeo;
   httpsUrl: string;
   customDomainUrl: string | null;
@@ -85,7 +88,7 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
   const supabase = await publicReadClient();
   const { data, error } = await supabase
     .from("deployments")
-    .select("id, project_id, subdomain, snapshot, public_path, published_at, status")
+    .select("*")
     .eq("subdomain", normalized)
     .in("status", ["live", "suspended"])
     .order("published_at", { ascending: false })
@@ -94,10 +97,10 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
 
   if (error || !data) return null;
 
-  const parsed = websiteDefinitionSchema.safeParse(data.snapshot);
-  if (!parsed.success) return null;
+  const parsed = decodePublicSnapshot(data);
+  if (!parsed) return null;
 
-  const seo = mergeSiteSeo(parsed.data.seo, parsed.data.title);
+  const seo = mergeSiteSeo(parsed.definition.seo, parsed.definition.title);
   const path = kebuSitePreviewPath(data.subdomain) ?? `/sites/${data.subdomain}`;
 
   // Run domain lookup and billing check in parallel — sequential queries add ~200–500 ms.
@@ -121,7 +124,8 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
     subdomain: data.subdomain,
     publicPath: data.public_path || path,
     publishedAt: data.published_at,
-    definition: parsed.data,
+    definition: parsed.definition,
+    nativeDocument: parsed.nativeDocument,
     seo,
     httpsUrl,
     customDomainUrl,
@@ -142,7 +146,7 @@ export async function publicDeploymentLoadError(
   const supabase = await publicReadClient();
   const { data, error } = await supabase
     .from("deployments")
-    .select("id, snapshot, status")
+    .select("*")
     .eq("subdomain", normalized)
     .eq("status", "live")
     .maybeSingle();
@@ -168,13 +172,13 @@ export async function publicDeploymentLoadError(
     return null;
   }
 
-  const parsed = websiteDefinitionSchema.safeParse(data.snapshot);
-  if (!parsed.success) {
+  const parsed = decodePublicSnapshot(data);
+  if (!parsed) {
     return {
       status: 500,
       code: "invalid_snapshot",
       userMessage: "Published snapshot invalid. Re-publish from the editor.",
-      detail: parsed.error.message,
+      detail: "Snapshot format or content hash is invalid.",
     };
   }
 

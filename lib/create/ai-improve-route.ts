@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { aiRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { buildSnapshotFromDb } from "@/lib/create/persist-site";
 import { aiImproveBriefSchema } from "@/lib/create/website-schema";
-import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 
 type AuthUser = { id: string };
 
@@ -22,6 +23,8 @@ export async function guardAiImproveRequest(
       project: { id: string; owner_id: string; title: string };
     }
 > {
+  const originError = assertSameOriginMutation(req);
+  if (originError) return { ok: false, response: originError };
   const limited = aiRateLimit(req);
   if (limited) return { ok: false, response: limited as NextResponse };
 
@@ -79,7 +82,11 @@ export async function guardAiImproveRequest(
     };
   }
 
-  const meter = await assertAiGenerationAllowance(supabase, user.id);
+  if (!process.env.ANTHROPIC_API_KEY?.trim()) {
+    return { ok: false, response: NextResponse.json({ error: "Yande improvements are unavailable. Your saved site is kept. Try again later or keep editing by hand." }, { status: 503 }) };
+  }
+  const meter = await assertAiGenerationAllowance(supabase, user.id,
+    { action: "website_ai_improve", projectId });
   if (!meter.ok) {
     return {
       ok: false,
@@ -104,19 +111,6 @@ export async function guardAiImproveRequest(
     current,
     project,
   };
-}
-
-/** Call after a successful AI improve that consumed the model. */
-export async function consumeAiImproveCredit(
-  supabase: SupabaseClient,
-  ownerId: string,
-  projectId: string,
-) {
-  return recordAiGeneration(supabase, {
-    ownerId,
-    action: "website_ai_improve",
-    projectId,
-  });
 }
 
 export function logAiImproveFailure(

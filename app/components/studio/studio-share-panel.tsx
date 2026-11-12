@@ -29,16 +29,18 @@ export function StudioSharePanel({
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/create/designs/${designId}/collaborators`, {
-      credentials: "include",
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Could not load share list.");
-      return;
-    }
-    setCollaborators(Array.isArray(data.collaborators) ? data.collaborators : []);
-    setError(null);
+    try {
+      const res = await fetch(`/api/create/designs/${designId}/collaborators`, {
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not load share list.");
+        return;
+      }
+      setCollaborators(Array.isArray(data.collaborators) ? data.collaborators : []);
+      setError(null);
+    } catch { setError("Could not load collaborators. Check your connection and retry."); }
   }, [designId]);
 
   useEffect(() => {
@@ -62,9 +64,15 @@ export function StudioSharePanel({
         setError(typeof data.error === "string" ? data.error : "Invite failed.");
         return;
       }
+      if (!data.collaborator?.id || data.collaborator.email?.toLowerCase() !== email.trim().toLowerCase() || data.collaborator.status !== "active") {
+        setError("Could not confirm the invitation. Reload the share list before retrying.");
+        return;
+      }
       setEmail("");
       setNote(`Invited ${data.collaborator?.email ?? "collaborator"} (${role}).`);
       await load();
+    } catch {
+      setError("Could not invite this collaborator. Check your connection and retry.");
     } finally {
       setBusy(false);
     }
@@ -83,7 +91,14 @@ export function StudioSharePanel({
         setError(typeof data.error === "string" ? data.error : "Could not remove.");
         return;
       }
+      if (data.ok !== true) {
+        setError("Could not confirm removal. Reload the share list before retrying.");
+        return;
+      }
+      setNote(null);
       await load();
+    } catch {
+      setError("Could not remove this collaborator. Check your connection and retry.");
     } finally {
       setBusy(false);
     }
@@ -145,7 +160,7 @@ export function StudioSharePanel({
         </button>
       </form>
 
-      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
+      {error ? <div><p role="alert" className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p><button type="button" disabled={busy} onClick={() => void load()} className="mt-1 text-xs underline">Reload share list</button></div> : null}
       {note ? <p className="text-xs text-emerald-800">{note}</p> : null}
 
       {collaborators.length === 0 ? (

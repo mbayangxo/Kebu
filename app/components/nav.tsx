@@ -28,24 +28,33 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-  const { profile } = useKebuUser();
+  const supabase = useMemo(() => {
+    try { return createClient(); } catch { return null; }
+  }, []);
+  const { profile, error: profileError } = useKebuUser();
+  const isAuthReady = authReady || supabase === null;
 
   useEffect(() => {
+    if (!supabase) return;
     let cancelled = false;
+    let sessionRevision = 0;
 
     void supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
-      if (!cancelled) {
+      if (!cancelled && sessionRevision === 0) {
         setUser(data.user ?? null);
         setAuthReady(true);
       }
+    }).catch(() => {
+      if (!cancelled && sessionRevision === 0) { setUser(null); setAuthReady(true); }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      sessionRevision++;
       setUser(session?.user ?? null);
       setAuthReady(true);
     });
@@ -57,13 +66,21 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
   }, [supabase]);
 
   async function handleSignOut() {
+    if (!supabase) return;
     setSigningOut(true);
     setMenuOpen(false);
-    await supabase.auth.signOut();
-    setUser(null);
-    setSigningOut(false);
-    router.push("/");
-    router.refresh();
+    setSignOutError(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      router.push("/");
+      router.refresh();
+    } catch {
+      setSignOutError("Could not sign out. Please retry.");
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   function isActive(href: string) {
@@ -79,6 +96,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
       className="sticky top-0 z-50 backdrop-blur-md"
       style={{ background: transparent ? "transparent" : "rgba(255,251,247,0.95)" }}
     >
+      {signOutError || profileError ? <p role="status" className="bg-orange-50 px-5 py-2 text-sm text-orange-950">{signOutError || profileError}</p> : null}
       <div
         className="h-[3px] w-full"
         style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})` }}
@@ -106,7 +124,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
           </div>
 
           <div className="hidden lg:flex items-center gap-5">
-            {authReady && signedIn ? (
+            {isAuthReady && signedIn ? (
               <>
                 <Link
                   href="/account"
@@ -129,7 +147,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
                   {signingOut ? "Signing out…" : "Sign out"}
                 </button>
               </>
-            ) : authReady ? (
+            ) : isAuthReady ? (
               <>
                 <Link
                   href="/login"
@@ -150,7 +168,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
             ) : null}
           </div>
 
-          {authReady && signedIn ? (
+          {isAuthReady && signedIn ? (
             <Link
               href="/account"
               className="lg:hidden text-[11px] font-bold uppercase tracking-[0.08em] px-4 py-2 rounded-full"

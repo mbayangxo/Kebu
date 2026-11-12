@@ -1,0 +1,163 @@
+{
+  "date": "2026-11-05",
+  "environment": "isolated local PGlite 0.5.10 and mocked transport boundary tests; not hosted QA",
+  "passed": 32,
+  "failed": 0,
+  "skipped": 0,
+  "success": true,
+  "cases": [
+    {
+      "suite": "shop/cart-order.test.ts",
+      "cases": [
+        {
+          "title": "shop cart checkout rejects empty carts and invalid product ids",
+          "status": "passed"
+        },
+        {
+          "title": "shop cart checkout accepts multi-item checkout without claiming paid",
+          "status": "passed"
+        },
+        {
+          "title": "shop cart checkout accepts a shippingOptionId as an id only \u2014 the schema has no field for a client-supplied price",
+          "status": "passed"
+        },
+        {
+          "title": "shop cart checkout points the shipping-option-columns-missing error at a migration file that actually exists with that name",
+          "status": "passed"
+        },
+        {
+          "title": "shop cart checkout ships migration 046 with order items + cart drafts RLS",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "suite": "shop/fulfillment-atomic.local.test.ts",
+      "cases": [
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) commits both records with the real column defaults and a goods-only commission",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) rolls back the order when the fulfillment table is missing, then permits a safe retry",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) rolls back on a fulfillment write failure after inserting the order",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) same-id replay preserves a human's progress and the original commission after prices change",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) rejects altered amounts and cross-project options before creating an order",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) keeps gift checkout fields and rejects arbitrary fields",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) denies the checkout RPC and fulfillment writes to anonymous users and sellers",
+          "status": "passed"
+        },
+        {
+          "title": "atomic fulfillment checkout (actual SQL, isolated fixture) does not silently fill an old orphan from today's rates",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "suite": "shop/fulfillment-checkout.test.ts",
+      "cases": [
+        {
+          "title": "real cart checkout's fulfillment dependency stops checkout on a missing RPC, without a fallback order or item write",
+          "status": "passed"
+        },
+        {
+          "title": "real cart checkout's fulfillment dependency also stops on network failure and malformed success",
+          "status": "passed"
+        },
+        {
+          "title": "real cart checkout's fulfillment dependency uses the atomic result and excludes the shipping fee from commission",
+          "status": "passed"
+        },
+        {
+          "title": "fulfillment read failure states reports missing schema to ops instead of claiming an empty healthy queue",
+          "status": "passed"
+        },
+        {
+          "title": "fulfillment read failure states does not tell a seller missing schema means no fulfillment orders",
+          "status": "passed"
+        },
+        {
+          "title": "fulfillment outcome queue makes terminal orders retrievable for the existing refund action without crowding the active queue",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "suite": "shop/fulfillment-status.test.ts",
+      "cases": [
+        {
+          "title": "admin fulfillment transition guards rejects backward transitions before writing",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards rejects skipping physical steps and reopening terminal outcomes",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards advances with a condition on the previously observed status",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards reports a lost race instead of pretending the update happened",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards does not report success for a nonexistent order",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards permits an idempotent retry without resetting the row",
+          "status": "passed"
+        },
+        {
+          "title": "admin fulfillment transition guards preserves the existing admin return and cancellation actions",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "suite": "shop/joko-fulfillment-rls.local-pg.test.ts",
+      "cases": [
+        {
+          "title": "shop_fulfillment_orders RLS (local fixture) lets the owner read their own project's fulfillment orders",
+          "status": "passed"
+        },
+        {
+          "title": "shop_fulfillment_orders RLS (local fixture) hides one seller's fulfillment orders from another seller",
+          "status": "passed"
+        },
+        {
+          "title": "shop_fulfillment_orders RLS (local fixture) blocks a seller from inserting their own fulfillment-order row \u2014 only service_role can create one",
+          "status": "passed"
+        },
+        {
+          "title": "shop_fulfillment_orders RLS (local fixture) blocks a seller from updating their own fulfillment status \u2014 a seller can never self-report delivery",
+          "status": "passed"
+        },
+        {
+          "title": "shop_fulfillment_orders RLS (local fixture) rejects a stranger reading fulfillment orders for a project they don't own",
+          "status": "passed"
+        },
+        {
+          "title": "shop_fulfillment_orders RLS (local fixture) shop_fulfillment_commission_total sums only non-cancelled commissions for the project",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

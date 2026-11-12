@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
@@ -51,6 +52,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -136,6 +139,8 @@ const patchSchema = brandDnaSchema.partial().extend({
 });
 
 export async function PATCH(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

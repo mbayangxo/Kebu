@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 const requireUser = vi.fn();
 const verifyDomainPointsToKebu = vi.fn();
 const provisionCustomDomainOnHosting = vi.fn().mockResolvedValue({ ok: true, detail: "SSL attached" });
+const removeCustomDomainFromHosting = vi.fn().mockResolvedValue({ ok: true, configured: true, detail: "Hosting detached." });
 
 vi.mock("@/lib/create/auth", () => ({
   requireUser: (...args: unknown[]) => requireUser(...args),
@@ -18,6 +19,7 @@ vi.mock("@/lib/create/vercel-domains", async (importOriginal) => {
   return {
     ...actual,
     provisionCustomDomainOnHosting: (...args: unknown[]) => provisionCustomDomainOnHosting(...args),
+    removeCustomDomainFromHosting: (...args: unknown[]) => removeCustomDomainFromHosting(...args),
     hostingDomainAutoProvisionEnabled: () => true,
   };
 });
@@ -255,6 +257,8 @@ describe("Custom domains API", () => {
     process.env.NEXT_PUBLIC_APP_URL = "https://alkebulan-platform.vercel.app";
     requireUser.mockReset();
     verifyDomainPointsToKebu.mockReset();
+    removeCustomDomainFromHosting.mockReset();
+    removeCustomDomainFromHosting.mockResolvedValue({ ok: true, configured: true, detail: "Hosting detached." });
   });
 
   afterAll(() => {
@@ -373,6 +377,67 @@ describe("Custom domains API", () => {
       { params: Promise.resolve({ id: PROJECT_ID }) },
     );
     expect(res.status).toBe(401);
+  });
+
+  it("DELETE detaches hosting before deleting the registry row", async () => {
+    const domain = {
+      id: DOMAIN_ID,
+      project_id: PROJECT_ID,
+      hostname: "mybrand.com",
+      status: "verified",
+      verified: true,
+      is_primary: true,
+      dns_target: "cname.vercel-dns.com",
+    };
+    requireUser.mockResolvedValue({
+      user: { id: USER_A },
+      supabase: mockSupabaseForDomains({ domains: [domain] }),
+    });
+
+    const res = await deleteDomain(
+      new Request("http://localhost", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domainId: DOMAIN_ID }),
+      }),
+      { params: Promise.resolve({ id: PROJECT_ID }) },
+    );
+
+    expect(res.status).toBe(200);
+    expect(removeCustomDomainFromHosting).toHaveBeenCalledWith("mybrand.com");
+  });
+
+  it("DELETE keeps the registry row visible when hosting cleanup fails", async () => {
+    const domain = {
+      id: DOMAIN_ID,
+      project_id: PROJECT_ID,
+      hostname: "mybrand.com",
+      status: "verified",
+      verified: true,
+      is_primary: true,
+      dns_target: "cname.vercel-dns.com",
+    };
+    removeCustomDomainFromHosting.mockResolvedValue({
+      ok: false,
+      configured: true,
+      detail: "Hosting cleanup failed.",
+    });
+    requireUser.mockResolvedValue({
+      user: { id: USER_A },
+      supabase: mockSupabaseForDomains({ domains: [domain] }),
+    });
+
+    const res = await deleteDomain(
+      new Request("http://localhost", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domainId: DOMAIN_ID }),
+      }),
+      { params: Promise.resolve({ id: PROJECT_ID }) },
+    );
+
+    expect(res.status).toBe(502);
+    expect(removeCustomDomainFromHosting).toHaveBeenCalledWith("mybrand.com");
   });
 
   it("verify returns 404 when domain not on project", async () => {

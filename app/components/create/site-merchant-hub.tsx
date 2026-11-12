@@ -103,9 +103,6 @@ export function SiteMerchantHub({
               className="rounded-xl bg-white p-6 sm:p-8"
               style={{ border: `1px solid ${ADMIN.border}`, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
             >
-              <p className="text-[11px] font-medium" style={{ color: ADMIN.faint }}>
-                Home
-              </p>
               <h2
                 className="mt-1 text-2xl font-semibold tracking-tight"
                 style={{ color: KEBU.black, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
@@ -113,19 +110,12 @@ export function SiteMerchantHub({
                 {siteTitle ?? "Your site"}
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-relaxed" style={{ color: ADMIN.muted }}>
-                {shopOpened
-                  ? "Website and shop are connected. Use the left menu for Online Store, Shop, and Analytics."
-                  : "This is a website until you open a shop from the left menu. Customize and Themes live under Online Store."}{" "}
+                Manage the site itself here. Shop stays optional and only appears after you choose to open one.
                 {businessId ? (
-                  <Link href={`/business/${businessId}`} className="font-medium underline" style={{ color: KEBU.black }}>
-                    Business dashboard
-                  </Link>
+                  <> <Link href={`/business/${businessId}`} className="font-medium underline" style={{ color: KEBU.black }}>Open business</Link>.</>
                 ) : (
-                  <Link href="/business?tab=businesses" className="font-medium underline" style={{ color: KEBU.black }}>
-                    Link a business
-                  </Link>
+                  <> <Link href="/business?tab=businesses" className="font-medium underline" style={{ color: KEBU.black }}>Link a business</Link>.</>
                 )}
-                .
               </p>
 
               <div className="mt-6 pt-5" style={{ borderTop: `1px solid ${ADMIN.border}` }}>
@@ -161,7 +151,7 @@ export function SiteMerchantHub({
                     </li>
                   ) : (
                     <li>
-                      Selling? Open{" "}
+                      Ready to sell?{" "}
                       <button
                         type="button"
                         disabled={busy}

@@ -1,10 +1,16 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # Kebu
+
+**Fresh-session continuity gate:** before editing, run `npm run workspace:check` and read `docs/WORKSPACE_CONTINUITY.md`. Fetch and reconcile the durable working branch; do not develop from a behind/diverged checkout or assume chat summaries are Git evidence. Preserve local changes. Push and verify reviewed checkpoints before pausing; never force-push or rewrite authors.
 
 **Authoritative product law:** `docs/product/PRODUCT_RULES.md` — read before modifying the application.
 
@@ -48,4 +54,4 @@ Production African productivity / commerce / discovery / opportunity cloud (Phas
 
 - **Status before coding:** read `docs/IMPLEMENTATION_STATUS.md`; update it when a slice reaches IMPLEMENTED / TESTED.
 
-Human constitution: `docs/KEBU-CONSTITUTION.md` · Architecture: `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md` · **CI:** `docs/CI_PIPELINE.md` · **Deploy:** `docs/DEPLOYMENT.md` · **Folder structure:** `docs/FOLDER_STRUCTURE.md` · **Kebu + RECT:** `docs/product/KEBU-RECT-ECOSYSTEM.md` · **Economic discovery:** `docs/product/KEBU-ECONOMIC-DISCOVERY.md` · **Unified account:** `docs/product/KEBU-UNIFIED-ACCOUNT.md` · **Account model:** `docs/product/KEBU-ACCOUNT-MODEL.md` · **Kebu Mail:** `docs/product/KEBU-MAIL.md` (NOT STARTED — real email, provider abstraction) · **Pricing:** `docs/product/KEBU-PRICING.md` · Studio: `docs/product/KEBU-STUDIO.md` · Maps/infra: `docs/KEBU-MAPS-AND-INFRASTRUCTURE.md` · Ecosystem: `docs/KEBU-ECOSYSTEM.md` · Builder: `docs/product/KEBU-BUILDER-NEXT-GEN.md` · Search: `docs/product/KEBU-SEARCH.md` · **No watching:** `docs/product/KEBU-NO-WATCHING.md` · Opportunity OS: `docs/OPPORTUNITY-OS-MASTER-SPEC.md` · Kebu Opportunity OS: `docs/KEBU-OPPORTUNITY-OS.md` · **Live status:** `docs/IMPLEMENTATION_STATUS.md`
+Human constitution: `docs/KEBU-CONSTITUTION.md` · Architecture: `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md` · **CI:** `docs/CI_PIPELINE.md` · **Deploy:** `docs/DEPLOYMENT.md` · **Folder structure:** `docs/FOLDER_STRUCTURE.md` · **Kebu + RECT:** `docs/product/KEBU-RECT-ECOSYSTEM.md` · **Economic discovery:** `docs/product/KEBU-ECONOMIC-DISCOVERY.md` · **Unified account:** `docs/product/KEBU-UNIFIED-ACCOUNT.md` · **Account model:** `docs/product/KEBU-ACCOUNT-MODEL.md` · **Kebu Mail:** `docs/product/KEBU-MAIL.md` (IN PROGRESS — personal/business Mail and provider paths exist; hosted delivery/domain acceptance open) · **Pricing:** `docs/product/KEBU-PRICING.md` · Studio: `docs/product/KEBU-STUDIO.md` · Maps/infra: `docs/KEBU-MAPS-AND-INFRASTRUCTURE.md` · Ecosystem: `docs/KEBU-ECOSYSTEM.md` · Builder: `docs/product/KEBU-BUILDER-NEXT-GEN.md` · Search: `docs/product/KEBU-SEARCH.md` · **No watching:** `docs/product/KEBU-NO-WATCHING.md` · Opportunity OS: `docs/OPPORTUNITY-OS-MASTER-SPEC.md` · Kebu Opportunity OS: `docs/KEBU-OPPORTUNITY-OS.md` · **Live status:** `docs/IMPLEMENTATION_STATUS.md`

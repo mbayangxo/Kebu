@@ -1,0 +1,43 @@
+{
+  "runtime": "8f4225e0a9059d40dca9e0129c4d9b492fa89687",
+  "recovery_branch": "work/kebu-completion-audit-oct13",
+  "integrated": true,
+  "studio": {
+    "run": 39724550965,
+    "job": 119645375300,
+    "passed": 44,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "original_failure_reproduced": true,
+    "cleanup": true,
+    "auth_api": "explicit isolated fixtures"
+  },
+  "ci": {
+    "run": 39724550969,
+    "job": 119645375281,
+    "passed": 6536,
+    "skipped": 338,
+    "lint_errors": 0,
+    "existing_warnings": 347,
+    "typecheck": true,
+    "build": true
+  },
+  "public_preview": {
+    "run": 39724697662,
+    "job": 119645832963,
+    "passed": 533,
+    "skipped": 35,
+    "authenticated_acceptance": false
+  },
+  "deployment": {
+    "id": "dpl_3k7f35MYFLRbz4AzjdVUecq9DHDv",
+    "url": "https://kebu-3f6qrxx6n-mbayangxos-projects.vercel.app",
+    "state": "READY",
+    "production_promoted": false
+  },
+  "artifact": 12402687069,
+  "production_migrations": false,
+  "dns_modified": false,
+  "fully_complete": false
+}

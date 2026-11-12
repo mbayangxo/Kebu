@@ -1,0 +1,71 @@
+{
+  "runtime": "f9a07857f2b0a0b54913af529aacc0d82990658b",
+  "base": "4d2d96d42ab92a47386c2c6b2e8aba168c956cec",
+  "local": {
+    "originalHelper": {
+      "passed": 6,
+      "failed": 1
+    },
+    "focusedHelpers": {
+      "passed": 18,
+      "failed": 0
+    },
+    "ci": {
+      "typecheck": "passed",
+      "lintErrors": 0,
+      "existingLintWarnings": 346,
+      "testsPassed": 6604,
+      "testsSkipped": 338,
+      "build": "passed",
+      "nodeHeapMb": 6144
+    },
+    "studioBrowser": {
+      "startTime": "2026-10-23T05:22:10.525Z",
+      "duration": 181395.19400000002,
+      "expected": 45,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "auth": "explicit isolated loopback fixture",
+    "managedHostedAcceptance": false,
+    "normalBrowserCleanup": true
+  },
+  "hostedPreflight": {
+    "query": "scripts/hosted-yande-preflight.sql",
+    "failedChecks": 4,
+    "totalChecks": 7,
+    "scope": "read-only catalog and grants",
+    "authenticatedAcceptance": false
+  },
+  "production": {
+    "deployment": "dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2",
+    "sha": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+    "state": "READY",
+    "promoted": false
+  },
+  "remote": {
+    "ci": {
+      "id": 39905270591,
+      "status": "success"
+    },
+    "studio": {
+      "id": 39905270558,
+      "status": "success",
+      "fullCases": 45,
+      "mandatoryTouchCases": 6,
+      "skipped": 0,
+      "flaky": 0
+    },
+    "publicSmoke": {
+      "id": 39905615702,
+      "status": "pending"
+    }
+  },
+  "preview": {
+    "state": "READY",
+    "sha": "f9a07857f2b0a0b54913af529aacc0d82990658b",
+    "deployment": "dpl_GHGJ5mPZBrcFtfCmeXgWJag65WUA",
+    "url": "https://kebu-ifzsdaiu8-mbayangxos-projects.vercel.app"
+  }
+}

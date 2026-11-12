@@ -5,6 +5,7 @@ import { parseHostingPlan } from "@/lib/billing/subscriptions";
 import { parseKebuPlanId } from "@/lib/billing/pricing";
 import { verifyJokoWebhookSignature, sendJokoPartnerMessage } from "@/lib/joko/payments";
 import { normalizeWhatsAppPhone } from "@/lib/create/site-commerce";
+import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -211,7 +212,7 @@ export async function POST(req: NextRequest) {
 
   if (kind === "aesthetic_purchase" && reference) {
     const { markAestheticPurchasePaid } = await import("@/lib/create/aesthetics-marketplace");
-    const paid = await markAestheticPurchasePaid(supabase, reference, paymentId ?? null);
+    const paid = await markAestheticPurchasePaid(supabase, reference, paymentId ?? null, "joko");
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
@@ -224,6 +225,23 @@ export async function POST(req: NextRequest) {
       }),
     );
     return NextResponse.json({ ok: true, kind: "aesthetic_purchase", libraryId: paid.libraryId });
+  }
+
+  if (kind === "creative_asset_purchase" && reference) {
+    const { markCreativeAssetPurchasePaid } = await import("@/lib/studio/creative-assets-marketplace");
+    const paid = await markCreativeAssetPurchasePaid(supabase, reference, paymentId ?? null, "joko");
+    if (!paid.ok) {
+      return NextResponse.json({ error: paid.error }, { status: 404 });
+    }
+    console.info(
+      JSON.stringify({
+        event: "billing.creative_asset_purchased",
+        libraryId: paid.libraryId,
+        assetId: paid.assetId,
+        reference,
+      }),
+    );
+    return NextResponse.json({ ok: true, kind: "creative_asset_purchase", libraryId: paid.libraryId });
   }
 
   if (kind === "shop_order" && reference) {
@@ -241,6 +259,7 @@ export async function POST(req: NextRequest) {
       }),
     );
     void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
+    await fulfillPaidDigitalOrderDurable(supabase, paid.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 
@@ -252,6 +271,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
     void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
+    await fulfillPaidDigitalOrderDurable(supabase, paid.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 

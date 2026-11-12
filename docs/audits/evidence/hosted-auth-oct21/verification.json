@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-21",
+  "runtimeCommit": "e3eae02f43c62c034992c36bc24cde81f7533a80",
+  "authoritativeIntegrated": true,
+  "localCI": {
+    "exitCode": 0,
+    "passed": 6438,
+    "skipped": 299,
+    "filesPassed": 403,
+    "filesSkipped": 44,
+    "lintErrors": 0,
+    "existingWarnings": 347,
+    "typescript": true,
+    "finalizedBuild": true
+  },
+  "remote": {
+    "ci": 39573115094,
+    "builder": 39573115053,
+    "platform": 39573115070,
+    "nativePostgres": 39573115159,
+    "previewSmoke": 39573310894,
+    "allConclusions": "success",
+    "builderPassed": 74,
+    "builderSkipped": 0,
+    "builderFlaky": 0,
+    "nativeUniqueCases": 10,
+    "nativeRequiredIterations": 3,
+    "nativePassed": 30,
+    "nativeSkipped": 0,
+    "nativeDatabasesCleaned": true
+  },
+  "hostedAuthenticated": {
+    "accepted": false,
+    "collectedOnly": 26,
+    "reason": "Existing QA project access denied; separate organization selection not answered. No QA session or disposable fixture configured."
+  },
+  "boundaries": {
+    "noProductionSchemaChange": true,
+    "noDNSChange": true,
+    "noProductionPromotion": true,
+    "noRealPayments": true
+  }
+}

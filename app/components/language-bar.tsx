@@ -52,7 +52,9 @@ export function LanguageBar({ variant = "opportunity" }: { variant?: LanguageBar
   }
 
   return (
-    <div className="relative z-40" style={{ background: KEBU.black, color: KEBU.white }}>
+    // z-[60]: must out-rank any sticky page header (e.g. Nav's z-50) the dropdown can overlap,
+    // or its options render unclickable underneath the header's stacking context.
+    <div className="relative z-[60]" style={{ background: KEBU.black, color: KEBU.white }}>
       <div
         className="h-[3px] w-full"
         style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})` }}

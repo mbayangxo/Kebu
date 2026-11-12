@@ -1,3 +1,4 @@
+import { defaultCreativeWorld } from "@/lib/create/creative-world";
 import { describe, expect, it } from "vitest";
 import {
   collagePhotoFromAsset,
@@ -70,4 +71,12 @@ describe("builder-media-drop", () => {
       props: { src: "https://x/v.mp4", heading: "" },
     });
   });
+});
+
+
+it.each(["image", "video", "audio"] as const)("puts %s into the selected creative world instead of an invisible gallery item", kind => {
+  const plan = planMediaAssetApply({ kind, url: "https://example.com/asset" }, { pageId: "p", selectedSectionId: "world", sections: [{ id: "world", page_id: "p", section_type: "gallery", props: { layout: "campaign-wall", creativeWorld: defaultCreativeWorld() } }, { id: "collage", page_id: "p", section_type: "legally-blonde-hero", props: {} }] });
+  expect(plan.action).toBe("creative-world");
+  if (plan.action !== "creative-world") throw Error("Wrong target");
+  expect(kind === "image" ? plan.world.cards[0].image : plan.world[kind]).toBe("https://example.com/asset");
 });

@@ -2,16 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { liveCursorColorForUser } from "@/lib/studio/live-cursors";
+import { liveCursorColorForUser, presenceStateToPeers, type LiveCursorPeer } from "@/lib/studio/live-cursors";
 
-export type LiveCursorPeer = {
-  userId: string;
-  label: string;
-  color: string;
-  x: number;
-  y: number;
-  updatedAt: number;
-};
+export type { LiveCursorPeer };
 
 type PresenceMeta = {
   userId: string;
@@ -46,21 +39,7 @@ export function StudioLiveCursors({
   const syncPeers = useCallback(
     (state: Record<string, PresenceMeta[]>) => {
       if (!userId) return;
-      const next: LiveCursorPeer[] = [];
-      for (const key of Object.keys(state)) {
-        for (const m of state[key] ?? []) {
-          if (!m?.userId || m.userId === userId) continue;
-          next.push({
-            userId: m.userId,
-            label: m.label || "Collaborator",
-            color: m.color || liveCursorColorForUser(m.userId),
-            x: typeof m.x === "number" ? m.x : 0.5,
-            y: typeof m.y === "number" ? m.y : 0.5,
-            updatedAt: typeof m.updatedAt === "number" ? m.updatedAt : Date.now(),
-          });
-        }
-      }
-      setPeers(next);
+      setPeers(presenceStateToPeers(state, userId));
     },
     [userId],
   );

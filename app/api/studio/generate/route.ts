@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser } from "@/lib/create/auth";
 import { aiRateLimit } from "@/lib/api-guard";
 import {
   generateStudioCampaignWithAi,
   studioGenerateBriefSchema,
 } from "@/lib/studio/ai-generate";
-import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,8 @@ export async function GET() {
  * Studio S4: prompt → AI (or honest fallback) → create_designs rows → history run.
  */
 export async function POST(req: NextRequest) {
+  const originError = assertSameOriginMutation(req);
+  if (originError) return originError;
   const limited = aiRateLimit(req);
   if (limited) return limited;
 
@@ -60,7 +63,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Describe your campaign in a short sentence (min 8 characters)." }, { status: 400 });
   }
 
-  const meter = await assertAiGenerationAllowance(supabase, user.id);
+  const meter = await assertAiGenerationAllowance(supabase, user.id,
+    process.env.ANTHROPIC_API_KEY?.trim() ? { action: "studio_generate" } : undefined);
   if (!meter.ok) {
     return NextResponse.json(
       {
@@ -74,9 +78,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const generated = await generateStudioCampaignWithAi(parsed.data);
+  const generated = await generateStudioCampaignWithAi(parsed.data, user.id);
   if (!generated.ok) {
-    return NextResponse.json({ error: generated.error }, { status: 400 });
+    return NextResponse.json({ error: `${generated.error}${process.env.ANTHROPIC_API_KEY ? " One AI attempt was reserved; retrying may use another allowance." : ""}` }, { status: 400 });
   }
 
   const rows = generated.designs.map((d) => ({
@@ -101,13 +105,6 @@ export async function POST(req: NextRequest) {
 
   const designIds = designs.map((d) => d.id as string);
 
-  if (generated.usedAi && !generated.fallback) {
-    await recordAiGeneration(supabase, {
-      ownerId: user.id,
-      action: "studio_generate",
-      meta: { designCount: designIds.length },
-    });
-  }
 
   const { data: run, error: runError } = await supabase
     .from("studio_generation_runs")

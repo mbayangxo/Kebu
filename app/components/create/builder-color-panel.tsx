@@ -1,6 +1,8 @@
 "use client";
 
 import { BUILDER } from "@/lib/create/builder-ui";
+import { cssFontStack } from "@/lib/create/site-theme-fonts";
+import { THEME_FONT_VARIABLE_CLASSES } from "@/app/components/create/theme-font-faces";
 import type { ThemeTokens } from "@/lib/create/website-schema";
 
 const SWATCHES = [
@@ -48,7 +50,17 @@ const DISPLAY_FONTS = [
   "serif",
 ] as const;
 
+const TYPE_PAIRS = [
+  { id: "editorial", label: "Editorial", display: "Cormorant Garamond", body: "Satoshi" },
+  { id: "modern", label: "Modern", display: "Syne", body: "Inter" },
+  { id: "warm", label: "Warm", display: "Fraunces", body: "DM Sans" },
+  { id: "classic", label: "Classic", display: "Playfair Display", body: "Libre Baskerville" },
+  { id: "bold", label: "Bold", display: "Bebas Neue", body: "Manrope" },
+  { id: "quiet", label: "Quiet", display: "Libre Baskerville", body: "Source Sans 3" },
+] as const;
+
 const BODY_FONTS = [
+  "Satoshi",
   "Inter",
   "IBM Plex Sans",
   "DM Sans",
@@ -79,18 +91,18 @@ function ColorField({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="block text-[10px] uppercase tracking-wider">
+    <label className="block text-[10px] font-semibold text-black/55">
       {label}
       <div className="mt-1 flex items-center gap-2">
         <input
           type="color"
           value={value.startsWith("#") && value.length >= 7 ? value.slice(0, 7) : "#E9006B"}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-12 cursor-pointer rounded-lg border border-black/10 bg-transparent p-0.5"
+          className="h-9 w-12 cursor-pointer rounded-md border border-black/10 bg-transparent p-0.5"
           aria-label={`${label} color picker`}
         />
         <input
-          className="flex-1 rounded-lg px-2 py-1.5 text-xs font-mono"
+          className="flex-1 rounded-md px-2 py-1.5 text-xs font-mono"
           style={{ border: `1px solid ${BUILDER.border}` }}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -125,9 +137,9 @@ export function BuilderColorPanel({
   onHeroAccentChange?: (color: string) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-        Full color control for the live site. Save to draft, then publish so visitors see the change.
+        Site colors update the working draft. Publishing is a separate step.
       </p>
       <ColorField label="Primary" value={theme.primary} onChange={(primary) => onThemeChange({ primary })} />
       <ColorField label="Accent" value={theme.accent} onChange={(accent) => onThemeChange({ accent })} />
@@ -157,13 +169,40 @@ export function BuilderTypographyPanel({
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-        Typography
-      </p>
+      <div>
+        <p className="text-[10px] font-semibold" style={{ color: BUILDER.faint }}>
+          Type direction
+        </p>
+        <p className="mt-1 text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          Start with a pairing, then tune the display and body faces independently.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          {TYPE_PAIRS.map((pair) => {
+            const active = theme.fontDisplay === pair.display && theme.fontBody === pair.body;
+            return (
+              <button
+                key={pair.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onThemeChange({ fontDisplay: pair.display, fontBody: pair.body })}
+                className="rounded-lg border p-2 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                style={{
+                  borderColor: active ? "#FF6A00" : BUILDER.border,
+                  background: active ? BUILDER.orangeGlow : "#fff",
+                }}
+              >
+                <span className="block text-[15px] leading-none text-black" style={{ fontFamily: `"${pair.display}", serif` }}>Aa</span>
+                <span className="mt-1.5 block text-[9px] font-semibold text-black/65">{pair.label}</span>
+                <span className="mt-0.5 block truncate text-[9px] text-black/40">{pair.display} + {pair.body}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Display / headings font */}
       <div>
-        <p className="mb-1.5 text-[10px] uppercase tracking-wider">Display / headings</p>
+        <p className="mb-1.5 text-[10px] font-semibold text-black/55">Display / headings</p>
         <select
           className="w-full rounded-lg px-2 py-2 text-xs"
           style={{ border: `1px solid ${BUILDER.border}` }}
@@ -179,7 +218,7 @@ export function BuilderTypographyPanel({
         </select>
         {(displayIsCustom) ? (
           <input
-            className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
+            className="mt-1 w-full rounded-md px-2 py-1.5 text-xs"
             style={{ border: `1px solid ${BUILDER.border}` }}
             value={theme.fontDisplay}
             onChange={(e) => onThemeChange({ fontDisplay: e.target.value })}
@@ -189,7 +228,7 @@ export function BuilderTypographyPanel({
         {/* quick-pick custom entry */}
         {!displayIsCustom ? (
           <input
-            className="mt-1 w-full rounded-lg px-2 py-1.5 text-[10px]"
+            className="mt-1 w-full rounded-md px-2 py-1.5 text-[10px]"
             style={{ border: `1px dashed ${BUILDER.border}`, background: BUILDER.surfaceMuted }}
             placeholder="Or type any Google Font name…"
             onFocus={(e) => e.currentTarget.select()}
@@ -198,15 +237,9 @@ export function BuilderTypographyPanel({
             }}
           />
         ) : null}
-        {theme.fontDisplay && theme.fontDisplay !== "system-ui" && theme.fontDisplay !== "serif" ? (
-          <link
-            rel="stylesheet"
-            href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fontDisplay)}:wght@400;700&display=swap`}
-          />
-        ) : null}
         <p
-          className="mt-1.5 truncate text-[18px] leading-tight"
-          style={{ fontFamily: `"${theme.fontDisplay}", serif` }}
+          className={`mt-1.5 truncate text-[18px] leading-tight ${THEME_FONT_VARIABLE_CLASSES}`}
+          style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
           aria-hidden
         >
           Aa — {theme.fontDisplay}
@@ -215,7 +248,7 @@ export function BuilderTypographyPanel({
 
       {/* Body font */}
       <div>
-        <p className="mb-1.5 text-[10px] uppercase tracking-wider">Body text</p>
+        <p className="mb-1.5 text-[10px] font-semibold text-black/55">Body text</p>
         <select
           className="w-full rounded-lg px-2 py-2 text-xs"
           style={{ border: `1px solid ${BUILDER.border}` }}
@@ -231,7 +264,7 @@ export function BuilderTypographyPanel({
         </select>
         {bodyIsCustom ? (
           <input
-            className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
+            className="mt-1 w-full rounded-md px-2 py-1.5 text-xs"
             style={{ border: `1px solid ${BUILDER.border}` }}
             value={theme.fontBody}
             onChange={(e) => onThemeChange({ fontBody: e.target.value })}
@@ -240,7 +273,7 @@ export function BuilderTypographyPanel({
         ) : null}
         {!bodyIsCustom ? (
           <input
-            className="mt-1 w-full rounded-lg px-2 py-1.5 text-[10px]"
+            className="mt-1 w-full rounded-md px-2 py-1.5 text-[10px]"
             style={{ border: `1px dashed ${BUILDER.border}`, background: BUILDER.surfaceMuted }}
             placeholder="Or type any Google Font name…"
             onFocus={(e) => e.currentTarget.select()}
@@ -249,22 +282,16 @@ export function BuilderTypographyPanel({
             }}
           />
         ) : null}
-        {theme.fontBody && theme.fontBody !== "system-ui" && theme.fontBody !== "serif" ? (
-          <link
-            rel="stylesheet"
-            href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fontBody)}:wght@400;700&display=swap`}
-          />
-        ) : null}
         <p
-          className="mt-1.5 truncate text-[13px]"
-          style={{ fontFamily: `"${theme.fontBody}", sans-serif` }}
+          className={`mt-1.5 truncate text-[13px] ${THEME_FONT_VARIABLE_CLASSES}`}
+          style={{ fontFamily: cssFontStack(theme.fontBody) }}
           aria-hidden
         >
           The quick brown fox — {theme.fontBody}
         </p>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wider mb-1.5">Heading size</p>
+        <p className="text-[10px] font-semibold text-black/55 mb-1.5">Heading size</p>
         <div className="flex gap-1">
           {(["sm", "md", "lg", "xl"] as const).map((id) => {
             const on = (theme.headingScale ?? "md") === id;
@@ -273,7 +300,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ headingScale: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,
@@ -288,7 +315,7 @@ export function BuilderTypographyPanel({
         </div>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wider mb-1.5">Body size</p>
+        <p className="text-[10px] font-semibold text-black/55 mb-1.5">Body size</p>
         <div className="flex gap-1">
           {(["sm", "md", "lg"] as const).map((id) => {
             const on = (theme.bodySize ?? "md") === id;
@@ -297,7 +324,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ bodySize: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,
@@ -312,7 +339,7 @@ export function BuilderTypographyPanel({
         </div>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wider mb-1.5">Letter spacing</p>
+        <p className="text-[10px] font-semibold text-black/55 mb-1.5">Letter spacing</p>
         <div className="flex gap-1">
           {(["tight", "normal", "wide"] as const).map((id) => {
             const on = (theme.letterSpacing ?? "normal") === id;
@@ -321,7 +348,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ letterSpacing: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,
@@ -336,7 +363,7 @@ export function BuilderTypographyPanel({
         </div>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wider mb-1.5">Section spacing</p>
+        <p className="text-[10px] font-semibold text-black/55 mb-1.5">Section spacing</p>
         <div className="flex gap-1">
           {(["compact", "comfortable", "airy"] as const).map((id) => {
             const on = theme.spacing === id;
@@ -345,7 +372,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ spacing: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,

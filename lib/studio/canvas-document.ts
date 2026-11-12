@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { creativeTextGraphemes, wrapCreativeText } from "@/lib/creative-core/text-layout";
+import { mediaFilterCss } from "@/lib/studio/media-adjustments";
+import { layerMotionAtTime } from "@/lib/studio/layer-motion";
+import { applyStudioCanvasFill, studioCanvasCompositeOperation } from "@/lib/studio/layer-paint";
 
 export const CANVAS_DOC_VERSION = 2 as const;
 
@@ -27,15 +31,30 @@ export const canvasLayerSchema = z.object({
   locked: z.boolean().optional().default(false),
   /** Shared id = group (move/align/delete together) */
   groupId: z.string().trim().max(40).nullable().optional(),
-  text: z.string().trim().max(500).optional(),
+  text: z.string().max(500).optional(),
   fontSize: z.number().min(8).max(200).optional(),
   fontFamily: z.string().trim().max(80).optional(),
   fontWeight: z.string().trim().max(20).optional(),
+  fontStyle: z.enum(["normal", "italic"]).optional(),
   color: z.string().trim().max(40).optional(),
   textAlign: z.enum(["left", "center", "right"]).optional(),
+  letterSpacing: z.number().min(-20).max(100).optional(),
+  lineHeight: z.number().min(0.6).max(3).optional(),
+  textDecoration: z.enum(["none", "underline", "line-through"]).optional(),
+  textTransform: z.enum(["none", "uppercase", "lowercase"]).optional(),
   fill: z.string().trim().max(40).optional(),
+  fillType: z.enum(["solid", "linear_gradient"]).optional(),
+  gradientFrom: z.string().trim().max(40).optional(),
+  gradientTo: z.string().trim().max(40).optional(),
+  gradientAngle: z.number().min(-360).max(360).optional(),
+  blendMode: z.enum(["normal","multiply","screen","overlay","darken","lighten","soft-light"]).optional(),
   stroke: z.string().trim().max(40).optional(),
   strokeWidth: z.number().min(0).max(40).optional(),
+  cornerRadius: z.number().min(0).max(1000).optional(),
+  shadowColor: z.string().trim().max(40).optional(),
+  shadowBlur: z.number().min(0).max(200).optional(),
+  shadowX: z.number().min(-200).max(200).optional(),
+  shadowY: z.number().min(-200).max(200).optional(),
   imageUrl: z.union([z.literal(""), z.string().trim().url().max(500)]).optional(),
   /** Short clip URL (mp4/webm) — Studio S8a video layer */
   videoUrl: z.union([z.literal(""), z.string().trim().url().max(500)]).optional(),
@@ -52,9 +71,31 @@ export const canvasLayerSchema = z.object({
   cropY: z.number().min(0).max(1).optional(),
   cropW: z.number().min(0.05).max(1).optional(),
   cropH: z.number().min(0.05).max(1).optional(),
+  /** Non-destructive image/video adjustments. Neutral = 1/1/1/0/0. */
+  brightness: z.number().min(0).max(2).optional(),
+  contrast: z.number().min(0).max(2).optional(),
+  saturation: z.number().min(0).max(3).optional(),
+  grayscale: z.number().min(0).max(1).optional(),
+  blur: z.number().min(0).max(40).optional(),
+  /** Custom inline SVG path for social/custom icons */
+  iconSvgPath: z.string().trim().max(2000).optional(),
+  iconViewBox: z.string().trim().max(40).optional(),
+  /** Outline (border around the layer) */
+  outlineWidth: z.number().min(0).max(40).optional(),
+  /** Glow effect blur radius */
+  glowBlur: z.number().min(0).max(200).optional(),
   /** Elements pack (S19) */
   iconKey: z.string().trim().max(40).optional(),
   frameStyle: z.enum(["corner", "rounded", "polaroid"]).optional(),
+  frameMediaKind: z.enum(["image","video"]).nullable().optional(),
+  frameMediaUrl: z.union([z.literal(""),z.string().trim().url().max(500)]).nullable().optional(),
+  frameFocalX: z.number().min(0).max(1).optional(),
+  frameFocalY: z.number().min(0).max(1).optional(),
+  sourceAssetId: z.string().trim().max(80).nullable().optional(),
+  /** Non-destructive entrance motion used by Studio preview and design→video conversion. */
+  animationPreset: z.enum(["none","fade","fade_up","slide_left","slide_right","scale","pop"]).optional(),
+  animationDurationMs: z.number().int().min(100).max(5000).optional(),
+  animationDelayMs: z.number().int().min(0).max(10000).optional(),
 });
 
 export type CanvasLayer = z.infer<typeof canvasLayerSchema>;
@@ -68,6 +109,9 @@ export const canvasPageSchema = z.object({
   layers: z.array(canvasLayerSchema).max(64).default([]),
   /** How long this page stays on the timeline (S8b) */
   durationMs: z.number().int().min(500).max(30_000).optional(),
+  /** Transition into this page when played/exported as motion. */
+  transitionKind: z.enum(["cut","fade","dissolve","slide"]).optional(),
+  transitionDurationMs: z.number().int().min(0).max(3000).optional(),
 });
 
 export type CanvasPage = z.infer<typeof canvasPageSchema>;
@@ -141,6 +185,28 @@ export const STUDIO_DESIGN_TYPES = [
   "whatsapp_status",
   "banner",
   "business_card",
+  "tiktok_video_cover",
+  "linkedin_post",
+  "linkedin_banner",
+  "pinterest_pin",
+  "twitter_post",
+  "youtube_thumbnail",
+  "youtube_banner",
+  "menu",
+  "pitch_deck_slide",
+  "proposal",
+  "resume",
+  "invoice",
+  "digital_planner",
+  "spotify_banner",
+  "album_cover",
+  "book_cover",
+  "invitation",
+  "newsletter",
+  "certificate_landscape",
+  "email_header",
+  "postcard",
+  "lesson_plan",
 ] as const;
 
 export type StudioDesignType = (typeof STUDIO_DESIGN_TYPES)[number];
@@ -149,17 +215,56 @@ export function artboardSize(designType: StudioDesignType): { width: number; hei
   switch (designType) {
     case "instagram_story":
     case "whatsapp_status":
+    case "tiktok_video_cover":
       return { width: 1080, height: 1920 };
     case "instagram_post":
     case "social_square":
     case "facebook_post":
+    case "linkedin_post":
       return { width: 1080, height: 1080 };
     case "flyer":
+    case "menu":
+    case "proposal":
+    case "resume":
+    case "invoice":
+    case "newsletter":
+    case "lesson_plan":
       return { width: 816, height: 1056 };
     case "banner":
       return { width: 1500, height: 500 };
     case "business_card":
       return { width: 1050, height: 600 };
+    case "pinterest_pin":
+      return { width: 1000, height: 1500 };
+    case "twitter_post":
+      return { width: 1200, height: 675 };
+    case "youtube_thumbnail":
+      return { width: 1280, height: 720 };
+    case "youtube_banner":
+      return { width: 2560, height: 1440 };
+    case "linkedin_banner":
+      return { width: 1584, height: 396 };
+    case "pitch_deck_slide":
+      return { width: 1920, height: 1080 };
+    case "digital_planner":
+      return { width: 1536, height: 2048 };
+    case "spotify_banner":
+      // Spotify for Artists header image — 2660x1140, not a clean 16:9 despite some guides' claims.
+      return { width: 2660, height: 1140 };
+    case "album_cover":
+      // DSP delivery standard for release artwork — Spotify, Apple Music, and most
+      // aggregators (DistroKid, TuneCore, etc.) all require a square at minimum 3000x3000.
+      return { width: 3000, height: 3000 };
+    case "book_cover":
+      return { width: 1600, height: 2400 };
+    case "invitation":
+      return { width: 1200, height: 1680 };
+    case "certificate_landscape":
+      return { width: 1056, height: 816 };
+    case "email_header":
+      return { width: 600, height: 200 };
+    case "postcard":
+      return { width: 1200, height: 800 };
     case "poster":
     default:
       return { width: 900, height: 1200 };
@@ -198,7 +303,7 @@ export function getPage(doc: CanvasDocument, pageId: string | null | undefined):
 export function updatePage(
   doc: CanvasDocument,
   pageId: string,
-  patch: Partial<Pick<CanvasPage, "name" | "width" | "height" | "backgroundColor" | "layers" | "durationMs">>,
+  patch: Partial<Pick<CanvasPage, "name" | "width" | "height" | "backgroundColor" | "layers" | "durationMs" | "transitionKind" | "transitionDurationMs">>,
 ): CanvasDocument {
   const pages = doc.pages.map((p) => (p.id === pageId ? { ...p, ...patch } : p));
   const active = pages.find((p) => p.id === pageId) ?? pages[0]!;
@@ -229,7 +334,9 @@ export function duplicateCanvasPage(
     ...src,
     id: newPageId(),
     name: `${src.name} copy`.slice(0, 80),
-    layers: src.layers.map((l) => ({ ...l, id: newLayerId() })),
+    layers: duplicateLayers(src.layers).map((layer, i) => ({
+      ...layer, name: src.layers[i]!.name, x: src.layers[i]!.x, y: src.layers[i]!.y,
+    })),
   };
   const pages = [...doc.pages];
   const idx = pages.findIndex((p) => p.id === pageId);
@@ -237,10 +344,30 @@ export function duplicateCanvasPage(
   return { doc: mirrorPageToDocument({ ...doc, pages }, page), pageId: page.id };
 }
 
-export function deleteCanvasPage(doc: CanvasDocument, pageId: string): CanvasDocument | null {
-  if (doc.pages.length <= 1) return null;
+/** Reject blank or oversized names without recording a spurious history change. */
+export function renameCanvasPage(doc: CanvasDocument, pageId: string, name: string): CanvasDocument {
+  const page = doc.pages.find((p) => p.id === pageId);
+  const trimmed = name.trim();
+  if (!page || !trimmed || trimmed.length > 80 || page.name === trimmed) return doc;
+  return updatePage(doc, pageId, { name: trimmed });
+}
+
+/** Reordering preserves IDs, authored page content and the active-page mirror. */
+export function moveCanvasPage(doc: CanvasDocument, pageId: string, toIndex: number): CanvasDocument {
+  const fromIndex = doc.pages.findIndex((p) => p.id === pageId);
+  if (fromIndex < 0 || !Number.isInteger(toIndex) || toIndex < 0 || toIndex >= doc.pages.length || fromIndex === toIndex) return doc;
+  const pages = [...doc.pages];
+  const [page] = pages.splice(fromIndex, 1);
+  pages.splice(toIndex, 0, page!);
+  return mirrorPageToDocument({ ...doc, pages }, page!);
+}
+
+export function deleteCanvasPage(doc: CanvasDocument, pageId: string, activePageId = pageId): CanvasDocument | null {
+  const index = doc.pages.findIndex((p) => p.id === pageId);
+  if (doc.pages.length <= 1 || index < 0) return null;
   const pages = doc.pages.filter((p) => p.id !== pageId);
-  return mirrorPageToDocument({ ...doc, pages }, pages[0]!);
+  const active = pages.find((p) => p.id === activePageId) ?? pages[Math.min(index, pages.length - 1)]!;
+  return mirrorPageToDocument({ ...doc, pages }, active);
 }
 
 export type AlignMode =
@@ -253,76 +380,92 @@ export type AlignMode =
   | "distribute-h"
   | "distribute-v";
 
-/** Align selected layers to each other (or artboard if single). */
+/** Axis-aligned footprint of the rotated frame, matching the browser's painted box. */
+export function studioLayerBounds(layer: Pick<CanvasLayer, "x" | "y" | "width" | "height" | "rotation">) {
+  const angle = layer.rotation * Math.PI / 180;
+  const width = Math.abs(layer.width * Math.cos(angle)) + Math.abs(layer.height * Math.sin(angle));
+  const height = Math.abs(layer.width * Math.sin(angle)) + Math.abs(layer.height * Math.cos(angle));
+  const left = layer.x + (layer.width - width) / 2;
+  const top = layer.y + (layer.height - height) / 2;
+  return { left, top, right: left + width, bottom: top + height, width, height };
+}
+
+function alignmentUnits(layers: CanvasLayer[], selectedIds: string[]) {
+  const ids = new Set(expandSelectionWithGroups(layers, selectedIds));
+  const grouped = new Map<string, CanvasLayer[]>();
+  for (const layer of layers) {
+    if (!ids.has(layer.id) || layer.locked) continue;
+    const key = layer.groupId ? `group:${layer.groupId}` : `layer:${layer.id}`;
+    const members = grouped.get(key) ?? [];
+    members.push(layer);
+    grouped.set(key, members);
+  }
+  return [...grouped.values()].map(members => {
+    const boxes = members.map(studioLayerBounds);
+    const left = Math.min(...boxes.map(b => b.left)), right = Math.max(...boxes.map(b => b.right));
+    const top = Math.min(...boxes.map(b => b.top)), bottom = Math.max(...boxes.map(b => b.bottom));
+    return { members, left, right, top, bottom, width: right - left, height: bottom - top };
+  });
+}
+
+/** A selected group is one arrange target, regardless of its member count. */
+export function alignmentSelectionCount(layers: CanvasLayer[], selectedIds: string[]): number {
+  return alignmentUnits(layers, selectedIds).length;
+}
+
+/** Align visible bounds; translate grouped members together without changing their geometry. */
 export function alignLayers(
   layers: CanvasLayer[],
   selectedIds: string[],
   mode: AlignMode,
   artboard: { width: number; height: number },
 ): CanvasLayer[] {
-  const ids = new Set(selectedIds);
-  const selected = layers.filter((l) => ids.has(l.id) && !l.locked);
-  if (!selected.length) return layers;
-
-  const useArtboard = selected.length === 1;
-  const minX = useArtboard ? 0 : Math.min(...selected.map((l) => l.x));
-  const maxX = useArtboard ? artboard.width : Math.max(...selected.map((l) => l.x + l.width));
-  const minY = useArtboard ? 0 : Math.min(...selected.map((l) => l.y));
-  const maxY = useArtboard ? artboard.height : Math.max(...selected.map((l) => l.y + l.height));
-  const midX = (minX + maxX) / 2;
-  const midY = (minY + maxY) / 2;
-
-  if (mode === "distribute-h" && selected.length >= 3) {
-    const sorted = [...selected].sort((a, b) => a.x - b.x);
-    const first = sorted[0]!;
-    const last = sorted[sorted.length - 1]!;
-    const span = last.x + last.width - first.x;
-    const totalW = sorted.reduce((s, l) => s + l.width, 0);
-    const gap = (span - totalW) / (sorted.length - 1);
-    let cursor = first.x;
-    const pos = new Map<string, number>();
-    for (const l of sorted) {
-      pos.set(l.id, cursor);
-      cursor += l.width + gap;
+  const units = alignmentUnits(layers, selectedIds);
+  if (!units.length) return layers;
+  const distribute = mode === "distribute-h" || mode === "distribute-v";
+  if (distribute && units.length < 3) return layers;
+  const single = units.length === 1;
+  const minX = single ? 0 : Math.min(...units.map(u => u.left));
+  const maxX = single ? artboard.width : Math.max(...units.map(u => u.right));
+  const minY = single ? 0 : Math.min(...units.map(u => u.top));
+  const maxY = single ? artboard.height : Math.max(...units.map(u => u.bottom));
+  const moves = new Map<string, { x: number; y: number }>();
+  const move = (unit: typeof units[number], dx: number, dy: number) => {
+    for (const member of unit.members) moves.set(member.id, { x: member.x + dx, y: member.y + dy });
+  };
+  if (distribute) {
+    const horizontal = mode === "distribute-h";
+    const sorted = [...units].sort((a,b) => horizontal ? a.left - b.left : a.top - b.top);
+    const total = sorted.reduce((sum,u) => sum + (horizontal ? u.width : u.height), 0);
+    const gap = ((horizontal ? maxX-minX : maxY-minY) - total) / (sorted.length-1);
+    let cursor = horizontal ? minX : minY;
+    for (const unit of sorted) {
+      move(unit, horizontal ? cursor-unit.left : 0, horizontal ? 0 : cursor-unit.top);
+      cursor += (horizontal ? unit.width : unit.height) + gap;
     }
-    return layers.map((l) => (pos.has(l.id) ? { ...l, x: pos.get(l.id)! } : l));
+  } else {
+    for (const unit of units) {
+      switch (mode) {
+        case "left": move(unit, minX-unit.left, 0); break;
+        case "center-x": move(unit, (minX+maxX-unit.left-unit.right)/2, 0); break;
+        case "right": move(unit, maxX-unit.right, 0); break;
+        case "top": move(unit, 0, minY-unit.top); break;
+        case "center-y": move(unit, 0, (minY+maxY-unit.top-unit.bottom)/2); break;
+        case "bottom": move(unit, 0, maxY-unit.bottom); break;
+      }
+    }
   }
-
-  if (mode === "distribute-v" && selected.length >= 3) {
-    const sorted = [...selected].sort((a, b) => a.y - b.y);
-    const first = sorted[0]!;
-    const last = sorted[sorted.length - 1]!;
-    const span = last.y + last.height - first.y;
-    const totalH = sorted.reduce((s, l) => s + l.height, 0);
-    const gap = (span - totalH) / (sorted.length - 1);
-    let cursor = first.y;
-    const pos = new Map<string, number>();
-    for (const l of sorted) {
-      pos.set(l.id, cursor);
-      cursor += l.height + gap;
+  let changed = false;
+  const result = layers.map(layer => {
+    const target = moves.get(layer.id);
+    if (!target || (Math.abs(target.x-layer.x)<1e-9 && Math.abs(target.y-layer.y)<1e-9)) return layer;
+    if (![target.x,target.y].every(n => Number.isFinite(n) && n>=-2000 && n<=4000)) {
+      throw new Error("These objects would move outside the supported canvas range. Move them closer together and try again.");
     }
-    return layers.map((l) => (pos.has(l.id) ? { ...l, y: pos.get(l.id)! } : l));
-  }
-
-  return layers.map((l) => {
-    if (!ids.has(l.id) || l.locked) return l;
-    switch (mode) {
-      case "left":
-        return { ...l, x: minX };
-      case "center-x":
-        return { ...l, x: midX - l.width / 2 };
-      case "right":
-        return { ...l, x: maxX - l.width };
-      case "top":
-        return { ...l, y: minY };
-      case "center-y":
-        return { ...l, y: midY - l.height / 2 };
-      case "bottom":
-        return { ...l, y: maxY - l.height };
-      default:
-        return l;
-    }
+    changed = true;
+    return { ...layer, ...target };
   });
+  return changed ? result : layers;
 }
 
 export function groupLayers(layers: CanvasLayer[], selectedIds: string[]): CanvasLayer[] {
@@ -371,12 +514,51 @@ function pageFromLayers(
   });
 }
 
+function defaultBgForDesignType(designType: StudioDesignType): string {
+  switch (designType) {
+    case "flyer":
+    case "poster":
+    case "business_card":
+    case "menu":
+    case "proposal":
+    case "resume":
+    case "invoice":
+    case "pitch_deck_slide":
+    case "digital_planner":
+    case "newsletter":
+    case "certificate_landscape":
+    case "email_header":
+    case "postcard":
+    case "lesson_plan":
+    case "book_cover":
+    case "invitation":
+      return "#FFFFFF";
+    case "banner":
+    case "youtube_banner":
+    case "linkedin_banner":
+    case "spotify_banner":
+      return "#F8F4EF";
+    case "instagram_post":
+    case "instagram_story":
+    case "whatsapp_status":
+    case "facebook_post":
+    case "social_square":
+    case "tiktok_video_cover":
+    case "linkedin_post":
+    case "pinterest_pin":
+    case "twitter_post":
+    case "youtube_thumbnail":
+    default:
+      return "#0F0D33";
+  }
+}
+
 export function defaultCanvasDocument(
   designType: StudioDesignType,
   opts?: { backgroundColor?: string; businessName?: string },
 ): CanvasDocument {
   const { width, height } = artboardSize(designType);
-  const bg = opts?.backgroundColor ?? "#0F0D33";
+  const bg = opts?.backgroundColor ?? defaultBgForDesignType(designType);
   const business = opts?.businessName?.trim() || "My business";
 
   if (designType === "banner") {
@@ -560,6 +742,10 @@ export function defaultCanvasDocument(
     });
   }
 
+  const lightBg = bg === "#FFFFFF" || bg === "#F8F4EF" || bg.toLowerCase() === "#fff";
+  const headlineColor = lightBg ? "#111111" : "#FFFFFF";
+  const subColor = lightBg ? "#555555" : "#FFFFFFAA";
+
   const layers: CanvasLayer[] = [
     {
       id: newLayerId(),
@@ -576,7 +762,7 @@ export function defaultCanvasDocument(
       fontSize: designType.includes("story") ? 56 : 48,
       fontFamily: "Fraunces",
       fontWeight: "700",
-      color: "#FFFFFF",
+      color: headlineColor,
       textAlign: "left",
     },
     {
@@ -594,7 +780,7 @@ export function defaultCanvasDocument(
       fontSize: 18,
       fontFamily: "system-ui",
       fontWeight: "600",
-      color: "#FFFFFFAA",
+      color: subColor,
       textAlign: "left",
     },
     {
@@ -643,6 +829,18 @@ export function defaultCanvasDocument(
 }
 
 /** Accept legacy flat / v1 / v2 documents → always v2. */
+/** Backward-compatible blank-square helper retained for older Studio callers/tests. */
+export function emptyCanvasDocument(opts: { width: number; height: number }): CanvasDocument {
+  const doc = defaultCanvasDocument("instagram_post");
+  const page = doc.pages[0]!;
+  return canvasDocumentSchema.parse({
+    ...doc,
+    width: opts.width,
+    height: opts.height,
+    pages: [{ ...page, width: opts.width, height: opts.height }],
+  });
+}
+
 export function parseCanvasDocument(
   raw: unknown,
   designType: StudioDesignType = "poster",
@@ -799,6 +997,117 @@ function paintIconLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
   ctx.fillText(glyph, layer.x + layer.width / 2, layer.y + layer.height / 2);
 }
 
+function applyLayerShadow(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  ctx.shadowColor = layer.shadowColor ?? "rgba(0,0,0,0)";
+  ctx.shadowBlur = layer.shadowBlur ?? 0;
+  ctx.shadowOffsetX = layer.shadowX ?? 0;
+  ctx.shadowOffsetY = layer.shadowY ?? 0;
+}
+
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function transformedLayerText(layer: CanvasLayer): string {
+  const raw = layer.text ?? "";
+  if (layer.textTransform === "uppercase") return raw.toUpperCase();
+  if (layer.textTransform === "lowercase") return raw.toLowerCase();
+  return raw;
+}
+
+function supportsNativeLetterSpacing(ctx: CanvasRenderingContext2D): boolean {
+  return "letterSpacing" in ctx;
+}
+
+function textWidth(ctx: CanvasRenderingContext2D, text: string, letterSpacing: number): number {
+  if (!text) return 0;
+  if (supportsNativeLetterSpacing(ctx)) {
+    ctx.letterSpacing = `${letterSpacing}px`;
+    return ctx.measureText(text).width;
+  }
+  return ctx.measureText(text).width + Math.max(0, creativeTextGraphemes(text).length - 1) * letterSpacing;
+}
+
+function paintTextRun(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  letterSpacing: number,
+) {
+  if (supportsNativeLetterSpacing(ctx)) {
+    ctx.letterSpacing = `${letterSpacing}px`;
+    ctx.fillText(text, x, y);
+    return;
+  }
+  if (!letterSpacing) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+  let cursor = x;
+  for (const char of creativeTextGraphemes(text)) {
+    ctx.fillText(char, cursor, y);
+    cursor += ctx.measureText(char).width + letterSpacing;
+  }
+}
+
+function paintTextLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  const text = transformedLayerText(layer);
+  if (!text) return;
+  const fontSize = layer.fontSize ?? 24;
+  const lineHeight = fontSize * (layer.lineHeight ?? 1.2);
+  const letterSpacing = layer.letterSpacing ?? 0;
+  ctx.fillStyle = layer.color ?? "#FFFFFF";
+  ctx.font = `${layer.fontStyle ?? "normal"} ${layer.fontWeight ?? "400"} ${fontSize}px ${layer.fontFamily ?? "system-ui"}`;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+
+  const lines = wrapCreativeText(text, layer.width, value => textWidth(ctx, value, letterSpacing));
+
+  let y = layer.y + fontSize;
+  for (const line of lines) {
+    if (y > layer.y + layer.height + lineHeight) break;
+    const width = textWidth(ctx, line, letterSpacing);
+    const x =
+      layer.textAlign === "center"
+        ? layer.x + (layer.width - width) / 2
+        : layer.textAlign === "right"
+          ? layer.x + layer.width - width
+          : layer.x;
+    paintTextRun(ctx, line, x, y, letterSpacing);
+
+    if (layer.textDecoration && layer.textDecoration !== "none" && line) {
+      const decorationY =
+        layer.textDecoration === "underline"
+          ? y + Math.max(1, fontSize * 0.08)
+          : y - fontSize * 0.32;
+      ctx.save();
+      ctx.strokeStyle = layer.color ?? "#FFFFFF";
+      ctx.lineWidth = Math.max(1, fontSize * 0.055);
+      ctx.beginPath();
+      ctx.moveTo(x, decorationY);
+      ctx.lineTo(x + width, decorationY);
+      ctx.stroke();
+      ctx.restore();
+    }
+    y += lineHeight;
+  }
+}
+
 export function exportCanvasToPngDataUrl(
   doc: CanvasDocument,
   scale = 1,
@@ -818,14 +1127,23 @@ export function exportCanvasToPngDataUrl(
     if (layer.opacity <= 0) continue;
     ctx.save();
     ctx.globalAlpha = layer.opacity;
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
     ctx.translate(cx, cy);
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
+    applyLayerShadow(ctx, layer);
+    const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
+    if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
-      ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
+      if ((layer.cornerRadius ?? 0) > 0) {
+        roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+        ctx.fill();
+      } else {
+        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      }
     } else if (layer.type === "line") {
       paintLineLayer(ctx, layer);
     } else if (layer.type === "frame") {
@@ -843,19 +1161,10 @@ export function exportCanvasToPngDataUrl(
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
-      ctx.fillStyle = layer.color ?? "#FFFFFF";
-      ctx.font = `${layer.fontWeight ?? "400"} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "system-ui"}`;
-      ctx.textAlign = (layer.textAlign as CanvasTextAlign) ?? "left";
-      const tx =
-        layer.textAlign === "center"
-          ? layer.x + layer.width / 2
-          : layer.textAlign === "right"
-            ? layer.x + layer.width
-            : layer.x;
-      ctx.fillText(layer.text, tx, layer.y + (layer.fontSize ?? 24));
+      paintTextLayer(ctx, layer);
     }
     ctx.restore();
   }
@@ -899,16 +1208,29 @@ export async function exportCanvasToPngDataUrlAsync(
 
   for (const layer of page.layers) {
     if (layer.opacity <= 0) continue;
+    const motion = layerMotionAtTime(layer, pageLocal);
+    if (motion.opacityMultiplier <= 0) continue;
+    if ((layer.type === "image" && !layer.imageUrl) || (layer.type === "video" && !layer.videoUrl)) return null;
     ctx.save();
-    ctx.globalAlpha = layer.opacity;
+    ctx.globalAlpha = layer.opacity * motion.opacityMultiplier;
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
-    ctx.translate(cx, cy);
+    ctx.translate(cx + motion.translateX, cy + motion.translateY);
     ctx.rotate((layer.rotation * Math.PI) / 180);
+    ctx.scale(motion.scale, motion.scale);
     ctx.translate(-cx, -cy);
+    applyLayerShadow(ctx, layer);
+    const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
+    if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
-      ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
+      if ((layer.cornerRadius ?? 0) > 0) {
+        roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+        ctx.fill();
+      } else {
+        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      }
     } else if (layer.type === "line") {
       paintLineLayer(ctx, layer);
     } else if (layer.type === "frame") {
@@ -926,23 +1248,18 @@ export async function exportCanvasToPngDataUrlAsync(
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
-      ctx.fillStyle = layer.color ?? "#FFFFFF";
-      ctx.font = `${layer.fontWeight ?? "400"} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "system-ui"}`;
-      ctx.textAlign = (layer.textAlign as CanvasTextAlign) ?? "left";
-      const tx =
-        layer.textAlign === "center"
-          ? layer.x + layer.width / 2
-          : layer.textAlign === "right"
-            ? layer.x + layer.width
-            : layer.x;
-      ctx.fillText(layer.text, tx, layer.y + (layer.fontSize ?? 24));
+      paintTextLayer(ctx, layer);
     } else if (layer.type === "image" && layer.imageUrl) {
       const img = await loadImageElement(layer.imageUrl);
       if (img) {
         ctx.save();
+        if ((layer.cornerRadius ?? 0) > 0) {
+          roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+          ctx.clip();
+        }
         ctx.translate(cx, cy);
         ctx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
         ctx.translate(-cx, -cy);
@@ -977,8 +1294,8 @@ export async function exportCanvasToPngDataUrlAsync(
         }
         ctx.restore();
       } else {
-        ctx.fillStyle = "#333333";
-        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+        ctx.restore();
+        return null;
       }
     } else if (layer.type === "video" && layer.videoUrl) {
       const { videoSourceTimeSec } = await import("@/lib/studio/timeline");
@@ -987,16 +1304,13 @@ export async function exportCanvasToPngDataUrlAsync(
       if (frame) {
         ctx.drawImage(frame, layer.x, layer.y, layer.width, layer.height);
       } else {
-        ctx.fillStyle = "#1a1a1a";
-        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
-        ctx.fillStyle = "#FFFFFF88";
-        ctx.font = "16px system-ui";
-        ctx.fillText("Video", layer.x + 12, layer.y + 28);
+        ctx.restore();
+        return null;
       }
     }
     ctx.restore();
   }
-  return canvas.toDataURL("image/png");
+  try { return canvas.toDataURL("image/png"); } catch { return null; }
 }
 
 function loadVideoAtTime(
@@ -1072,10 +1386,18 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-export function duplicateLayer(layer: CanvasLayer): CanvasLayer {
+/** One remapping per copy operation keeps copied groups independent of their sources. */
+export function duplicateLayers(layers: CanvasLayer[]): CanvasLayer[] {
+  const groups = new Map<string, string>();
+  return layers.map((layer) => duplicateLayer(layer, groups));
+}
+
+export function duplicateLayer(layer: CanvasLayer, groups = new Map<string, string>()): CanvasLayer {
+  if (layer.groupId && !groups.has(layer.groupId)) groups.set(layer.groupId, newGroupId());
   return {
     ...layer,
     id: newLayerId(),
+    groupId: layer.groupId ? groups.get(layer.groupId)! : layer.groupId,
     name: `${layer.name} copy`.slice(0, 80),
     x: layer.x + 24,
     y: layer.y + 24,

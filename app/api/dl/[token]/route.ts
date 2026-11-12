@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import {
-  resolveDownloadToken,
-  signedDownloadUrl,
-  incrementDownloadCount,
-} from "@/lib/shop/digital-downloads";
+import { signedDownloadUrl } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +25,17 @@ export async function GET(req: NextRequest, { params }: Params) {
   // Use service role so we can bypass RLS and access private storage
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  const download = await resolveDownloadToken(supabase, token);
+  if (!/^[0-9a-f]{64}$/.test(token)) {
+    return new NextResponse("Invalid download link.", { status: 410 });
+  }
 
-  if (!download) {
+  // Atomically validate payment/expiry/limit and consume one download.
+  const { data: consumed, error: consumeError } = await supabase.rpc("consume_digital_download", {
+    p_token: token,
+  });
+  const download = Array.isArray(consumed) ? consumed[0] : consumed;
+
+  if (consumeError || !download) {
     return new NextResponse(
       `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Lien invalide</title>
 <style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f9fafb;color:#374151}
@@ -57,12 +61,6 @@ export async function GET(req: NextRequest, { params }: Params) {
       { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
   }
-
-  // Increment counter (best-effort — don't block the redirect)
-  void supabase
-    .from("shop_digital_downloads")
-    .update({ download_count: download.download_count + 1 })
-    .eq("id", download.id);
 
   // Redirect to the signed URL — browser gets the file directly from Supabase Storage
   return NextResponse.redirect(signedUrl, { status: 302 });

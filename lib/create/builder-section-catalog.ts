@@ -1,5 +1,5 @@
 /** Shopify-style section catalog for the builder — longer site = add, shorter = remove. */
-export type BuilderSectionCategory = "layout" | "media" | "commerce" | "engage" | "page";
+export type BuilderSectionCategory = "layout" | "media" | "commerce" | "engage" | "page" | "apps";
 
 export type BuilderSectionOption = {
   type: string;
@@ -14,10 +14,17 @@ export const BUILDER_SECTION_CATEGORIES: { id: BuilderSectionCategory; label: st
   { id: "commerce", label: "Shop & contact" },
   { id: "engage", label: "Engage" },
   { id: "page", label: "Page blocks" },
+  { id: "apps", label: "Apps & integrations" },
 ];
 
 /** Curated section types founders can add (like Shopify theme sections). */
 export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
+  {
+    type: "legally-blonde-hero",
+    label: "Cutout collage",
+    description: "Layer your own photos, resize and reorder them, and add scroll parallax",
+    category: "layout",
+  },
   {
     type: "announcement-bar",
     label: "Announcement bar",
@@ -93,7 +100,7 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
   {
     type: "gallery",
     label: "Photo grid",
-    description: "Many photos — grid, one photo, or featured",
+    description: "Photos, editorial campaign walls and directional worlds",
     category: "media",
   },
   {
@@ -106,6 +113,12 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     type: "audio",
     label: "Music / audio",
     description: "Track player or Spotify embed",
+    category: "media",
+  },
+  {
+    type: "maylecor-music",
+    label: "Track list",
+    description: "Discography page — cover art per track, Spotify/Apple/YouTube/SoundCloud links",
     category: "media",
   },
   {

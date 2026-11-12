@@ -66,7 +66,7 @@ function MySpaceInner() {
   const search = useSearchParams();
   const tabParam = search.get("tab");
   const [tab, setTab] = useState<TabId>(
-    tabParam && TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : "pulse",
+    tabParam && TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : "businesses",
   );
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [summary, setSummary] = useState<HomeSummary | null>(null);
@@ -126,8 +126,8 @@ function MySpaceInner() {
 
   useEffect(() => {
     if (tabParam === "overview") {
-      setTab("pulse");
-      router.replace("/business?tab=pulse", { scroll: false });
+      setTab("businesses");
+      router.replace("/business?tab=businesses", { scroll: false });
       return;
     }
     if (tabParam && TABS.some((t) => t.id === tabParam)) setTab(tabParam as TabId);
@@ -242,20 +242,9 @@ function MySpaceInner() {
   return (
     <AppShell title="My Businesses">
       <main className="px-6 sm:px-8 lg:px-10 py-8 lg:py-10">
-        <p className="text-[10px] font-bold uppercase tracking-[0.24em] mb-2" style={{ color: KEBU.orange }}>
-          My KEBU
-        </p>
-        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-          My Businesses
-        </h1>
-        <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted }}>
-          Each business is its own workspace (May Lecor, K-Direction, DkLNS…). Pulse keeps you updated across all of
-          them — orders, messages, sites. Open a business to run only that brand.
-        </p>
-
-        <div
-          className="flex flex-wrap gap-1 mb-8 p-1 rounded-xl"
-          style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+        {tab !== "businesses" ? <div
+          className="mb-6 flex flex-wrap gap-4 border-b"
+          style={{ borderColor: KEBU.border }}
           role="tablist"
         >
           {TABS.map((t) => (
@@ -265,16 +254,16 @@ function MySpaceInner() {
               role="tab"
               aria-selected={tab === t.id}
               onClick={() => selectTab(t.id)}
-              className="rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-wider"
+              className="border-b-2 px-0 py-3 text-[10px] font-semibold"
               style={{
-                background: tab === t.id ? KEBU.orange : "transparent",
-                color: tab === t.id ? KEBU.white : KEBU.black,
+                borderColor: tab === t.id ? KEBU.orange : "transparent",
+                color: tab === t.id ? KEBU.black : KEBU.muted,
               }}
             >
               {t.label}
             </button>
           ))}
-        </div>
+        </div> : null}
 
         {error ? (
           <p className="mb-4 text-sm" style={{ color: KEBU.red }} role="alert">
@@ -289,7 +278,7 @@ function MySpaceInner() {
 
         {!loading && tab === "pulse" ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 border-y sm:grid-cols-4" style={{borderColor:KEBU.border}}>
               {[
                 { n: pulseStats?.pendingOrders ?? 0, l: "Orders to fulfill", href: "/shop" },
                 { n: pulseStats?.openMessages ?? 0, l: "Open messages", href: "/messages" },
@@ -299,8 +288,8 @@ function MySpaceInner() {
                 <Link
                   key={s.l}
                   href={s.href}
-                  className="rounded-2xl p-4"
-                  style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                  className="border-b p-4 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                  style={{ borderColor: KEBU.border }}
                 >
                   <p className="text-2xl font-black" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.orange }}>
                     {s.n}
@@ -309,7 +298,7 @@ function MySpaceInner() {
                 </Link>
               ))}
             </div>
-            <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+            <section className="border-y py-4" style={{ borderColor: KEBU.border }}>
               <h2 className="font-bold mb-1" style={{ fontFamily: "var(--font-fraunces)" }}>
                 What’s going on
               </h2>
@@ -356,7 +345,7 @@ function MySpaceInner() {
               )}
             </section>
             {(summary?.updates ?? []).length > 0 ? (
-              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+              <section className="border-y py-4" style={{ borderColor: KEBU.border }}>
                 <h2 className="font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
                   Account updates
                 </h2>
@@ -378,51 +367,128 @@ function MySpaceInner() {
         ) : null}
 
         {!loading && tab === "businesses" ? (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/business/register"
-                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
-                style={{ background: KEBU.orange }}
-              >
-                Register a business
-              </Link>
-              <Link
-                href="/ka-score"
-                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-                style={{ border: `1px solid ${KEBU.border}` }}
-              >
-                KA Score
-              </Link>
-            </div>
-            {businesses.length === 0 ? (
-              <p className="text-sm" style={{ color: KEBU.muted }}>
-                No Kebu ID yet. Register when you’re ready — it lives here, not mixed into Aesthetics.
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {businesses.map((b) => (
-                  <li key={b.id}>
-                    <Link
-                      href={`/business/${b.id}`}
-                      className="block rounded-2xl p-4"
-                      style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
-                    >
-                      <p className="font-bold">{b.trading_name || b.legal_name}</p>
-                      <p className="text-xs font-mono mt-1" style={{ color: KEBU.orange }}>
-                        {b.public_kebu_id}
-                      </p>
-                      <p className="text-[11px] mt-1" style={{ color: KEBU.muted }}>
-                        {b.country_code} · {b.lifecycle_status}
-                      </p>
-                    </Link>
-                  </li>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <section className="min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-[9px] text-black/35">Business Hub&nbsp; / &nbsp;<strong className="text-black/75">My Businesses</strong></p>
+                  <h1 className="mt-2 text-[35px] leading-[.98] tracking-[-.045em]" style={{ fontFamily: "var(--font-fraunces)" }}>A bolder tomorrow, built by you.</h1>
+                  <p className="mt-1 text-[11px] text-black/42">Manage your businesses, track progress, and unlock new opportunities.</p>
+                </div>
+                <Link href="/business/register" className="rounded-full bg-black px-5 py-2.5 text-[10px] font-semibold text-white">+ New business</Link>
+              </div>
+
+              <div className="mt-5 grid overflow-hidden rounded-[14px] border bg-white sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" style={{ borderColor: KEBU.border }}>
+                {[
+                  [businesses.length, "Active businesses"],
+                  [summary?.sites?.length ?? 0, "Sites"],
+                  [pulseStats?.pendingOrders ?? 0, "Pending orders"],
+                  [pulseStats?.openMessages ?? 0, "Messages"],
+                  [pulseStats?.shopsOpen ?? 0, "Shops open"],
+                  [businesses.filter((item) => item.verification_level > 0).length, "Verified"],
+                ].map(([value, label], index) => (
+                  <div key={String(label)} className="min-h-[112px] border-b p-3.5 sm:border-r lg:border-b-0" style={{ borderColor: KEBU.border }}>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF2EA] text-[11px]" style={{ color: KEBU.orange }}>{["▣","▥","◉","✉","□","✦"][index]}</span>
+                    <p className="mt-3 text-[22px] leading-none" style={{ fontFamily: "var(--font-fraunces)" }}>{value}</p>
+                    <p className="mt-1 text-[9px] text-black/42">{label}</p>
+                  </div>
                 ))}
-              </ul>
-            )}
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+                <div className="flex items-center gap-4">
+                  <p className="text-[18px]" style={{ fontFamily: "var(--font-fraunces)" }}>Your businesses</p>
+                  <span className="text-[9px] text-black/35">All {businesses.length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href="/business?tab=pulse" className="rounded-full border px-3 py-2 text-[9px] font-semibold" style={{ borderColor: KEBU.border }}>Pulse</Link>
+                  <Link href="/ka-score" className="rounded-full border px-3 py-2 text-[9px] font-semibold" style={{ borderColor: KEBU.border }}>KA Score</Link>
+                </div>
+              </div>
+
+              {businesses.length === 0 ? (
+                <div className="mt-3 rounded-[16px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
+                  <p className="text-[13px] font-semibold">No businesses yet.</p>
+                  <p className="mt-1 text-[10px] text-black/40">Open one when you are ready. Personal Kebu still works without it.</p>
+                </div>
+              ) : (
+                <ul className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {businesses.map((item, index) => (
+                    <li key={item.id}>
+                      <Link href={"/business/" + item.id} className="group block overflow-hidden rounded-[14px] border bg-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(10,10,10,.06)]" style={{ borderColor: KEBU.border }}>
+                        <div className="relative h-[92px] overflow-hidden" style={{ background: index % 3 === 0 ? "linear-gradient(120deg,#160805,#ff6a00,#ffb27d)" : index % 3 === 1 ? "linear-gradient(120deg,#120808,#ffb7b7,#53130f)" : "linear-gradient(120deg,#050505,#7c160e,#f16d49)" }}>
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(255,255,255,.25),transparent_25%)]" />
+                          <p className="absolute bottom-3 left-3 text-[20px] text-white" style={{ fontFamily: "var(--font-fraunces)" }}>{item.trading_name || item.legal_name}</p>
+                        </div>
+                        <div className="p-3.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0"><p className="truncate text-[11px] font-semibold">{item.trading_name || item.legal_name}</p><p className="mt-0.5 truncate text-[9px] text-black/38">{item.category} · {item.country_code}</p></div>
+                            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-semibold text-emerald-700">{item.lifecycle_status}</span>
+                          </div>
+                          <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-3" style={{ borderColor: KEBU.border }}>
+                            <div><p className="text-[12px] font-semibold">{item.verification_level}</p><p className="text-[8px] text-black/35">Verification</p></div>
+                            <div><p className="text-[12px] font-semibold">{item.country_code || "—"}</p><p className="text-[8px] text-black/35">Region</p></div>
+                            <div><p className="text-[12px] font-semibold">Open</p><p className="text-[8px] text-black/35">Workspace</p></div>
+                          </div>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="mt-4 grid border-t sm:grid-cols-4" style={{ borderColor: KEBU.border }}>
+                {[
+                  ["/create/new", "Create a site", "Launch your online presence"],
+                  ["/studio", "Open in Studio", "Design, create, collaborate"],
+                  ["/analytics", "Analytics", "View performance"],
+                  ["/opportunity", "Opportunities", "Find new possibilities"],
+                ].map(([href,title,detail]) => (
+                  <Link key={href} href={href} className="border-b py-3 sm:border-b-0 sm:border-r sm:px-3 sm:last:border-r-0" style={{ borderColor: KEBU.border }}>
+                    <p className="text-[9px] font-semibold">{title}</p><p className="mt-1 text-[8px] text-black/35">{detail}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <aside className="space-y-3">
+              <div className="overflow-hidden rounded-[14px] border bg-[#FFF7F1] p-4" style={{ borderColor: KEBU.border }}>
+                <p className="text-[22px] leading-[1.05]" style={{ fontFamily: "var(--font-fraunces)" }}>“More ideas.<br />Greater impact.”</p>
+                <div className="mt-4 h-9 rounded-[9px]" style={{ background: "linear-gradient(135deg,#ff6a00,#ff1f1f,#250705)" }} />
+              </div>
+              <div className="rounded-[14px] border bg-white p-3.5" style={{ borderColor: KEBU.border }}>
+                <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Quick actions</p><span className="text-black/25">•••</span></div>
+                {[
+                  ["/create/new","Create a site","Launch your online presence"],
+                  ["/studio","Open in Studio","Design, build, grow"],
+                  ["/analytics","Analytics","View performance"],
+                  ["/people?scope=business","Team","Invite and manage"],
+                  ["/shop","Payments & Shop","Commerce tools"],
+                  ["/opportunity","Opportunities","Find new possibilities"],
+                ].map(([href,title,detail]) => (
+                  <Link key={href} href={href} className="flex items-center gap-3 border-t py-3 first:border-t-0" style={{ borderColor: KEBU.border }}>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF1E9] text-[10px]" style={{ color: KEBU.orange }}>✦</span>
+                    <span className="min-w-0 flex-1"><span className="block text-[9px] font-semibold">{title}</span><span className="block text-[8px] text-black/35">{detail}</span></span><span className="text-black/25">›</span>
+                  </Link>
+                ))}
+              </div>
+              <div className="rounded-[14px] border bg-white p-3.5" style={{ borderColor: KEBU.border }}>
+                <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Recent activity</p><Link href="/business?tab=pulse" className="text-[8px] text-black/35">View all →</Link></div>
+                {pulseItems.slice(0,4).map((item) => (
+                  <Link key={item.id} href={item.href} className="block border-t py-3" style={{ borderColor: KEBU.border }}>
+                    <p className="truncate text-[9px] font-semibold">{item.title}</p><p className="mt-0.5 truncate text-[8px] text-black/35">{item.businessName || item.kind}</p>
+                  </Link>
+                ))}
+                {!pulseItems.length ? <p className="py-4 text-[9px] text-black/35">No recent business activity.</p> : null}
+              </div>
+              <div className="rounded-[14px] bg-[#FFF2EA] p-4">
+                <p className="text-[18px] leading-[1.05]" style={{ fontFamily: "var(--font-fraunces)" }}>Explore new opportunities</p>
+                <p className="mt-2 text-[9px] leading-relaxed text-black/42">Curated grants, partners and global opportunities for your businesses.</p>
+                <Link href="/opportunity" className="mt-4 inline-flex rounded-full bg-white px-4 py-2 text-[9px] font-semibold">Browse opportunities →</Link>
+              </div>
+            </aside>
           </div>
         ) : null}
-
         {!loading && tab === "sites" ? (
           <div className="space-y-4">
             <Link
@@ -437,8 +503,8 @@ function MySpaceInner() {
                 <li key={s.id}>
                   <Link
                     href={`${MY_SITES_HREF}/${s.id}`}
-                    className="block rounded-xl px-4 py-3 text-sm font-semibold"
-                    style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                    className="block border-b py-3 text-sm font-semibold"
+                    style={{ borderColor: KEBU.border }}
                   >
                     {s.title}{" "}
                     <span className="font-normal" style={{ color: KEBU.muted }}>
@@ -482,8 +548,8 @@ function MySpaceInner() {
                 <Link
                   key={s.id}
                   href={`/create/${s.id}?panel=analytics`}
-                  className="rounded-2xl p-4"
-                  style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                  className="border-b py-4"
+                  style={{ borderColor: KEBU.border }}
                 >
                   <p className="font-bold text-sm">{s.title}</p>
                   {"loadError" in s && typeof (s as { loadError?: string }).loadError === "string" ? (
@@ -539,8 +605,8 @@ function MySpaceInner() {
                 <li key={`${t.projectId}-${t.id}`}>
                   <Link
                     href={`/shop/${t.projectId}?tab=messages`}
-                    className="block rounded-xl px-4 py-3"
-                    style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                    className="block border-b py-3"
+                    style={{ borderColor: KEBU.border }}
                   >
                     <p className="text-sm font-semibold">{t.subject || "Conversation"}</p>
                     <p className="text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
@@ -569,8 +635,8 @@ function MySpaceInner() {
               <Link
                 key={row.href}
                 href={row.href}
-                className="flex justify-between gap-3 rounded-xl px-4 py-3"
-                style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                className="flex justify-between gap-3 border-b py-3"
+                style={{ borderColor: KEBU.border }}
               >
                 <span>
                   <span className="block text-sm font-semibold">{row.t}</span>

@@ -1,0 +1,42 @@
+name: Shared Builder and Studio generation
+on:
+  workflow_dispatch:
+  push:
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-shared-generation-repair-oct26"]
+    paths: ["app/**", "lib/**", "tests/generation/**", "supabase/migrations/**", "scripts/verify-generation-local.mjs", "scripts/creative-generation-worker.mjs", "package*.json", "next.config.ts", ".github/workflows/creative-generation.yml"]
+  pull_request:
+    paths: ["app/**", "lib/generation/**", "tests/generation/**", "supabase/migrations/**", "scripts/verify-generation-local.mjs", "scripts/creative-generation-worker.mjs", "package*.json", "next.config.ts", ".github/workflows/creative-generation.yml"]
+permissions:
+  contents: read
+jobs:
+  local-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm install --prefix "$RUNNER_TEMP/generation-sql" --ignore-scripts --no-save --package-lock=false @electric-sql/pglite@0.5.10
+      - run: npx playwright install --with-deps chromium
+      - name: Native generation, inspection, repair, SQL acceptance and browser review
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_LOCAL_PGLITE_ROOT="$RUNNER_TEMP/generation-sql/node_modules/@electric-sql/pglite"
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          export KEBU_GENERATION_OUTPUT_DIR="$RUNNER_TEMP/generation-evidence"
+          node scripts/verify-generation-local.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: local-generation-evidence
+          path: ${{ runner.temp }}/generation-evidence
+          if-no-files-found: error

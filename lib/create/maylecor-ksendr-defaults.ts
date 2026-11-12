@@ -14,7 +14,7 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
     ...russian,
     title: artistName,
     subtitle:
-      "New music, live shows, and visuals — stream on Spotify, Apple Music, and SoundCloud.",
+      "English pop artist. Music, visuals, and May’s world.",
     brandLabel: artistName,
     // Pink Russian scene base; May’s NYC skyline is a separate parallax layer in front of it.
     backgroundLayer: LEGALLY_BLONDE_ASSETS.backgroundLayer,
@@ -44,6 +44,12 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
       cutoutLeft: 0.55,
       cutoutRight: 0.36,
       heroPhoto: 0.34,
+    },
+    layerScroll: {
+      cutoutLeft: { x: -160, y: -32 },
+      cutoutRight: { x: 160, y: 24 },
+      cutoutAccent: { x: -96, y: -72 },
+      "may-city-skyline": { x: 64, y: 80 },
     },
     layerMotions: { ...MAYLECOR_DEFAULT_LAYER_MOTIONS, titleLogo: "spin" as const },
     hiddenLayers: ["macbook", "cutoutSparkle", "sparkleGif"],

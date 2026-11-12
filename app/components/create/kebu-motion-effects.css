@@ -37,3 +37,56 @@
     animation: none;
   }
 }
+
+
+/* Builder object motion. These use individual transform properties where possible so
+   they do not destroy the object's saved transform/rotation/position. */
+@media (prefers-reduced-motion: no-preference) {
+  .kebu-object-motion-fade {
+    animation: kebu-object-fade var(--kebu-motion-duration, 650ms) cubic-bezier(.22,1,.36,1) var(--kebu-motion-delay, 0ms) both;
+  }
+  .kebu-object-motion-rise {
+    animation: kebu-object-rise var(--kebu-motion-duration, 700ms) cubic-bezier(.22,1,.36,1) var(--kebu-motion-delay, 0ms) both;
+  }
+  .kebu-object-motion-slide-left {
+    animation: kebu-object-slide-left var(--kebu-motion-duration, 700ms) cubic-bezier(.22,1,.36,1) var(--kebu-motion-delay, 0ms) both;
+  }
+  .kebu-object-motion-slide-right {
+    animation: kebu-object-slide-right var(--kebu-motion-duration, 700ms) cubic-bezier(.22,1,.36,1) var(--kebu-motion-delay, 0ms) both;
+  }
+  .kebu-object-motion-pop {
+    animation: kebu-object-pop var(--kebu-motion-duration, 520ms) cubic-bezier(.34,1.56,.64,1) var(--kebu-motion-delay, 0ms) both;
+  }
+  .kebu-object-motion-blur {
+    animation: kebu-object-blur var(--kebu-motion-duration, 700ms) ease-out var(--kebu-motion-delay, 0ms) both;
+  }
+  .kebu-object-motion-float {
+    animation: kebu-object-float var(--kebu-motion-duration, 3200ms) ease-in-out var(--kebu-motion-delay, 0ms) infinite;
+  }
+  .kebu-object-motion-bob {
+    animation: kebu-object-bob var(--kebu-motion-duration, 2400ms) ease-in-out var(--kebu-motion-delay, 0ms) infinite;
+  }
+  .kebu-object-motion-pulse {
+    animation: kebu-object-pulse var(--kebu-motion-duration, 2200ms) ease-in-out var(--kebu-motion-delay, 0ms) infinite;
+  }
+  .kebu-object-motion-spin {
+    animation: kebu-object-spin var(--kebu-motion-duration, 14000ms) linear var(--kebu-motion-delay, 0ms) infinite;
+  }
+
+  @keyframes kebu-object-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes kebu-object-rise { from { opacity: 0; translate: 0 24px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes kebu-object-slide-left { from { opacity: 0; translate: 34px 0; } to { opacity: 1; translate: 0 0; } }
+  @keyframes kebu-object-slide-right { from { opacity: 0; translate: -34px 0; } to { opacity: 1; translate: 0 0; } }
+  @keyframes kebu-object-pop { from { opacity: 0; scale: .86; } to { opacity: 1; scale: 1; } }
+  @keyframes kebu-object-blur { from { opacity: 0; filter: blur(12px); } to { opacity: 1; filter: blur(0); } }
+  @keyframes kebu-object-float { 0%,100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+  @keyframes kebu-object-bob { 0%,100% { translate: 0 0; } 50% { translate: 0 7px; } }
+  @keyframes kebu-object-pulse { 0%,100% { scale: 1; } 50% { scale: 1.035; } }
+  @keyframes kebu-object-spin { to { rotate: 360deg; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="kebu-object-motion-"] {
+    animation: none !important;
+  }
+}

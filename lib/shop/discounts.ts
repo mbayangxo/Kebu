@@ -92,17 +92,10 @@ export async function incrementDiscountUse(
   admin: SupabaseClient,
   discountId: string,
 ): Promise<void> {
-  const { data } = await admin
-    .from("shop_discount_codes")
-    .select("uses_count")
-    .eq("id", discountId)
-    .maybeSingle();
-  if (!data) return;
-  await admin
-    .from("shop_discount_codes")
-    .update({
-      uses_count: (data.uses_count ?? 0) + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", discountId);
+  const { data, error } = await admin.rpc("increment_discount_use_atomic", {
+    p_discount_id: discountId,
+  });
+  if (error || data !== true) {
+    throw new Error(error?.message || "Discount is no longer available.");
+  }
 }

@@ -1,0 +1,563 @@
+{
+  "date": "2026-10-21",
+  "projectId": "tnygqgcqlnlsmjpygrca",
+  "access": "Read-only system catalogs and platform-owned mail domain readiness; no user message content, production writes, RPC execution, email or payments.",
+  "sourceCommit": "7bab1a5de7a53330e48e6bf7e1c7027239330694",
+  "productionCommit": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+  "preflight": {
+    "scope": "schema-and-grants-only",
+    "checks": [
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:aesthetic_library.provider"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:aesthetic_library.provider_reference"
+      },
+      {
+        "passed": true,
+        "details": {},
+        "requirement": "column:create_designs.updated_at"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:creative_asset_library.provider"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:creative_asset_library.provider_reference"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:project_pages.layout_version"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:project_sections.node_version"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:project_sections.order_key"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:project_sections.parent_id"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:project_sections.type_version"
+      },
+      {
+        "passed": false,
+        "details": {},
+        "requirement": "column:projects.document_schema_version"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "anonExecute": null,
+          "serviceExecute": null,
+          "authenticatedExecute": null
+        },
+        "requirement": "function:public.apply_experience_plan(uuid,jsonb)"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "anonExecute": null,
+          "serviceExecute": null,
+          "authenticatedExecute": null
+        },
+        "requirement": "function:public.apply_node_ops(uuid,jsonb)"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "anonExecute": null,
+          "serviceExecute": null,
+          "authenticatedExecute": null
+        },
+        "requirement": "function:public.kcd_operation_protocol()"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "anonExecute": null,
+          "serviceExecute": null,
+          "authenticatedExecute": null
+        },
+        "requirement": "function:public.publish_kcd_document(uuid,uuid,text,jsonb,jsonb,text)"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:aesthetic_library"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:creative_asset_library"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:creative_op_journal"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:deployments"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:developer_profiles"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:job_listings"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:kcd_node_types"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mail_attachments"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:mail_forwarding_rules"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mail_messages"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mail_threads"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:mailboxes"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:marketplace_creative_assets"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:marketplace_templates"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:network_profiles"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:personal_connections"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:project_pages"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:project_sections"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:projects"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:search_documents"
+      },
+      {
+        "passed": true,
+        "details": {
+          "present": true,
+          "rlsEnabled": true
+        },
+        "requirement": "table:website_versions"
+      },
+      {
+        "passed": false,
+        "details": {
+          "present": false,
+          "rlsEnabled": null
+        },
+        "requirement": "table:worker_profiles"
+      }
+    ],
+    "observedAt": "2026-10-21T07:33:31.27635+00:00",
+    "failedChecks": 22,
+    "postgresVersion": "17.6",
+    "schemaChecksPassed": false,
+    "releaseCertification": "not-established-by-this-query",
+    "authenticatedAcceptance": "not-established-by-this-query"
+  },
+  "mail": {
+    "mailboxes": true,
+    "mailboxes_rls": true,
+    "creative_op_journal": false,
+    "mail_platform_domains": [
+      {
+        "domain": "kebu.africa",
+        "status": "pending",
+        "provider": "resend",
+        "sending_enabled": false,
+        "reputation_status": "warming"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "name": "create_developer_apps",
+      "version": "20260915204226"
+    },
+    {
+      "name": "add_site_password_fields",
+      "version": "20260919051124"
+    },
+    {
+      "name": "quarantine_accidental_rect_objects",
+      "version": "20260919102208"
+    },
+    {
+      "name": "enforce_opportunity_verified_access",
+      "version": "20260919102210"
+    },
+    {
+      "name": "harden_public_database_boundaries",
+      "version": "20260919204303"
+    },
+    {
+      "name": "remove_duplicate_business_public_id_index",
+      "version": "20260919212918"
+    },
+    {
+      "name": "add_query_informed_fk_indexes",
+      "version": "20260919221320"
+    },
+    {
+      "name": "prevent_afrique_id_self_verification",
+      "version": "20260919234857"
+    },
+    {
+      "name": "restrict_afrique_id_reads_to_owner",
+      "version": "20260919234936"
+    },
+    {
+      "name": "complete_shop_payment_atomically",
+      "version": "20260920000627"
+    },
+    {
+      "name": "harden_support_access",
+      "version": "20260920000933"
+    },
+    {
+      "name": "project_tenancy_authorization",
+      "version": "20260920033106"
+    },
+    {
+      "name": "platform_durability",
+      "version": "20260920033112"
+    },
+    {
+      "name": "legacy_087_shop_expenses",
+      "version": "20260920033324"
+    },
+    {
+      "name": "legacy_088_shop_purchase_orders",
+      "version": "20260920033329"
+    },
+    {
+      "name": "legacy_089_shop_companies",
+      "version": "20260920033333"
+    },
+    {
+      "name": "legacy_090_shop_review_requests",
+      "version": "20260920033336"
+    },
+    {
+      "name": "legacy_097_email_automation_flows",
+      "version": "20260920033339"
+    },
+    {
+      "name": "legacy_099_cart_abandonment_cron",
+      "version": "20260920033343"
+    },
+    {
+      "name": "legacy_098_digital_product_downloads_fixed",
+      "version": "20260920033406"
+    },
+    {
+      "name": "legacy_100_pg_cron_email_scheduler",
+      "version": "20260920033416"
+    },
+    {
+      "name": "legacy_091_template_seeds_tier2_tier3",
+      "version": "20260920033700"
+    },
+    {
+      "name": "legacy_092_template_seed_fashion_compat",
+      "version": "20260920033710"
+    },
+    {
+      "name": "legacy_093_template_seeds_batch2_compat",
+      "version": "20260920033720"
+    },
+    {
+      "name": "legacy_094_add_quiz_section_type",
+      "version": "20260920033723"
+    },
+    {
+      "name": "legacy_095_add_product_badge_fields",
+      "version": "20260920033727"
+    },
+    {
+      "name": "legacy_096_add_stats_section_type",
+      "version": "20260920033730"
+    },
+    {
+      "name": "legacy_101_security_remediation_atomic_commerce",
+      "version": "20260920033733"
+    },
+    {
+      "name": "track_b_acceptance_hardening",
+      "version": "20260920033823"
+    },
+    {
+      "name": "platform_worker_recovery",
+      "version": "20260920034650"
+    },
+    {
+      "name": "project_page_hierarchy",
+      "version": "20260920053026"
+    },
+    {
+      "name": "kebu_ecosystem_setup",
+      "version": "20260920072602"
+    },
+    {
+      "name": "workspace_items",
+      "version": "20260920073135"
+    },
+    {
+      "name": "space_chat",
+      "version": "20260920073842"
+    },
+    {
+      "name": "workspace_scope_hardening",
+      "version": "20260920074208"
+    },
+    {
+      "name": "kebu_mail_m1",
+      "version": "20260920080042"
+    },
+    {
+      "name": "kebu_rooms",
+      "version": "20260920080411"
+    },
+    {
+      "name": "room_scope_hardening",
+      "version": "20260920080537"
+    },
+    {
+      "name": "search_index_phase_one",
+      "version": "20260920080832"
+    },
+    {
+      "name": "opportunity_research_lab",
+      "version": "20260920081442"
+    },
+    {
+      "name": "kebu_browser_workspace",
+      "version": "20260920081724"
+    },
+    {
+      "name": "room_files",
+      "version": "20260920082001"
+    },
+    {
+      "name": "kebu_mail_m2",
+      "version": "20260920132314"
+    },
+    {
+      "name": "studio_video_workspace_link",
+      "version": "20260920134847"
+    },
+    {
+      "name": "studio_video_workspace_rls",
+      "version": "20260920134859"
+    },
+    {
+      "name": "studio_upload_workspace_scope",
+      "version": "20260920135100"
+    },
+    {
+      "name": "studio_campaign_workspace_rls",
+      "version": "20260920140058"
+    },
+    {
+      "name": "kebu_business_mail_m3",
+      "version": "20260920184000"
+    },
+    {
+      "name": "studio_design_type_alignment",
+      "version": "20260920224310"
+    },
+    {
+      "name": "personal_connections_and_multi_personal_mailboxes",
+      "version": "20260921012930"
+    },
+    {
+      "name": "personal_connection_pair_and_transitions",
+      "version": "20260921013006"
+    },
+    {
+      "name": "drive_library_nodes_and_inherited_sharing",
+      "version": "20260921013116"
+    },
+    {
+      "name": "personal_public_kebu_ids",
+      "version": "20260921014338"
+    },
+    {
+      "name": "kebu_mail_delivery_infrastructure",
+      "version": "20260921022609"
+    },
+    {
+      "name": "kebu_mail_platform_domain_and_alerts",
+      "version": "20260921022734"
+    },
+    {
+      "name": "kebu_mail_domain_event_metrics",
+      "version": "20260921022925"
+    },
+    {
+      "name": "kebu_mail_reputation_guardrails",
+      "version": "20260921024519"
+    },
+    {
+      "name": "kebu_mail_operational_fk_indexes",
+      "version": "20260921025407"
+    },
+    {
+      "name": "site_connections",
+      "version": "20260921045809"
+    },
+    {
+      "name": "mail_message_attention_states",
+      "version": "20260921050028"
+    },
+    {
+      "name": "schedule_mail_workers_supabase",
+      "version": "20260921053448"
+    },
+    {
+      "name": "fix_studio_design_rls_recursion",
+      "version": "20260922011514"
+    },
+    {
+      "name": "fix_studio_design_owner_returning_rls",
+      "version": "20260922012040"
+    }
+  ],
+  "limits": [
+    "Schema inventory does not establish hosted JWT/RLS acceptance.",
+    "Native PostgreSQL CI is a disposable database with fixture auth functions, not hosted Supabase gateway authentication.",
+    "Hosted Preview E2E skips 21 authenticated Builder journeys, five authenticated viewport cases, one business flow and eight private May-fixture cases; real-provider acceptance is not covered.",
+    "No production migration, DNS, protection, scheduler, paid infrastructure or deployment promotion changed."
+  ]
+}

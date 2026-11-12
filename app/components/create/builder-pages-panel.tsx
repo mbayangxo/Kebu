@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
-import { isValidPageSlug, normalizePageSlug } from "@/lib/create/builder-pages";
+import { confirmedPage, confirmedPageOrder, isValidPageSlug, normalizePageSlug } from "@/lib/create/builder-pages";
+import { GalaxyPanelHeader } from "@/app/components/galaxy/editor-primitives";
+import { enqueueSyncNav, flushOfflineQueue } from "@/lib/create/offline-queue";
 
 export type BuilderPageRow = {
   id: string;
   slug: string;
   title: string;
   sort_order: number;
+  parent_id?: string | null;
 };
 
 export function BuilderPagesPanel({
@@ -19,8 +22,16 @@ export function BuilderPagesPanel({
   busy = false,
   onSelectPage,
   onRefresh,
+  onPagesChange,
   onError,
+  pageOperations,
 }: {
+  pageOperations?: {
+    add: (title: string, slug: string) => Promise<string>;
+    update: (pageId: string, title: string, slug: string) => Promise<void>;
+    remove: (pageId: string) => Promise<void>;
+    reorder: (ids: string[]) => Promise<void>;
+  };
   projectId: string;
   pages: BuilderPageRow[];
   editPageId: string;
@@ -28,6 +39,8 @@ export function BuilderPagesPanel({
   busy?: boolean;
   onSelectPage: (page: BuilderPageRow) => void;
   onRefresh: () => Promise<void>;
+  /** Optimistic local ordering: page movement must never blank/reload the whole Builder. */
+  onPagesChange: (pages: BuilderPageRow[]) => void;
   onError: (message: string | null) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
@@ -35,10 +48,22 @@ export function BuilderPagesPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
+  const [editParentId, setEditParentId] = useState<string>("");
   const [localBusy, setLocalBusy] = useState(false);
+  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
 
   const sorted = [...pages].sort((a, b) => a.sort_order - b.sort_order);
   const working = busy || localBusy;
+
+  function scheduleNavSync() {
+    try {
+      enqueueSyncNav({ projectId });
+      void flushOfflineQueue().catch(() => onError("Page saved, but navigation still needs synchronization. Retry Save or sync Offline changes."));
+      onError("Page saved, but navigation still needs synchronization. Retry Save or sync Offline changes.");
+    } catch {
+      onError("Page saved, but navigation could not be synchronized or queued. Keep this page open and retry Save.");
+    }
+  }
 
   async function addPage() {
     const title = newTitle.trim();
@@ -48,6 +73,12 @@ export function BuilderPagesPanel({
     setLocalBusy(true);
     onError(null);
     try {
+      if (pageOperations) {
+        const id = await pageOperations.add(title, slug);
+        setNewTitle(""); setAdding(false);
+        onSelectPage({ id, title, slug, sort_order: sorted.length });
+        return;
+      }
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -55,10 +86,12 @@ export function BuilderPagesPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not add page."); return; }
+      if (!confirmedPage(data.page, { title, slug })) throw new Error("Page creation could not be confirmed. Reload the page list before trying again; the page may already exist.");
       setNewTitle(""); setAdding(false);
       await onRefresh();
-      if (data.page?.id) onSelectPage(data.page as BuilderPageRow);
-    } catch { onError("Network error while adding page."); }
+      onSelectPage(data.page);
+      if (data.navSyncStale) scheduleNavSync();
+    } catch (error) { onError(error instanceof Error ? error.message : "Could not add page."); }
     finally { setLocalBusy(false); }
   }
 
@@ -66,6 +99,7 @@ export function BuilderPagesPanel({
     if (!confirm("Delete this page and all its sections?")) return;
     setLocalBusy(true); onError(null);
     try {
+      if (pageOperations) { await pageOperations.remove(pageId); return; }
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "DELETE", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -73,8 +107,10 @@ export function BuilderPagesPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not delete page."); return; }
+      if (data.ok !== true || data.deletedPageId !== pageId) throw new Error("Page deletion could not be confirmed. Reload the page list before trying again.");
       await onRefresh();
-    } catch { onError("Network error while deleting page."); }
+      if (data.navSyncStale) scheduleNavSync();
+    } catch (error) { onError(error instanceof Error ? error.message : "Could not delete page."); }
     finally { setLocalBusy(false); }
   }
 
@@ -85,18 +121,65 @@ export function BuilderPagesPanel({
     if (!isValidPageSlug(slug)) { onError("Invalid slug format."); return; }
     setLocalBusy(true); onError(null);
     try {
+      if (pageOperations) {
+        const parent = pages.find(page => page.id === pageId)?.parent_id ?? "";
+        if (editParentId !== parent) { onError("Nested page changes are unavailable in this editor. Your saved page was kept."); return; }
+        await pageOperations.update(pageId, title, slug); setEditingId(null); return;
+      }
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId, title, slug }),
+        body: JSON.stringify({ pageId, title, slug, parentId: editParentId || null }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not update page."); return; }
+      if (!confirmedPage(data.page, { id: pageId, title, slug, parent_id: editParentId || null })) throw new Error("Page changes could not be confirmed. Your form was kept. Reload the page list before trying again.");
       setEditingId(null);
       await onRefresh();
       if (data.page) onSelectPage(data.page as BuilderPageRow);
-    } catch { onError("Network error while updating page."); }
+      if (data.navSyncStale) scheduleNavSync();
+    } catch (error) { onError(error instanceof Error ? error.message : "Could not update page."); }
     finally { setLocalBusy(false); }
+  }
+
+  async function persistPageOrder(next: BuilderPageRow[], previous: BuilderPageRow[]) {
+    const normalized = next.map((page, index) => ({ ...page, sort_order: index }));
+    if (pageOperations) {
+      setLocalBusy(true); onError(null);
+      try { await pageOperations.reorder(next.map(page => page.id)); }
+      catch (error) { onError(error instanceof Error ? error.message : "Could not reorder pages."); }
+      finally { setLocalBusy(false); }
+      return;
+    }
+    onPagesChange(normalized);
+    setLocalBusy(true);
+    onError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/pages`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: normalized.map((page) => page.id) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        onPagesChange(previous);
+        onError(typeof data.error === "string" ? data.error : "Could not reorder pages. Your previous order was restored.");
+        return;
+      }
+      if (!confirmedPageOrder(data.pages, normalized)) {
+        onPagesChange(previous);
+        onError("Page order could not be confirmed. Reload the page list before trying again.");
+        return;
+      }
+      onPagesChange(data.pages);
+      if (data.navSyncStale) scheduleNavSync();
+    } catch {
+      onPagesChange(previous);
+      onError("Network error while reordering. Your previous order was restored.");
+    } finally {
+      setLocalBusy(false);
+    }
   }
 
   async function movePage(pageId: string, direction: "up" | "down") {
@@ -104,50 +187,49 @@ export function BuilderPagesPanel({
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx]!;
-    const b = sorted[swapIdx]!;
-    setLocalBusy(true); onError(null);
-    try {
-      const [resA, resB] = await Promise.all([
-        fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId: a.id, sortOrder: b.sort_order }),
-        }),
-        fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId: b.id, sortOrder: a.sort_order }),
-        }),
-      ]);
-      if (!resA.ok || !resB.ok) { onError("Could not reorder pages."); return; }
-      await onRefresh();
-    } catch { onError("Network error while reordering."); }
-    finally { setLocalBusy(false); }
+    const next = [...sorted];
+    [next[idx], next[swapIdx]] = [next[swapIdx]!, next[idx]!];
+    await persistPageOrder(next.map((page, index) => ({ ...page, sort_order: index })), sorted);
+  }
+
+  async function dropPage(targetPageId: string) {
+    const sourceId = draggedPageId;
+    setDraggedPageId(null);
+    if (!sourceId || sourceId === targetPageId) return;
+    const from = sorted.findIndex((page) => page.id === sourceId);
+    const to = sorted.findIndex((page) => page.id === targetPageId);
+    if (from < 0 || to < 0) return;
+    const next = [...sorted];
+    const [moved] = next.splice(from, 1);
+    if (!moved) return;
+    next.splice(to, 0, moved);
+    await persistPageOrder(next.map((page, index) => ({ ...page, sort_order: index })), sorted);
   }
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: BUILDER.border }}>
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: BUILDER.muted }}>Pages</p>
-        <button
+      <GalaxyPanelHeader
+        eyebrow="Structure"
+        title="Pages"
+        description="Choose what you are editing, organize hierarchy, and control page URLs."
+        action={<button
           type="button"
           disabled={working}
           onClick={() => { setAdding((v) => !v); setEditingId(null); }}
-          className="text-[10px] font-bold"
+          className="min-h-11 sm:min-h-8 rounded-full px-2.5 text-[9px] font-black uppercase tracking-wide outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] disabled:opacity-40"
           style={{ color: BUILDER.orange }}
         >
           {adding ? "Cancel" : "+ New page"}
-        </button>
-      </div>
+        </button>}
+      />
 
       {/* Add page form */}
       {adding ? (
         <div className="px-3 py-2 border-b space-y-1.5" style={{ borderColor: BUILDER.border, background: BUILDER.surfaceMuted }}>
           <input
-            className="w-full rounded px-2 py-1 text-xs"
+            className="min-h-11 sm:min-h-0 w-full rounded px-2 py-1 text-xs"
             style={{ border: `1px solid ${BUILDER.border}` }}
+            aria-label="New page title"
             placeholder="Page title (e.g. About, Shop…)"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -159,7 +241,7 @@ export function BuilderPagesPanel({
             type="button"
             disabled={working || !newTitle.trim()}
             onClick={() => void addPage()}
-            className="w-full rounded py-1 text-[11px] font-bold text-white disabled:opacity-40"
+            className="min-h-11 sm:min-h-0 w-full rounded py-1 text-[11px] font-bold text-white disabled:opacity-40"
             style={{ background: BUILDER.ink }}
           >
             {working ? "Adding…" : "Add page"}
@@ -173,33 +255,68 @@ export function BuilderPagesPanel({
           const active = p.id === editPageId || p.slug === previewPageSlug;
           const editing = editingId === p.id;
           return (
-            <li key={p.id} style={{ borderBottom: `1px solid ${BUILDER.border}` }}>
+            <li
+              key={p.id}
+              draggable={!working && !editing}
+              onDragStart={(event) => {
+                setDraggedPageId(p.id);
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                if (!draggedPageId || draggedPageId === p.id) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                if (working || editing) return;
+                void dropPage(p.id);
+              }}
+              onDragEnd={() => setDraggedPageId(null)}
+              style={{
+                borderBottom: `1px solid ${BUILDER.border}`,
+                opacity: draggedPageId === p.id ? 0.45 : 1,
+                cursor: working || editing ? "default" : "grab",
+              }}
+            >
               {editing ? (
                 /* Inline edit form */
                 <div className="px-3 py-2 space-y-1.5" style={{ background: BUILDER.surfaceMuted }}>
                   <input
-                    className="w-full rounded px-2 py-1 text-xs"
+                    className="min-h-11 sm:min-h-0 w-full rounded px-2 py-1 text-xs"
                     style={{ border: `1px solid ${BUILDER.border}` }}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
+                    aria-label="Page title"
                     placeholder="Title"
                     disabled={working}
                     autoFocus
                   />
                   <input
-                    className="w-full rounded px-2 py-1 font-mono text-[10px]"
+                    className="min-h-11 sm:min-h-0 w-full rounded px-2 py-1 font-mono text-[10px]"
                     style={{ border: `1px solid ${BUILDER.border}` }}
                     value={editSlug}
                     onChange={(e) => setEditSlug(e.target.value)}
+                    aria-label="Page address"
                     placeholder="slug"
                     disabled={working}
                   />
+                  <label className="block text-[9px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                    Parent page
+                    <select className="min-h-11 sm:min-h-0 mt-1 w-full rounded px-2 py-1 text-xs normal-case font-normal" style={{ border: `1px solid ${BUILDER.border}` }}
+                      disabled={working || Boolean(pageOperations)} value={editParentId} onChange={(e) => setEditParentId(e.target.value)}>
+                      <option value="">Top level</option>
+                      {sorted.filter((candidate) => candidate.id !== p.id).map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       disabled={working}
                       onClick={() => void savePageEdit(p.id)}
-                      className="text-[10px] font-bold"
+                      className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 text-[10px] font-bold"
                       style={{ color: BUILDER.orange }}
                     >
                       Save
@@ -208,7 +325,7 @@ export function BuilderPagesPanel({
                       type="button"
                       disabled={working}
                       onClick={() => setEditingId(null)}
-                      className="text-[10px]"
+                      className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 text-[10px]"
                       style={{ color: BUILDER.muted }}
                     >
                       Cancel
@@ -225,6 +342,14 @@ export function BuilderPagesPanel({
                     paddingLeft: active ? "9px" : "12px",
                   }}
                 >
+                  <span
+                    aria-hidden
+                    className="shrink-0 select-none text-[12px]"
+                    style={{ color: BUILDER.muted }}
+                    title="Drag to reorder"
+                  >
+                    ⋮⋮
+                  </span>
                   {/* Page title — clicking selects the page to edit */}
                   <button
                     type="button"
@@ -233,17 +358,18 @@ export function BuilderPagesPanel({
                     onClick={() => onSelectPage(p)}
                     title={`/${p.slug}`}
                   >
-                    {p.title}
+                    {p.parent_id ? "↳ " : ""}{p.title}
                   </button>
 
                   {/* Hover actions — inline single row */}
-                  <div className="flex shrink-0 items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ minWidth: 0 }}>
+                  <div className="flex shrink-0 items-center gap-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 sm:focus-within:opacity-100 transition-opacity" style={{ minWidth: 0 }}>
                     <button
                       type="button"
                       title="Move up"
+                      aria-label="Move page up"
                       disabled={working || idx === 0}
                       onClick={(e) => { e.stopPropagation(); void movePage(p.id, "up"); }}
-                      className="px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
+                      className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
                       style={{ color: BUILDER.muted }}
                     >
                       ↑
@@ -251,9 +377,10 @@ export function BuilderPagesPanel({
                     <button
                       type="button"
                       title="Move down"
+                      aria-label="Move page down"
                       disabled={working || idx === sorted.length - 1}
                       onClick={(e) => { e.stopPropagation(); void movePage(p.id, "down"); }}
-                      className="px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
+                      className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
                       style={{ color: BUILDER.muted }}
                     >
                       ↓
@@ -267,9 +394,10 @@ export function BuilderPagesPanel({
                         setEditingId(p.id);
                         setEditTitle(p.title);
                         setEditSlug(p.slug);
+                        setEditParentId(p.parent_id ?? "");
                         setAdding(false);
                       }}
-                      className="px-1 py-1.5 text-[11px] leading-none"
+                      className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 py-1.5 text-[11px] leading-none"
                       style={{ color: BUILDER.muted }}
                       aria-label="Rename page"
                     >
@@ -281,7 +409,7 @@ export function BuilderPagesPanel({
                         title="Delete page"
                         disabled={working}
                         onClick={(e) => { e.stopPropagation(); void removePage(p.id); }}
-                        className="px-1 py-1.5 text-[12px] font-bold leading-none"
+                        className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 py-1.5 text-[12px] font-bold leading-none"
                         style={{ color: "#DC2626" }}
                         aria-label="Delete page"
                       >

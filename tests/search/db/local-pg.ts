@@ -1,0 +1,235 @@
+/**
+ * Disposable, fully local PostgreSQL database for real migrated-SQL Search
+ * tests — not the hosted Supabase QA cluster (unreachable from this sandbox;
+ * see tests/creative-core/db/kcd-db.ts) and not production.
+ *
+ * Builds a real `businesses` table (the authentic columns/constraints from
+ * supabase/migrations_archive/legacy/005_kebu_id_draft_business.sql, minus
+ * the parts irrelevant to Search), then applies the real, unmodified Search
+ * migration files from supabase/migrations/ in order. Tests then exercise
+ * public.search_businesses() and the lifecycle_status constraint against a
+ * genuine PostgreSQL engine — ts_rank, live JOIN semantics and CHECK
+ * constraints are not something a JS mock can prove.
+ */
+import { readFileSync } from "fs";
+import { join } from "path";
+// @ts-expect-error — @types/pg is not in devDependencies; pg itself is present
+import { Pool, type PoolClient } from "pg";
+
+export const LOCAL_URL = process.env.LOCAL_PG_TEST_URL ?? "postgres://postgres:localtest@127.0.0.1:5432/postgres";
+
+const MIGRATIONS = join(__dirname, "../../../supabase/migrations");
+const migration = (file: string) => readFileSync(join(MIGRATIONS, file), "utf8");
+
+export type Db = { pool: Pool; adminPool: Pool; name: string };
+
+/** True once confirmed reachable; checked lazily so non-DB test files are unaffected. */
+let reachable: boolean | null = null;
+export async function isLocalPgReachable(): Promise<boolean> {
+  if (reachable !== null) return reachable;
+  const probe = new Pool({ connectionString: LOCAL_URL, max: 1, connectionTimeoutMillis: 1500 });
+  try {
+    await probe.query("select 1");
+    reachable = true;
+  } catch {
+    reachable = false;
+  } finally {
+    await probe.end().catch(() => {});
+  }
+  return reachable;
+}
+
+export async function createSearchTestDb(): Promise<Db> {
+  const name = `_kebu_search_test_${Math.random().toString(36).slice(2, 10)}`;
+  const adminPool = new Pool({ connectionString: LOCAL_URL, max: 2 });
+  await adminPool.query(`CREATE DATABASE "${name}"`);
+  const url = LOCAL_URL.replace(/\/[^/?]+(\?.*)?$/, `/${name}$1`);
+  const pool = new Pool({ connectionString: url, max: 4 });
+  const c: PoolClient = await pool.connect();
+  try {
+    await c.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
+    await c.query(`CREATE SCHEMA IF NOT EXISTS auth`);
+    await c.query(`CREATE TABLE auth.users (id uuid PRIMARY KEY DEFAULT gen_random_uuid())`);
+
+    // Real roles, since search_businesses's grants target them.
+    await c.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated; END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role BYPASSRLS; END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon; END IF;
+      END $$`);
+    await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role`);
+    await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role`);
+    await c.query(`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role`);
+
+    // The real businesses table shape — same columns/constraints as production,
+    // trimmed only of fields Search never reads (archived_at, business_members FK target).
+    await c.query(`
+      CREATE TABLE public.businesses (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        public_kebu_id text NOT NULL UNIQUE
+          CHECK (public_kebu_id ~ '^KEBU-[A-Z]{2}-[0-9]{2}-[A-Z0-9]{6}$'),
+        legal_name text NOT NULL CHECK (char_length(trim(legal_name)) BETWEEN 1 AND 160),
+        trading_name text CHECK (trading_name IS NULL OR char_length(trim(trading_name)) BETWEEN 1 AND 160),
+        country_code text NOT NULL CHECK (country_code ~ '^[A-Z]{2}$'),
+        region text,
+        category text NOT NULL CHECK (char_length(trim(category)) BETWEEN 1 AND 80),
+        description text NOT NULL CHECK (char_length(trim(description)) BETWEEN 1 AND 1000),
+        website text,
+        lifecycle_status text NOT NULL DEFAULT 'draft'
+          CHECK (lifecycle_status IN ('draft', 'active', 'suspended', 'archived')),
+        verification_level integer NOT NULL DEFAULT 1
+          CHECK (verification_level BETWEEN 1 AND 4),
+        created_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    // Real projects/project_products DDL (supabase/migrations_archive/legacy/004_create_projects.sql
+    // + 008_website_builder.sql's subdomain column + 022_site_products_and_create_designs.sql),
+    // trimmed of fields Products Search never reads — same convention as the businesses table above.
+    await c.query(`
+      CREATE TABLE public.projects (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+        title text NOT NULL,
+        project_type text NOT NULL DEFAULT 'website' CHECK (project_type IN ('website','store','portfolio','landing')),
+        status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+        subdomain text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await c.query(`
+      CREATE TABLE public.project_products (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+        name text NOT NULL,
+        description text NOT NULL DEFAULT '',
+        price_label text NOT NULL DEFAULT '',
+        image_url text NOT NULL DEFAULT '',
+        whatsapp_order_message text NOT NULL DEFAULT '',
+        sort_order integer NOT NULL DEFAULT 0,
+        is_active boolean NOT NULL DEFAULT true,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    // Real afrique_ids DDL (supabase/migrations_archive/legacy/027_afrique_id.sql
+    // + 037_african_id_aid_types.sql's identity_type column), trimmed to the
+    // columns search_opportunities() reads -- same convention as above.
+    await c.query(`
+      CREATE TABLE public.afrique_ids (
+        user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+        public_afrique_id text NOT NULL UNIQUE CHECK (char_length(public_afrique_id) BETWEEN 12 AND 28),
+        country_code char(2) NOT NULL,
+        identity_type text NOT NULL DEFAULT 'visitor' CHECK (identity_type IN ('indigenous', 'visitor')),
+        eligibility_status text NOT NULL DEFAULT 'unverified'
+          CHECK (eligibility_status IN ('unverified', 'pending', 'verified', 'rejected', 'expired', 'suspended', 'manual_review')),
+        verified_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    // Real country_profiles DDL (supabase/migrations_archive/legacy/001_alkebulan_schema.sql
+    // + 009_opportunity_country_explorer.sql's economy/trade columns), trimmed
+    // to the columns Research/Trade/Culture Search and the public country
+    // detail route read -- same convention as above.
+    await c.query(`
+      CREATE TABLE public.country_profiles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        country text NOT NULL UNIQUE,
+        country_code char(2) NOT NULL UNIQUE,
+        capital text,
+        population bigint,
+        gdp text,
+        economy_overview text,
+        startup_ecosystem text,
+        technology_ecosystem text,
+        universities text[] DEFAULT '{}',
+        major_exports text[] DEFAULT '{}',
+        major_imports text[] DEFAULT '{}',
+        trade_agreements text[] DEFAULT '{}',
+        industrial_zones text[] DEFAULT '{}',
+        manufacturing_sectors text[] DEFAULT '{}',
+        logistics text,
+        cultural_notes text,
+        historical_notes text,
+        historical_empires text[] DEFAULT '{}',
+        ethnic_groups text[] DEFAULT '{}',
+        business_etiquette text[] DEFAULT '{}',
+        diaspora_notes text,
+        data_confidence text NOT NULL DEFAULT 'moderate' CHECK (data_confidence IN ('low', 'moderate', 'high')),
+        publish_status text NOT NULL DEFAULT 'draft' CHECK (publish_status IN ('draft', 'published', 'archived')),
+        last_verified_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    // Real developer_profiles/marketplace_templates DDL (supabase/migrations/20261020030000_studio_creative_assets_marketplace.sql
+    // + 20261021020000_aesthetics_marketplace_canonical.sql).
+    await c.query(`
+      CREATE TABLE public.developer_profiles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+        display_name text NOT NULL,
+        bio text,
+        website_url text,
+        status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','suspended')),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (user_id)
+      )
+    `);
+    await c.query(`
+      CREATE TABLE public.marketplace_templates (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        developer_id uuid NOT NULL REFERENCES public.developer_profiles(id) ON DELETE CASCADE,
+        slug text NOT NULL UNIQUE,
+        name text NOT NULL,
+        description text,
+        category text,
+        price_cents integer NOT NULL DEFAULT 0 CHECK (price_cents >= 0),
+        definition jsonb NOT NULL DEFAULT '{}'::jsonb,
+        preview_url text,
+        status text NOT NULL DEFAULT 'draft'
+          CHECK (status IN ('draft','pending_review','published','rejected','archived')),
+        sales_count integer NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await c.query(migration("20260920087000_search_index_phase_one.sql"));
+    await c.query(migration("20261023010000_search_index_businesses_mode.sql"));
+    await c.query(migration("20261023020000_search_businesses_rpc.sql"));
+    await c.query(migration("20261024010000_search_businesses_pagination.sql"));
+    await c.query(migration("20261024020000_search_index_products_mode.sql"));
+    await c.query(migration("20261024030000_search_products_rpc.sql"));
+    await c.query(migration("20261024040000_search_opportunities_rpc.sql"));
+    await c.query(migration("20261024050000_search_index_people_mode.sql"));
+    await c.query(migration("20261024060000_search_people_rpc.sql"));
+    await c.query(migration("20261024070000_search_index_research_trade_mode.sql"));
+    await c.query(migration("20261024080000_search_country_intel_rpc.sql"));
+    await c.query(migration("20261024090000_search_sites_rpc.sql"));
+    await c.query(migration("20261024100000_search_index_culture_mode.sql"));
+    await c.query(migration("20261024110000_search_country_intel_culture_mode.sql"));
+  } finally {
+    c.release();
+  }
+  return { pool, adminPool, name };
+}
+
+export async function dropSearchTestDb(db: Db): Promise<void> {
+  // db.pool.end() already waits for every client it owns to close cleanly.
+  // DROP DATABASE ... WITH (FORCE) additionally asks Postgres to kill any
+  // *remaining* connection — but killing one mid-close races the client
+  // socket's own 'error' event against the pool already having torn down
+  // its listeners, surfacing as an unhandled error in the test runner even
+  // though every assertion passed. Not needed here since pool.end() already
+  // did the graceful close; a plain DROP is enough and doesn't race.
+  await db.pool.end();
+  await db.adminPool.query(`DROP DATABASE IF EXISTS "${db.name}"`);
+  await db.adminPool.end();
+}

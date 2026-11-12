@@ -20,6 +20,25 @@ describe("ai improve brief", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("accepts a selected Builder element as AI scope", () => {
+    const parsed = aiImproveBriefSchema.safeParse({
+      instruction: "Make this name bigger.",
+      focusPageSlug: "home",
+      focusElement: {
+        sectionId: "hero-1",
+        elementId: "titleLogo",
+        kind: "text",
+        label: "Name circle",
+        device: "desktop",
+      },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.focusElement?.elementId).toBe("titleLogo");
+      expect(parsed.data.focusElement?.device).toBe("desktop");
+    }
+  });
+
   it("accepts focus section types", () => {
     const parsed = aiImproveBriefSchema.safeParse({
       instruction: "Strengthen contact.",

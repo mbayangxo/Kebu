@@ -25,7 +25,7 @@ describe("free hosting entitlement", () => {
 
   it("ships migration 038 allowing active free inserts under RLS", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/038_free_hosting_entitlement_rls.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/038_free_hosting_entitlement_rls.sql"),
       "utf8",
     );
     expect(sql).toContain("Owners insert site subscriptions");
@@ -36,11 +36,11 @@ describe("free hosting entitlement", () => {
 
   it("keeps Free publish safe in APPLY_ALL_PHASE_ONE and FIX_free_publish", () => {
     const phaseOne = readFileSync(
-      join(process.cwd(), "supabase/migrations/APPLY_ALL_PHASE_ONE.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/APPLY_ALL_PHASE_ONE.sql"),
       "utf8",
     );
     const fix = readFileSync(
-      join(process.cwd(), "supabase/migrations/FIX_free_publish.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/FIX_free_publish.sql"),
       "utf8",
     );
     for (const sql of [phaseOne, fix]) {

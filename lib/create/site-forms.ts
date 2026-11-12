@@ -29,6 +29,7 @@ export type SiteFormField = z.infer<typeof formFieldSchema>;
 export type SiteFormSectionProps = z.infer<typeof siteFormSectionSchema>;
 
 export const publicFormSubmitSchema = z.object({
+  submissionId: z.string().uuid().optional(),
   values: z.record(z.string(), z.string().trim().max(2000)),
   submitterName: z.string().trim().max(80).optional(),
   submitterEmail: z.preprocess(

@@ -1,0 +1,12 @@
+{
+  "stats": {
+    "startTime": "2026-10-20T07:10:36.066Z",
+    "duration": 73885.088,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "hosted": false,
+  "scope": "actual collage/video components with controlled operation transport"
+}

@@ -11,7 +11,8 @@ const REFRESH_IF_EXPIRES_WITHIN_SEC = 300;
  */
 export function AuthSessionKeeper() {
   useEffect(() => {
-    const supabase = createClient();
+    let supabase: ReturnType<typeof createClient>;
+    try { supabase = createClient(); } catch { return; }
 
     const refresh = async () => {
       const {
@@ -27,25 +28,26 @@ export function AuthSessionKeeper() {
       }
     };
 
-    void refresh();
+    void refresh().catch(() => undefined);
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
       if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        void refresh();
+        void refresh().catch(() => undefined);
       }
     });
 
-    const onFocus = () => void refresh();
+    const safeRefresh = () => refresh().catch(() => undefined);
+    const onFocus = () => void safeRefresh();
     const onVisible = () => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState === "visible") void refresh().catch(() => undefined);
     };
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
 
-    const interval = window.setInterval(() => void refresh(), 5 * 60 * 1000);
+    const interval = window.setInterval(() => void safeRefresh(), 5 * 60 * 1000);
 
     return () => {
       subscription.unsubscribe();

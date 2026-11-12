@@ -1,0 +1,64 @@
+{
+  "branch": "work/kebu-completion-audit-oct13",
+  "recovered_source_base": "d8adb37",
+  "requirements": [
+    "K004",
+    "K047",
+    "K048",
+    "K049",
+    "K096"
+  ],
+  "overall_studio_status": "IN PROGRESS",
+  "completed_3c_to_3i_restarted": false,
+  "source_sha256": "c85f31fb4495ed907fd02a7e24ee85465f62ee5ee88ff29bf71f0338240a8f65",
+  "source_files": [
+    "app/studio/[id]/page.tsx",
+    "app/studio/video/[id]/page.tsx",
+    "lib/studio/canvas-document.ts",
+    "lib/studio/composition-browser-export.ts",
+    "lib/studio/motion-export.ts",
+    "lib/studio/save-queue.ts",
+    "middleware.ts",
+    "scripts/verify-studio-local-ui.mjs",
+    "tests/studio/export-lifecycle.test.ts",
+    "tests/studio/save-export.local.spec.ts",
+    "tests/studio/save-queue.test.ts"
+  ],
+  "ci": {
+    "exit_code": 0,
+    "tests_passed": 5865,
+    "tests_skipped": 168,
+    "files_passed": 349,
+    "files_skipped": 22,
+    "lint_errors": 0,
+    "lint_warnings": 348,
+    "typecheck": "PASS"
+  },
+  "build": {
+    "exitCode": 0,
+    "durationMs": 8896,
+    "buildId": "OvXy5s2ijXolNskefScmb"
+  },
+  "browser": {
+    "startTime": "2026-10-13T23:54:50.308Z",
+    "duration": 25478.414,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "transport": "controlled loopback API/Auth fixtures",
+    "data": "actual IndexedDB",
+    "exports": "actual PNG/PDF/ZIP/WebM decoded files",
+    "hosted_gateway_and_rls_verified": false
+  },
+  "runtime": {
+    "next": "16.3.5",
+    "vitest": "4.1.11",
+    "playwright": "1.61.0"
+  },
+  "provider_generation_verified": false,
+  "full_3j_status": "BLOCKED",
+  "production_operations": [],
+  "remote_branch_operations": [],
+  "migration_operations": []
+}

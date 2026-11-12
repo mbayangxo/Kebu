@@ -60,6 +60,7 @@ export default async function PublicSiteSubPage({ params }: Params) {
       />
       <PublicSiteView
         definition={deployment.definition}
+        nativeDocument={deployment.nativeDocument}
         subdomain={deployment.subdomain}
         pageSlug={pageSlug}
         projectId={deployment.projectId}

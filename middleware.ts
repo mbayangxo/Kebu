@@ -1,17 +1,31 @@
+import { CLOUD_STATIC_CSP } from "@/lib/cloud/constants";
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { resolveSubdomainForCustomHost } from "@/lib/create/resolve-custom-domain";
 import { hostOnly, MAIN_HOSTS, resolveMiddlewareRewrite } from "@/lib/create/middleware-routing";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin/admin-session";
 
-function withSecurityHeaders(response: NextResponse): NextResponse {
+const CAMERA_MIC_PATHS = [/^\/rooms\/[^/]+\/call\/?$/];
+const GEOLOCATION_PATHS = [/^\/map\/?$/];
+
+function withSecurityHeaders(response: NextResponse, pathname = ""): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  const cameraMic = CAMERA_MIC_PATHS.some((re) => re.test(pathname));
+  const geolocation = GEOLOCATION_PATHS.some((re) => re.test(pathname));
+  response.headers.set(
+    "Permissions-Policy",
+    `camera=${cameraMic ? "(self)" : "()"}, microphone=${cameraMic ? "(self)" : "()"}, geolocation=${geolocation ? "(self)" : "()"}`,
+  );
+  const scriptPolicy =
+    process.env.NODE_ENV === "production"
+      ? "script-src 'self' 'unsafe-inline'"
+      : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
+    // worker-src needs blob: for MapLibre GL's bundler-built tile-parsing worker (Kebu Map, /map).
+    "default-src 'self'; " + scriptPolicy + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' https: blob:; font-src 'self' data: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
   );
   response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
   if (process.env.NODE_ENV === "production") {
@@ -34,14 +48,15 @@ function withDataModeCookie(request: NextRequest, response: NextResponse): NextR
 
 const CSRF_MUTATION_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
-/** Enforce same-origin on all /api/businesses/** mutation requests. */
-function csrfBusinessCheck(request: NextRequest): NextResponse | null {
+/** Enforce same-origin on authenticated account/business browser mutations. */
+function csrfMutationCheck(request: NextRequest): NextResponse | null {
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith("/api/businesses/")) return null;
+  const protectedMutation = pathname.startsWith("/api/businesses/") || pathname.startsWith("/api/me/");
+  if (!protectedMutation) return null;
   if (!CSRF_MUTATION_METHODS.has(request.method.toUpperCase())) return null;
 
   const origin = request.headers.get("origin");
-  if (!origin) return null; // non-browser clients / same-origin form posts may omit
+  if (!origin) return NextResponse.json({ error: "Origin required." }, { status: 403 });
 
   const hostHeader = request.headers.get("host") ?? "";
   const requestHost = hostHeader.split(":")[0]?.toLowerCase() ?? "";
@@ -65,9 +80,10 @@ function csrfBusinessCheck(request: NextRequest): NextResponse | null {
 }
 
 export async function middleware(request: NextRequest) {
-  const csrfReject = csrfBusinessCheck(request);
+  const csrfReject = csrfMutationCheck(request);
   if (csrfReject) return csrfReject;
 
+  if (/^\/cloud-sites(?:\/|$)/.test(request.nextUrl.pathname)) return new NextResponse("Not found", { status: 404 });
   const hostname = request.headers.get("host") ?? "";
   const host = hostOnly(hostname);
   const proto = request.headers.get("x-forwarded-proto");
@@ -95,6 +111,24 @@ export async function middleware(request: NextRequest) {
     customDomainSlug: customSlug,
   });
 
+  if (rewrite.kind === "cloud-deployment") {
+    // Served from a distinct <slug>.cloud.kebu.africa origin: never falls through to
+    // updateSession() below, so an uploaded deployment's page can never see a Kebu
+    // auth cookie (there isn't one on this host) or the main app's session.
+    // The serving route itself requires x-kebu-cloud-site, set only here, so a
+    // direct request to /cloud-sites/... on the MAIN app's own origin (which would
+    // defeat the whole point of the isolation) is refused rather than served.
+    const url = request.nextUrl.clone();
+    url.pathname = rewrite.pathname;
+    const reqHeaders = new Headers(request.headers);
+    reqHeaders.delete("cookie");
+    reqHeaders.delete("authorization");
+    reqHeaders.set("x-kebu-cloud-site", "1");
+    const response = withSecurityHeaders(NextResponse.rewrite(url, { request: { headers: reqHeaders } }));
+    response.headers.set("Content-Security-Policy", CLOUD_STATIC_CSP);
+    return response;
+  }
+
   if (rewrite.kind === "kebu-subdomain" || rewrite.kind === "custom-domain") {
     const url = request.nextUrl.clone();
     url.pathname = rewrite.pathname;
@@ -115,7 +149,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const cookie = request.cookies.get(ADMIN_SESSION_COOKIE);
-    if (!verifyAdminSessionToken(cookie?.value)) {
+    if (!(await verifyAdminSessionToken(cookie?.value))) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       url.searchParams.set("next", pathname);
@@ -123,7 +157,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return withDataModeCookie(request, withSecurityHeaders(await updateSession(request)));
+  return withDataModeCookie(request, withSecurityHeaders(await updateSession(request), pathname));
 }
 
 export const config = {

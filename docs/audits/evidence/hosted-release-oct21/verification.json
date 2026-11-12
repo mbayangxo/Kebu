@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-21",
+  "sourceCommit": "7bab1a5de7a53330e48e6bf7e1c7027239330694",
+  "nativePostgres": {
+    "version": "17.6 (Debian 17.6-2.pgdg13+1)",
+    "run": 39562571925,
+    "job": 119097061892,
+    "passed": 9,
+    "skipped": 0,
+    "failed": 0,
+    "independentBackendLockBarriersObserved": true,
+    "disposableDatabasesCleaned": true,
+    "firstRun": {
+      "run": 39562281127,
+      "passed": 5,
+      "failed": 4,
+      "cause": "Parameterized BEGIN;SELECT rejected by PostgreSQL prepared protocol before reaching quota lock barriers; fixed by issuing separate statements on the same connection."
+    }
+  },
+  "localCi": {
+    "exitCode": 0,
+    "passed": 6390,
+    "explicitSkips": 298,
+    "passedFiles": 400,
+    "skippedFiles": 43,
+    "lintErrors": 0,
+    "existingLintWarnings": 349,
+    "build": "passed"
+  },
+  "remoteRuns": [
+    {
+      "id": 39563041972,
+      "name": "Preview E2E",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39562571925,
+      "name": "Native PostgreSQL races",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39562571908,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39562571894,
+      "name": "Platform SQL and browser",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39562571905,
+      "name": "Builder SQL and browser",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "productionChanged": false,
+  "hostedPreview": {
+    "run": 39563041972,
+    "job": 119098581653,
+    "passed": 533,
+    "explicitSkips": 35,
+    "skipGroups": {
+      "authenticatedBuilderJourney": 21,
+      "authenticatedBuilderViewport": 5,
+      "authenticatedDraftBusiness": 1,
+      "privateMayDevelopmentFixture": 8
+    },
+    "authenticatedAcceptanceCertified": false
+  }
+}

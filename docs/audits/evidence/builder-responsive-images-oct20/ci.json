@@ -1,0 +1,10 @@
+{
+  "command": "NODE_OPTIONS=--max-old-space-size=6144 npm run ci",
+  "exitCode": 0,
+  "testsPassed": 6255,
+  "explicitSkips": 286,
+  "lintErrors": 0,
+  "lintWarnings": 346,
+  "staticPages": 226,
+  "note": "A final bounded-command guard adds one subsequently passing regression; exact final CI rerun is in progress."
+}

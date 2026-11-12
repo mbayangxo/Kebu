@@ -6,6 +6,7 @@ import {
   adminSessionCookieOptions,
   createAdminSessionToken,
 } from "@/lib/admin/admin-session";
+import { recordSecurityEvent } from "@/lib/platform/security-events";
 
 export async function POST(req: NextRequest) {
   const limited = authRateLimit(req);
@@ -18,17 +19,26 @@ export async function POST(req: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (!adminPassword || !password || password !== adminPassword) {
+    recordSecurityEvent({ eventType: "admin_login_failed", source: "/api/admin/login" });
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
   let token: string;
   try {
-    token = createAdminSessionToken();
+    token = await createAdminSessionToken();
   } catch {
     return NextResponse.json({ error: "Admin session not configured." }, { status: 503 });
   }
 
-  const res = NextResponse.json({ success: true, next: next || "/admin" });
+  const safeNext =
+    typeof next === "string" &&
+    next.startsWith("/admin") &&
+    !next.startsWith("//") &&
+    !next.includes("\\")
+      ? next
+      : "/admin";
+
+  const res = NextResponse.json({ success: true, next: safeNext });
   res.cookies.set(ADMIN_SESSION_COOKIE, token, adminSessionCookieOptions());
   return res;
 }

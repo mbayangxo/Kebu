@@ -1,0 +1,286 @@
+{
+  "verifiedAt": "2026-10-21",
+  "sourceCommit": "6e1989d4afbd7bd4153985b546b8e14dbd59710a",
+  "query": "scripts/hosted-release-preflight.sql",
+  "projectRef": "tnygqgcqlnlsmjpygrca",
+  "scope": "schema-and-grants-only",
+  "checks": [
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:aesthetic_library.provider"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:aesthetic_library.provider_reference"
+    },
+    {
+      "passed": true,
+      "details": {},
+      "requirement": "column:create_designs.updated_at"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:creative_asset_library.provider"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:creative_asset_library.provider_reference"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:project_pages.layout_version"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:project_sections.node_version"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:project_sections.order_key"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:project_sections.parent_id"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:project_sections.type_version"
+    },
+    {
+      "passed": false,
+      "details": {},
+      "requirement": "column:projects.document_schema_version"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "anonExecute": null,
+        "serviceExecute": null,
+        "authenticatedExecute": null
+      },
+      "requirement": "function:public.apply_experience_plan(uuid,jsonb)"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "anonExecute": null,
+        "serviceExecute": null,
+        "authenticatedExecute": null
+      },
+      "requirement": "function:public.apply_node_ops(uuid,jsonb)"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "anonExecute": null,
+        "serviceExecute": null,
+        "authenticatedExecute": null
+      },
+      "requirement": "function:public.kcd_operation_protocol()"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "anonExecute": null,
+        "serviceExecute": null,
+        "authenticatedExecute": null
+      },
+      "requirement": "function:public.publish_kcd_document(uuid,uuid,text,jsonb,jsonb,text)"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:aesthetic_library"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:creative_asset_library"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:creative_op_journal"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:deployments"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:developer_profiles"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:job_listings"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:kcd_node_types"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:mail_attachments"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:mail_forwarding_rules"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:mail_messages"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:mail_threads"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:mailboxes"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:marketplace_creative_assets"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:marketplace_templates"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:network_profiles"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:personal_connections"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:project_pages"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:project_sections"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:projects"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:search_documents"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:website_versions"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:worker_profiles"
+    }
+  ],
+  "observedAt": "2026-10-21T21:28:20.827721+00:00",
+  "failedChecks": 22,
+  "postgresVersion": "17.6",
+  "schemaChecksPassed": false,
+  "releaseCertification": "not-established-by-this-query",
+  "authenticatedAcceptance": "not-established-by-this-query"
+}

@@ -1,3 +1,5 @@
+import { builderOperationsEnabled } from "@/lib/create/kcd-render-flag";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import {
@@ -10,6 +12,7 @@ import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 import { z } from "zod";
+import { recordProjectFlow } from "@/lib/platform/flow-events";
 
 export const dynamic = "force-dynamic";
 
@@ -45,13 +48,16 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, owner_id, title, subdomain, status, business_id")
+    .select("id, owner_id, title, subdomain, status, business_id, document_schema_version")
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
 
   if (!project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+  if (project.document_schema_version === "kcd-1" && !builderOperationsEnabled(id)) {
+    return NextResponse.json({ error: "Publishing this draft is not available yet. Your saved draft is unchanged." }, { status: 409 });
   }
 
   let body: unknown = {};
@@ -103,15 +109,33 @@ export async function POST(req: Request, { params }: Params) {
 
   if (!published.ok) {
     logCreate("website.publish_failed", { userId: user.id, projectId: id, error: published.error });
-    const status = published.error.includes("already published") ? 409 : 500;
+    const status = published.status ?? (published.error.includes("already published") ? 409 : 500);
     return NextResponse.json({ error: published.error, detail: published.detail }, { status });
   }
+
+  // app/sites/[subdomain]/page.tsx ISR-caches for 10 minutes regardless of
+  // document_schema_version — a legacy publish needs the same cache bust a
+  // kcd-1 publish gets, or the live page keeps serving the pre-publish snapshot.
+  revalidatePath(`/sites/${subdomain}`, "layout");
+  if (project.subdomain && project.subdomain !== subdomain) revalidatePath(`/sites/${project.subdomain}`, "layout");
 
   if (project.business_id) {
     await recalculateAndStoreReadiness({ supabase, businessId: project.business_id });
   }
 
   logCreate("website.published", { userId: user.id, projectId: id, subdomain });
+  await recordProjectFlow({
+    eventType: "website.published",
+    projectId: id,
+    actorUserId: user.id,
+    idempotencyKey: `website.published:${id}:${published.liveUrl}`,
+    payload: { subdomain, liveUrl: published.liveUrl },
+    notification: {
+      title: "Site published",
+      body: `${project.title} is live.`,
+      actionUrl: `/create/${id}`,
+    },
+  });
 
   return NextResponse.json({
     deployment: {

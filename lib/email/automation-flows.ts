@@ -112,18 +112,12 @@ export async function processEmailFlows(
   supabase: SupabaseClient,
 ): Promise<ProcessResult> {
   const result: ProcessResult = { processed: 0, sent: 0, failed: 0, completed: 0, errors: [] };
-  const now = new Date().toISOString();
-
-  // Fetch due enrollments (process up to 200 per cron run)
-  const { data: due, error: dueErr } = await supabase
-    .from("email_flow_enrollments")
-    .select(
-      "id, flow_id, business_id, subscriber_email, subscriber_name, next_step_index, context",
-    )
-    .eq("status", "active")
-    .lte("next_step_at", now)
-    .order("next_step_at", { ascending: true })
-    .limit(200);
+  // Atomically claim due enrollments so overlapping cron workers cannot send
+  // the same step. Stale claims are recoverable after 15 minutes in the RPC.
+  const { data: due, error: dueErr } = await supabase.rpc(
+    "claim_due_email_flow_enrollments",
+    { p_limit: 200 },
+  );
 
   if (dueErr) {
     result.errors.push(`Query failed: ${dueErr.message}`);
@@ -132,7 +126,7 @@ export async function processEmailFlows(
   if (!due?.length) return result;
 
   // Fetch all referenced flows in one shot
-  const flowIds = [...new Set(due.map((e) => e.flow_id as string))];
+  const flowIds = [...new Set(due.map((e: { flow_id: string }) => e.flow_id as string))];
   const { data: flows } = await supabase
     .from("email_flows")
     .select("id, name, status, from_email, from_name, reply_to")
@@ -158,7 +152,7 @@ export async function processEmailFlows(
     if (!flow || flow.status !== "active") {
       await supabase
         .from("email_flow_enrollments")
-        .update({ status: "failed" })
+        .update({ status: "failed", processing_token: null, processing_started_at: null })
         .eq("id", enrollment.id);
       result.failed++;
       continue;
@@ -178,7 +172,7 @@ export async function processEmailFlows(
       // No more steps — mark completed
       await supabase
         .from("email_flow_enrollments")
-        .update({ status: "completed" })
+        .update({ status: "completed", processing_token: null, processing_started_at: null })
         .eq("id", enrollment.id);
       result.completed++;
       continue;
@@ -199,12 +193,16 @@ export async function processEmailFlows(
       subject,
       html: bodyHtml || `<p>${subject}</p>`,
       text: bodyText || undefined,
+      idempotencyKey: `flow:${enrollment.id}:step:${step.id}`,
     });
 
     if (!ok) {
       result.failed++;
       result.errors.push(`${enrollment.id}: email delivery failed for ${enrollment.subscriber_email}`);
-      // Don't mark failed permanently — retry next cron run (leave next_step_at as is)
+      await supabase
+        .from("email_flow_enrollments")
+        .update({ processing_token: null, processing_started_at: null })
+        .eq("id", enrollment.id);
       continue;
     }
 
@@ -217,14 +215,19 @@ export async function processEmailFlows(
     if (!nextStep) {
       await supabase
         .from("email_flow_enrollments")
-        .update({ status: "completed" })
+        .update({ status: "completed", processing_token: null, processing_started_at: null })
         .eq("id", enrollment.id);
       result.completed++;
     } else {
       const nextAt = new Date(Date.now() + nextStep.delay_hours * 60 * 60 * 1000).toISOString();
       await supabase
         .from("email_flow_enrollments")
-        .update({ next_step_index: nextIndex, next_step_at: nextAt })
+        .update({
+          next_step_index: nextIndex,
+          next_step_at: nextAt,
+          processing_token: null,
+          processing_started_at: null,
+        })
         .eq("id", enrollment.id);
     }
   }

@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
@@ -12,6 +13,8 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Restore a prior canvas version (checkpoints current first). */
 export async function POST(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -34,7 +37,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const parsed = restoreVersionSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "versionId required." }, { status: 400 });
+    return NextResponse.json({ error: "A version and current design revision are required." }, { status: 400 });
   }
 
   const { data: version, error: vErr } = await supabase
@@ -50,7 +53,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: existing } = await supabase
     .from("create_designs")
-    .select("id, canvas, design_type, business_id")
+    .select("id, canvas, design_type, business_id, updated_at")
     .eq("id", designId)
     .maybeSingle();
 
@@ -58,13 +61,21 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
   }
 
-  await insertDesignVersion(supabase, {
+  if (Date.parse(existing.updated_at) !== Date.parse(parsed.data.expectedUpdatedAt)) {
+    return NextResponse.json({ error: "This design changed. Save or reload before restoring history.", code: "studio_version_conflict" }, { status: 409 });
+  }
+
+  const checkpoint = await insertDesignVersion(supabase, {
     designId,
     userId: user.id,
     canvas: existing.canvas,
     source: "pre_restore",
     label: "Before restore",
   });
+
+  if ("error" in checkpoint) {
+    return NextResponse.json({ error: "Could not preserve your current canvas. Restore was cancelled." }, { status: checkpoint.status });
+  }
 
   const canvas = parseCanvasDocument(
     version.canvas,
@@ -75,8 +86,13 @@ export async function POST(req: Request, { params }: Params) {
     .from("create_designs")
     .update({ canvas })
     .eq("id", designId)
+    .eq("updated_at", parsed.data.expectedUpdatedAt)
     .select("id, title, design_type, business_id, canvas, owner_id, created_at, updated_at")
-    .single();
+    .maybeSingle();
+
+  if (!error && !design) {
+    return NextResponse.json({ error: "This design changed while restoring. Your newer edit was kept.", code: "studio_version_conflict" }, { status: 409 });
+  }
 
   if (error || !design) {
     return NextResponse.json({ error: "Could not restore version." }, { status: 500 });

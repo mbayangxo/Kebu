@@ -1,0 +1,21 @@
+{
+  "working_branch": "work/kebu-completion-audit-oct13",
+  "base_sha": "e5cf0377335c8f898c9ec2d498c5a47915b7b7c9",
+  "preserved_qa_sha": "6267a80d6cd3ed4d253adc95a1b0fe2458d52462",
+  "native_builder_integrated": false,
+  "stages_3c_through_3i_restarted": false,
+  "focused_tests_passed": 60,
+  "full_tests_passed": 1011,
+  "full_test_files_passed": 250,
+  "lint_errors": 0,
+  "lint_warnings": 296,
+  "network_disposable_sql_checks_passed": 18,
+  "recovered_3j_content_gate_tests_passed": 28,
+  "recovered_3j_disposable_sql_tests_passed": 7,
+  "real_provider_verified": false,
+  "hosted_authenticated_journeys_verified": false,
+  "independent_native_postgres_sessions_verified": false,
+  "full_3j_signoff": "BLOCKED",
+  "production_operations": [],
+  "push_merge_deploy_operations": []
+}

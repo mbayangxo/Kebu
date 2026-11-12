@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { kebuCatalogAestheticCards } from "@/lib/create/aesthetics-marketplace";
+import { acquireCatalogAesthetic, acquireMarketplaceAesthetic, kebuCatalogAestheticCards } from "@/lib/create/aesthetics-marketplace";
 import { parseKebuTemplateFile, serializeKebuTemplateFile } from "@/lib/create/kebu-template-file";
 
 const sampleDefinition = {
@@ -47,6 +47,17 @@ describe("aesthetics marketplace catalog", () => {
     if (parsed.ok) {
       expect(parsed.name).toBe("Rose atelier site");
       expect(parsed.definition.schemaVersion).toBe("website-v1");
+    }
+  });
+});
+
+
+describe("aesthetic acquisition authority", () => {
+  it("does not initiate catalog or marketplace ownership without trusted server write authority", async () => {
+    const untrusted = { from: () => { throw Error("Must not write through the buyer client"); } };
+    const user = { id: "11111111-1111-4111-8111-111111111111" };
+    for (const result of [await acquireCatalogAesthetic(untrusted as never, user, "artist", "https://kebu.test"), await acquireMarketplaceAesthetic(untrusted as never, user, "22222222-2222-4222-8222-222222222222", "https://kebu.test")]) {
+      expect(result).toMatchObject({ ok: false, status: 503 });
     }
   });
 });

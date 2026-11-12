@@ -1,0 +1,11 @@
+{
+  "environment": "isolated-local-fixtures",
+  "result": {
+    "startTime": "2026-10-20T21:19:49.133Z",
+    "duration": 30507.788,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -15,6 +15,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // next/font transforms run in Next compilation; unit renders use the loader shape.
+      "next/font/google": path.resolve(__dirname, "tests/shims/next-font-google.ts"),
     },
   },
 });

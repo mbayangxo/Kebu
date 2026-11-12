@@ -1,0 +1,19 @@
+{
+  "browser": {
+    "startTime": "2026-10-20T07:12:54.329Z",
+    "duration": 60491.073000000004,
+    "expected": 20,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "sql": {
+    "passed": 23,
+    "reproducedOwnershipEscalationBeforeFix": true,
+    "reproducedForgedRoomPointerBeforeFix": true,
+    "engine": "PGlite",
+    "hosted": false
+  },
+  "hosted": false,
+  "scope": "actual Studio editors/IndexedDB/decoded downloads with controlled transport; isolated SQL/RLS"
+}

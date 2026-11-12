@@ -98,8 +98,8 @@ export function postAuthDestination(rawNext: string | null | undefined): string 
   const ws = readStoredWorkspace();
   if (ws) return workspaceHome(ws);
 
-  if (!hadExplicit || next === "/dashboard") return "/start";
-  return `/start?next=${encodeURIComponent(next)}`;
+  if (!hadExplicit || next === "/dashboard") return "/welcome?next=/dashboard";
+  return "/welcome?next=" + encodeURIComponent(next);
 }
 
 export function workspaceLabel(workspace: KebuWorkspace): string {

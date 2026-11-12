@@ -72,9 +72,53 @@ describe("shop cart checkout", () => {
     expect(message.toLowerCase()).not.toContain("paid");
   });
 
+  it("accepts a shippingOptionId as an id only — the schema has no field for a client-supplied price", () => {
+    const base = {
+      items: [{ productId: "11111111-2222-4333-a444-555555555555", quantity: 1 }],
+      customerName: "Awa",
+      customerPhone: "221770000000",
+    };
+    const withValidId = shopCartCheckoutSchema.safeParse({
+      ...base,
+      shippingOptionId: "99999999-8888-4777-a666-555555555555",
+    });
+    expect(withValidId.success).toBe(true);
+
+    const withBadId = shopCartCheckoutSchema.safeParse({ ...base, shippingOptionId: "not-a-uuid" });
+    expect(withBadId.success).toBe(false);
+
+    // The only shipping-related input accepted is an id — there is no key
+    // through which a client could submit its own shipping amount; the real
+    // price always comes from a server-side lookup (resolveShippingOptionForOrder).
+    const sneakAmount = shopCartCheckoutSchema.safeParse({
+      ...base,
+      shippingOptionId: "99999999-8888-4777-a666-555555555555",
+      shippingAmountXof: 1,
+    });
+    expect(sneakAmount.success).toBe(true); // parses fine...
+    if (sneakAmount.success) {
+      expect("shippingAmountXof" in sneakAmount.data).toBe(false); // ...but the extra field is stripped, never read.
+    }
+  });
+
+  it("points the shipping-option-columns-missing error at a migration file that actually exists with that name", () => {
+    // Regression: the error string used to cite timestamp 20261103130000, which belonged to
+    // shop_shipping_options.sql until the Nov 3 daily sweep renamed it to 20261103135000 to
+    // resolve a collision with security_events_log.sql — this file's own error string was
+    // never updated, so it pointed at the wrong migration (a different table entirely).
+    const source = readFileSync(join(process.cwd(), "lib/shop/cart-order.ts"), "utf8");
+    const match = source.match(/Shipping option columns missing\. Apply migration (\S+\.sql)\./);
+    expect(match).not.toBeNull();
+    const citedFilename = match![1];
+    expect(citedFilename).not.toContain("20261103130000"); // the stale, now-wrong timestamp
+    const migrationPath = join(process.cwd(), "supabase/migrations", citedFilename);
+    expect(() => readFileSync(migrationPath, "utf8")).not.toThrow();
+    expect(readFileSync(migrationPath, "utf8")).toContain("shop_shipping_options");
+  });
+
   it("ships migration 046 with order items + cart drafts RLS", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/046_shop_cart_order_items.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/046_shop_cart_order_items.sql"),
       "utf8",
     );
     expect(sql).toContain("shop_order_items");

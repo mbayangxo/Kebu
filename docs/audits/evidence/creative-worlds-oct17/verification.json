@@ -1,0 +1,110 @@
+{
+  "recordedUtc": "2026-10-17T05:07:41.922966+00:00",
+  "branch": "work/kebu-completion-audit-oct13",
+  "parentCommit": "b8dbd618a5db78e39cdfac198a53caf2d20c45bd",
+  "runtime": "v24.19.0",
+  "sourceSha256": {
+    "app/components/create/site-renderer.tsx": "e758a89376b4c1e4b61ebf9e2276a157f000713818b0e8b5bac52bd622a1ffb3",
+    "app/create/[id]/page.tsx": "309e78d6b79cfedc2453d6603b161c91e692b4e0a9ea702ee1a0c6cf56ee6e08",
+    "lib/create/builder-media-drop.ts": "386877286e5f423fe8eced9b0764d66f1412c55562be9d7833fb8c0f0867471c",
+    "lib/create/builder-section-catalog.ts": "0bbf36972279ebca969ffa57e98e9b981af6108def256d26465f8fc845731f65",
+    "lib/create/device-overrides.ts": "be467aa3abb566e9d0ede706081a7f278829bec512b270f836abdf51e5fd99b8",
+    "lib/create/responsive-qa.ts": "d677e27a5c343db16972f623fa6c55a113e69d394a55ef4fdfae3855871e248d",
+    "lib/create/templates-seed.ts": "e845374c26b3cec5da27a696fe6bd5cd47b89f28ffa13cd2a995597f8e304cb1",
+    "lib/create/upgrade-portfolio-maylecor.ts": "b4038a7373a3139034483517bec5bf6b8e7465f9978e418146a30633369b50c2",
+    "lib/create/website-schema.ts": "c90e95eef977bbf3c7395dbbf8a6fb04e1897e385f19c4cb444f54ac21249f4c",
+    "scripts/verify-native-builder-local-ui.mjs": "a587bc0bae9411e44f92e20a18091685d4589e539f8053dd3758353efcf71934",
+    "tests/create/builder-media-drop.test.ts": "695deeef7f77c9c9131a0ae0b1f5c8b30aedb43621bc704eb0227c90bad053ad",
+    "tests/creative-core/adapter-roundtrip.test.ts": "d5da2f62cf69942055e8ac80ac2f1a51a443114cf247135e72bc4e2c427992c5",
+    "tests/creative-core/builder-operation-ui.local.spec.ts": "6df9eeda6702214b8e268800dd0720fac52caf36e0ca5ff8cbc7725e6ec095d2",
+    "tests/creative-core/collage-parity.local.spec.ts": "50fa3dbee7c8b44ff9f06b7c7b12b4be481a08562dce5ea0267efc940a22a09d",
+    "tests/creative-core/fixtures/collage-ui-page.tsx": "550ec96590ce38ecdba66d89a9fcbec602948e0cfcfffe24eddecedc9e934bb9",
+    "tests/creative-core/render-parity.test.ts": "1e8ee90b041760a04aaa4c797f421b4e00404b1e40eef9d46879b8a9e9c92ee5",
+    "app/components/create/creative-world.tsx": "7f332d0af2c62c72d38ac383335a107d8dfd40dd78409307118f33fd55a011a7",
+    "app/components/create/creative-world.css": "125945f5355ab47acff7cbb27679ecfac046c10526d2e2eaf6f2d3e2704cd1e8",
+    "app/components/create/creative-world-inspector.tsx": "632b1425e0b800d8e89f56d8f7cc01214b053dd3eb8bd1987091c89955663f6c",
+    "lib/create/creative-world.ts": "5fad5a262412327ac20acd30fa260d8d6dc7bd5850a9704d483e1a66e2977ebf",
+    "lib/create/brand-creative-sites.ts": "60dbd49a6ebfd3503f831001a03a01d029630969fa0d59e183c5fda7b5375969",
+    "tests/create/creative-world.test.ts": "9de02a37d2b9d1d3e927ccc65c3f6a9f0d5b64ec999a4704d15323627407b9c7",
+    "tests/creative-core/fixtures/world-ui-page.tsx": "3c5ceabff68d25a3b9923ef0b96bccb7c622de633db9b1a294b1942826289787",
+    "tests/creative-core/world-visitor.local.spec.ts": "6c13b4164e90aa4e88ebca8e4326b4790928ec4d83a6f8db88530d5fa47b34e3"
+  },
+  "checks": {
+    "finalTypecheck": {
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    "lint": {
+      "command": "npm run lint (within npm run ci)",
+      "errors": 0,
+      "warnings": 345,
+      "exitCode": 0
+    },
+    "vitest": {
+      "command": "npm test (within npm run ci)",
+      "passed": 6006,
+      "skipped": 168,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "combinedBrowser": {
+      "command": "KEBU_NATIVE_UI_SUITES=tests/creative-core/builder-operation-ui.local.spec.ts,tests/creative-core/collage-parity.local.spec.ts,tests/creative-core/world-visitor.local.spec.ts node scripts/verify-native-builder-local-ui.mjs",
+      "exitCode": 0,
+      "stats": {
+        "startTime": "2026-10-17T05:04:49.075Z",
+        "duration": 59507.807,
+        "expected": 20,
+        "skipped": 9,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "authority": "Actual /create UI + real operation validation/engine, controlled local API authority; no hosted auth or hosted SQL proof",
+      "skips": "9 optional 100/500/2000-node performance probes; not counted as passed"
+    },
+    "publicChromeVisitor": {
+      "exitCode": 0,
+      "stats": {
+        "startTime": "2026-10-17T05:06:39.688Z",
+        "duration": 12710.363,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "note": "Explicit local request header matches RootLayout public-site chrome flag; no published site or production account"
+    },
+    "fullCi": {
+      "command": "npm run ci",
+      "exitCode": 1,
+      "failedStage": "build",
+      "initialBuildFailure": "Existing Turbopack persistence cache: invalid digit found in string",
+      "cleanCacheBuildFailure": "Google font binary downloads from fonts.gstatic.com unavailable; 81 request warnings and generated-font module resolution errors",
+      "status": "BLOCKED, not a passing production build"
+    }
+  },
+  "initialFailuresAndCorrections": [
+    "New unit test originally assumed parseSectionProps had a narrowed generic return type; used concrete gallery schema instead; typecheck passes.",
+    "Two corpus-size assertions expected 126 templates; updated explicit count to 128 for the two new owner-only drafts. Full corpus roundtrip/render tests pass.",
+    "Real phone overflow: 12-column grid retained 11 gaps after cards stacked; now uses one mobile column with image rotation clearance. Phone visitor gate passes.",
+    "Collage fixture keyboard test raced hydration/selection; waits for fixture readiness and selected outline and polls committed position. Final combined gate passes.",
+    "Add-section test locator omitted the visible + in the actual button accessible name; corrected locator without app changes.",
+    "Link inputs now validate on blur without discarding invalid text; corrected links save through normal Builder operations.",
+    "Old May skyline composite replaced in the new draft data with the existing clean portrait; original artist assets and sites preserved."
+  ],
+  "scopeLimits": [
+    "One-page editable K-Direction/DKLNS creative foundations, not finished full agency/label sites.",
+    "May exact reference comparison, masks/chained scroll choreography, final asset cleanup and hosted ordinary-account acceptance remain OPEN.",
+    "DKLNS video-behind-type/custom cursor/hover physics and K-direction full spatial/drop/audio acceptance remain OPEN.",
+    "No private bespoke renderer proof: brand content is validated Gallery data and generic controls are available to ordinary users.",
+    "No push, merge, deployment, publication, production settings, DNS, paid-resource creation or migrations."
+  ],
+  "screenshotSha256": {
+    "dklns-draft-390.png": "bb21cac5541e3672843fd776783b3154955bc2101601963ed618e4826b2dd0d3",
+    "kdirection-draft-390.png": "36563a26730a1b5aaf2bd072b4dd9038eb52264f75ce73adcdf02d45f2d7780d",
+    "dklns-draft-1440.png": "f1cad5c00e6eb4a978a14a205370d173bb6a42211b8d111635062d2f48f0348f",
+    "directional-world-normal-builder.png": "82cbccce2377416f0ffc2bc5ef6eb869276e2e9e28e417229ee66d29130ccb3f",
+    "kdirection-draft-1440.png": "8176a8fe67fd542f95a71bf8fb39001cacbd8232aebe44faf0e9d54b7e7d3535",
+    "collage-phone-reduced-motion.png": "d5e7a02f9f2bb92f5fce624617a0222807b185412754b88bf4ce3946ec15dc69",
+    "campaign-wall-normal-builder.png": "145c7b680edcf2f5e070e6465dbab15b0a302c1ddecbe9ce81934a94dd3cf6d9"
+  }
+}

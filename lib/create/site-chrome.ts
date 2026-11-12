@@ -90,6 +90,14 @@ export function projectUsesEmbeddedNav(sectionTypes: string[]): boolean {
   );
 }
 
+/** Derive legacy chrome without changing a saved draft or overriding an explicit disable. */
+export function deriveSiteChrome(raw: unknown, homeSections: RawSection[], siteTitle: string, allTypes: string[]): SiteChrome {
+  if (raw != null) return parseSiteChrome(raw);
+  if (projectUsesEmbeddedNav(allTypes)) return { enabled: false };
+  const extracted = extractSiteChromeFromSections(homeSections, siteTitle);
+  return extracted.header || extracted.footer ? extracted : defaultSiteChrome(siteTitle);
+}
+
 export function stripChromeSections<T extends { section_type?: string; type?: string }>(
   sections: T[],
 ): T[] {
@@ -149,22 +157,22 @@ export function applySiteChromeToDefinition(
   chrome: SiteChrome | null | undefined,
 ): WebsiteDefinition {
   if (!chrome?.enabled) return def;
+  type DefinitionSection = WebsiteDefinition["pages"][number]["sections"][number];
   return {
     ...def,
     pages: def.pages.map((page) => ({
       ...page,
       sections: composePageSectionsWithChrome(
-        page.sections.filter((s) => s.id).map((s) => ({
-          id: s.id!,
-          type: s.type,
-          props: s.props as Record<string, unknown>,
-        })),
+        // Body sections pass through whole: visibility, motion, a11y, interaction and
+        // dataBinding live beside props and must survive chrome composition.
+        page.sections.filter((s) => s.id).map((s) => ({ ...s, id: s.id!, props: s.props as Record<string, unknown> })),
         chrome,
-      ).map((s) => ({
-        id: s.id,
-        type: s.type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
-        props: s.props,
-      })),
+      ).map((composed) => {
+        const { section_type: _sectionType, sort_order: _sortOrder, ...section } = composed;
+        void _sectionType;
+        void _sortOrder;
+        return section as DefinitionSection;
+      }),
     })),
   };
 }
@@ -250,26 +258,60 @@ export async function loadOrBootstrapSiteChrome(
 
 /** Keep site chrome header links aligned with project pages (add/rename/delete pages). */
 export function navLinksFromPages(
-  pages: { slug: string; title: string; sort_order?: number }[],
-): { label: string; href: string }[] {
-  return [...pages]
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-    .filter((p) => p.slug !== "home")
-    .slice(0, 8)
-    .map((p) => ({
-      label: (p.title.slice(0, 40) || p.slug),
-      href: `/${p.slug}`,
-    }));
+  pages: { id?: string; slug: string; title: string; sort_order?: number; parent_id?: string | null }[],
+): { label: string; href: string; children?: { label: string; href: string }[] }[] {
+  const sorted = [...pages].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const childrenByParent = new Map<string, typeof sorted>();
+  for (const page of sorted) {
+    if (!page.parent_id) continue;
+    const group = childrenByParent.get(page.parent_id) ?? [];
+    group.push(page);
+    childrenByParent.set(page.parent_id, group);
+  }
+  return sorted
+    .filter((page) => !page.parent_id && page.slug !== "home")
+    .slice(0, 12)
+    .map((page) => {
+      const children = page.id ? childrenByParent.get(page.id) ?? [] : [];
+      return {
+        label: page.title.slice(0, 40) || page.slug,
+        href: `/${page.slug}`,
+        ...(children.length ? { children: children.slice(0, 12).map((child) => ({ label: child.title.slice(0, 40) || child.slug, href: `/${child.slug}` })) } : {}),
+      };
+    });
 }
 
 export function withSyncedChromeNavLinks(
   chrome: SiteChrome,
-  pages: { slug: string; title: string; sort_order?: number }[],
+  pages: { id?: string; slug: string; title: string; sort_order?: number; parent_id?: string | null }[],
   brand?: string,
 ): SiteChrome {
   if (!chrome.enabled || !chrome.header) return chrome;
-  const links = navLinksFromPages(pages);
+  const pageLinks = navLinksFromPages(pages);
   const baseProps = chrome.header.props;
+  const existing = Array.isArray(baseProps.links) ? baseProps.links : [];
+  const pageSlugs = new Set(pages.map((page) => page.slug));
+  // Page CRUD should keep simple page links in sync without destroying a founder's custom menu
+  // structure. Preserve nested/mega/external/hash links verbatim; refresh only flat internal links
+  // that clearly correspond to project pages, then append newly-created pages.
+  const customLinks = existing.filter((link) => {
+    if (link.columnLabel || link.featuredImage) return true;
+    const href = String(link.href ?? "");
+    if (!href.startsWith("/") || href.startsWith("//")) return true;
+    const slug = href.replace(/^\/+|\/+$/g, "") || "home";
+    if (!pageSlugs.has(slug)) return true;
+    // A nested link is considered generated only when its parent and every child map to real
+    // project pages. Mixed/external/custom trees remain founder-owned and are never overwritten.
+    if (link.children?.length) {
+      return !link.children.every((child) => {
+        const childHref = String(child.href ?? "");
+        if (!childHref.startsWith("/") || childHref.startsWith("//")) return false;
+        return pageSlugs.has(childHref.replace(/^\/+|\/+$/g, "") || "home");
+      });
+    }
+    return false;
+  });
+  const links = [...pageLinks, ...customLinks].slice(0, 12);
   const props = sectionPropsSchemas.navigation.parse({
     ...baseProps,
     brand: brand?.trim() || baseProps.brand,
@@ -287,7 +329,7 @@ type ChromeSyncClient = {
     select: (columns: string) => {
       eq: (column: string, value: string) => {
         maybeSingle: () => Promise<{ data: { site_chrome?: unknown; title?: string } | null }>;
-        order: (column: string) => Promise<{ data: { slug: string; title: string; sort_order: number }[] | null }>;
+        order: (column: string) => Promise<{ data: { id: string; slug: string; title: string; sort_order: number; parent_id: string | null }[] | null }>;
       };
     };
     update: (values: object) => {
@@ -312,7 +354,7 @@ export async function syncProjectChromeNavFromPages(
 
   const { data: pages } = await supabase
     .from("project_pages")
-    .select("slug, title, sort_order")
+    .select("id, slug, title, sort_order, parent_id")
     .eq("project_id", projectId)
     .order("sort_order");
 

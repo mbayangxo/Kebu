@@ -1,0 +1,641 @@
+{
+  "runtime": "3ee1bc7e8854d96de51ad4b97a96a4d262abfd79",
+  "tree": "283519d5641eaf867c30d85a58a129fdc06e292a",
+  "base": "d3913914bd523e9e03f554e41e5a1cf249340d01",
+  "localBrowser": {
+    "stats": {
+      "startTime": "2026-10-24T01:06:49.202Z",
+      "duration": 351425.46699999995,
+      "expected": 75,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "save-export.local.spec.ts / selection rotation has a shared handle and exact control with persistent undo",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / selection rotation pointer gesture cancels restores and commits one undo step",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / selection rotation refuses out-of-range changes without a partial save or undo entry",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / selection rotation controls never grant a viewer mutation authority",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / configurable snapping at 50% supports free movement distance and Alt bypass",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / configurable snapping at 100% supports free movement distance and Alt bypass",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / canvas regains keyboard focus after toolbar use and Space pans without editing artwork",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / snapping settings support native keyboard activation dismissal and focus return",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / snapping rotated groups at 50% uses visible bounds and one persistent gesture",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / snapping rotated groups at 100% uses visible bounds and one persistent gesture",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / snapping rotated artwork to a rotated stationary edge survives cancel undo and reopen",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / arrange preserves rotated group offsets through undo save and reopen",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / arrange distributes rotated visible frames with equal gaps and persistent history",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / arrange rejects out-of-range group movement without losing artwork or history",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / page settings rename reorder restore and export the saved page order",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / page settings at 390px preserve renamed reordered pages",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / page settings at 834px preserve renamed reordered pages",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / page settings do not give viewers page mutation controls",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / duplicated groups move independently through undo save and reload",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee selects visible layers without changing the saved document",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee drawn backward selects both layers and a subsequent empty click clears selection",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee Shift-addition preserves the previous selection",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee Escape cancellation preserves the selection and history",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee expands visible group members and excludes locked or invisible layers",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee lets a viewer inspect a selection without granting edit authority",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / design saves serialize and keep the newest IndexedDB draft dirty until acknowledged",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / video title saves serialize on mobile and preserve the newest local title",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / a malformed receipt leaves the current draft dirty and stops further network writes",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / a conflict retains local edits and does not silently overwrite the server",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / PNG, PDF and ZIP are real rendered downloads including supplied imagery",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / missing media blocks PNG export instead of downloading a placeholder",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / video export produces decodable WebM frames",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / offline design edits cache locally and sync through the current revision on reconnect",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / storage failure while offline leaves the editor visible and does not claim a local save",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / video export includes decodable audible samples",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / unavailable audio blocks video export instead of producing a silent success",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / the design page timeline exports a decodable WebM",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / named history saves the latest draft before capturing a version",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / history restore preserves edits made during a delayed response",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / failed restore leaves the editor and saved draft intact",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / sharing offline failure is visible and does not claim an invitation",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / sharing malformed failure is visible and does not claim an invitation",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / viewers cannot save or invite collaborators in the editor",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / design timeline export includes the saved soundtrack as audible samples",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / missing design soundtrack blocks timeline download with an honest error",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / eight resize handles support ratio, centered dragging, undo and persistent geometry",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / edge handles resize with keyboard without moving the opposite edge",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / the first text edit can undo, redo, and branch history without losing the document",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / video composition history preserves distinct undo and redo snapshots",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / dragging an ungrouped multi-selection moves every selected layer and undoes once",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / static design opens a quiet workspace and can explicitly reveal its timeline",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / direct text editing focuses immediately, preserves the caret, and shares history and persistence",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / Escape cancels an on-canvas text edit without deleting its layer or adding an undo step",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / native IME composition stays focused and does not save an unfinished composition",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / direct text preserves authored whitespace and newlines through reopening",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / dark editor inspector labels and primary Save meet readable text contrast",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / a marketplace custom font actually loads in the browser and renders on a text layer",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style transfer at 1440px / object style preserves grouped content and locked artwork through undo save and reopen",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style transfer at 1440px / page style and background apply atomically and persist in every exported PNG",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style transfer at 834px / object style preserves grouped content and locked artwork through undo save and reopen",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style transfer at 834px / page style and background apply atomically and persist in every exported PNG",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style transfer at 390px / object style preserves grouped content and locked artwork through undo save and reopen",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style transfer at 390px / page style and background apply atomically and persist in every exported PNG",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / style viewer permissions / style transfer never gives viewers mutation controls",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / selection rotation touch at 390px / selection rotation touch and exact alternatives persist without native cancellation",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / selection rotation touch at 834px / selection rotation touch and exact alternatives persist without native cancellation",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / snapping settings on phone / snapping settings are touch accessible and do not change a viewer document",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / workspace panel taps at 390px / workspace panel taps reject cancellation and drags and activate exactly once",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / workspace panel taps at 834px / workspace panel taps reject cancellation and drags and activate exactly once",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee touch at 390px / marquee uses real touch without native cancellation or document writes",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee touch at 834px / marquee uses real touch without native cancellation or document writes",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee touch interruption / marquee ignores a second finger and cancels without changing the previous selection",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / marquee touch interruption / canceled touch transform restores its frame without an undo entry or save",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / touch transforms at 390px / resizes with touch and exact inspector fields, saves and reopens",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "save-export.local.spec.ts / touch transforms at 834px / resizes with touch and exact inspector fields, saves and reopens",
+        "status": "expected",
+        "results": [
+          "passed"
+        ]
+      }
+    ],
+    "normalCleanup": true,
+    "syntheticLoopbackAuth": true,
+    "managedHostedAuthAccepted": false
+  },
+  "localCI": {
+    "passed": 6651,
+    "skipped": 338,
+    "passedFiles": 415,
+    "skippedFiles": 48,
+    "lintErrors": 0,
+    "existingWarnings": 346,
+    "buildPages": 230,
+    "exitCode": 0,
+    "command": "NODE_OPTIONS=--max-old-space-size=6144 npm run ci",
+    "serializedAfterBrowser": true
+  },
+  "focusedUnits": {
+    "passed": 13,
+    "skipped": 0
+  },
+  "focusedBrowsers": {
+    "desktopAndPhone": {
+      "passed": 5,
+      "skipped": 0,
+      "flaky": 0,
+      "unexpected": 0
+    },
+    "tablet": {
+      "passed": 2,
+      "skipped": 0,
+      "flaky": 0,
+      "unexpected": 0
+    }
+  },
+  "remoteCI": {
+    "run": 40048235669,
+    "job": 120734735261,
+    "conclusion": "success",
+    "passed": 6651,
+    "skipped": 338,
+    "lintErrors": 0,
+    "existingWarnings": 346,
+    "buildPages": 230
+  },
+  "remoteStudio": {
+    "run": 40048235613,
+    "job": 120734735038,
+    "conclusion": "success",
+    "fullPassed": 75,
+    "touchRounds": [
+      4,
+      4,
+      4
+    ],
+    "skipped": 0,
+    "flaky": 0,
+    "unexpected": 0,
+    "fullDurationMs": 583012.458,
+    "artifactId": 12542202623,
+    "originalMarqueeFailureReproduced": true,
+    "originalMissingRotationControlReproduced": true,
+    "normalCleanup": true
+  },
+  "previewSmoke": {
+    "run": 40048425173,
+    "conclusion": "success"
+  },
+  "deployment": {
+    "id": "dpl_F8fCy9HFxdV6tyU9VaKS1ThKzekn",
+    "url": "https://kebu-3ox9kxwjz-mbayangxos-projects.vercel.app",
+    "sha": "3ee1bc7e8854d96de51ad4b97a96a4d262abfd79",
+    "state": "READY"
+  },
+  "hostedReadback": "hosted-readback.json",
+  "productionPromoted": false,
+  "schemaOrDnsChanged": false,
+  "failedOrRejectedEvidence": [
+    {
+      "stage": "initial unit fixture",
+      "passed": 9,
+      "failed": 3,
+      "reason": "Fixture used an outdated emptyCanvasDocument argument shape; repaired before committing runtime."
+    },
+    {
+      "stage": "first focused browser",
+      "stats": {
+        "startTime": "2026-10-24T00:51:35.237Z",
+        "duration": 50247.825,
+        "expected": 2,
+        "skipped": 2,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "reason": "Phone Inspector was anchored to the editor root and intercepted Undo. The content row now establishes the containing block; real native taps pass."
+    },
+    {
+      "stage": "visual review",
+      "reason": "Scrolling exposed text above the sticky Inspector header. Removing its top padding/negative margin closes the gap; actual header-to-panel geometry is asserted on desktop/tablet/phone."
+    }
+  ]
+}

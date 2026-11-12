@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-17",
+  "node": "24.19.0",
+  "scope": "Local collage renderer repair. Not exact-reference or hosted acceptance.",
+  "render_regressions": {
+    "passed": 4
+  },
+  "collage_browser": {
+    "startTime": "2026-10-17T04:30:00.952Z",
+    "duration": 25014.667,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "builder_browser": {
+    "startTime": "2026-10-17T04:29:01.762Z",
+    "duration": 33621.96,
+    "expected": 10,
+    "skipped": 9,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "ci": {
+    "typecheck_errors": 0,
+    "lint_errors": 0,
+    "lint_warnings": 345,
+    "vitest_passed": 5947,
+    "vitest_skipped": 168,
+    "build": "passed after clearing generated .next cache; separate clean build exited 0",
+    "initial_ci_exit": 1,
+    "initial_failure": "Turbopack persistence cache: invalid digit found in string",
+    "clean_build_exit": 0,
+    "final_focused_tests": 22
+  },
+  "evidence_limits": [
+    "Local component persistence uses explicit localStorage fixture, not hosted SQL/auth.",
+    "Builder operations use the existing controlled local operation harness.",
+    "Reference URL returned site-served 402; exact layout/timing comparison blocked.",
+    "No deployment, push, migrations, production configuration, or publish performed."
+  ],
+  "assets": "Existing source photos still contain baked collage/checkerboard artifacts. No photo-cleanup claim.",
+  "source_sha256": {
+    "app/components/create/legally-blonde-layout.tsx": "c431d30b3f2d08306388731161ee8db6006d646ab444ae1562f4d094765c8fe5",
+    "app/components/create/legally-blonde-edit-canvas.tsx": "b1d0e74e1affcf708f8e2ba0af329cae4b570b971fe00bd17aa5dd210847df35",
+    "app/components/create/maylecor-motion-chrome.tsx": "8130f3d654ef3add256f0a869d53d83613803c2c134910121996c6ad78c7ee0f",
+    "app/components/create/site-renderer.tsx": "0de53ac3f13a31d7f27168d92fc36aefdc9f3575a79e3228d88e09d97beb5ad1",
+    "app/create/[id]/page.tsx": "b596044c08d4af05b6e27af6920bc34e999c091f320268822b7ccf1aac30c22e",
+    "lib/create/builder-section-catalog.ts": "25ea68e31d21a8a473ddb2b6d3939596db5fe294edf35a068f8956cecedf4e48",
+    "lib/create/legally-blonde-defaults.ts": "df6f4cd19437cbd554810fa0ca77dfbecb238b9f70fdc5ee620e4ca59102f105",
+    "lib/create/section-defaults.ts": "12b76a7f1283a8122d614d195076877f72013ebbc560f4583b97eebe031b6814"
+  }
+}

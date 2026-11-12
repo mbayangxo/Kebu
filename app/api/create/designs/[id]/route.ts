@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { createDesignSchema } from "@/lib/create/create-designs";
@@ -5,6 +6,7 @@ import { canvasDocumentSchema } from "@/lib/studio/canvas-document";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
 import { recalculateReadinessForBusiness } from "@/lib/kebu-id/recalculate-hooks";
 import { z } from "zod";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,8 @@ const patchSchema = z.object({
   designType: createDesignSchema.shape.designType.optional(),
   /** Owner-only: move design into a folder, or null to unfile. */
   folderId: z.string().uuid().nullable().optional(),
+  /** Optimistic concurrency token for offline/collaborative editors. */
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -44,6 +48,8 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -71,12 +77,35 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const { data: existing } = await supabase
     .from("create_designs")
-    .select("id, canvas, business_id, design_type, owner_id")
+    .select("id, canvas, business_id, design_type, owner_id, updated_at")
     .eq("id", id)
     .maybeSingle();
 
   if (!existing) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
+  }
+
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
+  if ((existing.business_id ?? null) !== workspace.activeBusinessId) {
+    return NextResponse.json(
+      { error: "This design belongs to another Kebu space. Switch back to that space before editing." },
+      { status: 409 },
+    );
+  }
+
+  if (
+    parsed.data.expectedUpdatedAt &&
+    existing.updated_at &&
+    new Date(existing.updated_at).toISOString() !== new Date(parsed.data.expectedUpdatedAt).toISOString()
+  ) {
+    return NextResponse.json(
+      {
+        error: "This design changed somewhere else. Your local draft was kept; reload or review the newer server version before overwriting it.",
+        code: "studio_version_conflict",
+        serverUpdatedAt: existing.updated_at,
+      },
+      { status: 409 },
+    );
   }
 
   const patch: Record<string, unknown> = {};
@@ -122,8 +151,17 @@ export async function PATCH(req: Request, { params }: Params) {
     .from("create_designs")
     .update(patch)
     .eq("id", id)
+    // Compare and write in the same database statement: the earlier read is not a lock.
+    .eq("updated_at", parsed.data.expectedUpdatedAt ?? existing.updated_at)
     .select("id, title, design_type, business_id, folder_id, canvas, owner_id, created_at, updated_at")
-    .single();
+    .maybeSingle();
+
+  if (!error && !design) {
+    return NextResponse.json({
+      error: "This design changed somewhere else. Your local edit was kept; review the newer server version before overwriting it.",
+      code: "studio_version_conflict",
+    }, { status: 409 });
+  }
 
   if (error || !design) {
     const missingFolder = error?.message?.includes("folder_id");
@@ -143,6 +181,8 @@ export async function PATCH(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(_req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -164,7 +204,11 @@ export async function DELETE(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
   }
 
-  await supabase.from("create_designs").delete().eq("id", id).eq("owner_id", user.id);
+  const { data: deleted, error: deleteError } = await supabase.from("create_designs")
+    .delete().eq("id", id).eq("owner_id", user.id).select("id").maybeSingle();
+  if (deleteError || !deleted) {
+    return NextResponse.json({ error: "Could not confirm design deletion. Please retry." }, { status: 503 });
+  }
   await recalculateReadinessForBusiness(supabase, existing.business_id);
   return NextResponse.json({ ok: true });
 }

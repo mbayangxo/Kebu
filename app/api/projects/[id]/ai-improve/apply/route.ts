@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { guardAiImproveProject, logAiImproveFailure } from "@/lib/create/ai-improve-route";
 import { replaceWebsiteDefinition, buildSnapshotFromDb } from "@/lib/create/persist-site";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
@@ -14,6 +15,8 @@ type Params = { params: Promise<{ id: string }> };
  * Persist a validated website-v1 definition after the owner confirms preview.
  */
 export async function POST(req: NextRequest, { params }: Params) {
+  const originError = assertSameOriginMutation(req);
+  if (originError) return originError;
   const { id } = await params;
 
   let body: unknown = {};

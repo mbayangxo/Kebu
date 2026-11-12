@@ -1,0 +1,75 @@
+{
+  "source_tree": "2cdfb61008e82edccb5cdea921bc93bd39a4c36d",
+  "parent": "c7a0e38617973ed019d30262d34f818a3ab8f88c",
+  "scope": "Actual ordinary Builder editor with isolated migration SQL; loopback transport, not hosted Auth.",
+  "stats": {
+    "startTime": "2026-10-21T02:33:19.825Z",
+    "duration": 74792.90199999999,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cleanup": {
+    "testsStopped": true,
+    "serverStopped": true,
+    "restoredConfig": true,
+    "remainingFixtures": [],
+    "sourceSandboxRemoved": true,
+    "generatedFixtureTypesRemoved": true
+  },
+  "regression_before": "c7a0e38 actual Tablet editor: Reset responsive changes button absent after width/crop-only overrides; failed toBeVisible. Phone was not run after maxFailures=1.",
+  "environment_attempt": "Initial worktree dependency symlink rejected by Turbopack; replaced with real local dependency directory before the passing run.",
+  "cases": [
+    {
+      "title": "ordinary Desktop image dimensions/crop \u2192 SQL \u2192 Undo/Redo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 25552
+        }
+      ]
+    },
+    {
+      "title": "ordinary Tablet image dimensions/crop \u2192 SQL \u2192 Undo/Redo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 16102
+        }
+      ]
+    },
+    {
+      "title": "ordinary Phone image dimensions/crop \u2192 SQL \u2192 Undo/Redo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 16651
+        }
+      ]
+    },
+    {
+      "title": "Tablet selected-object responsive reset preserves neighbour \u2192 atomic Undo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 7281
+        }
+      ]
+    },
+    {
+      "title": "Phone selected-object responsive reset preserves neighbour \u2192 atomic Undo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 6541
+        }
+      ]
+    }
+  ]
+}

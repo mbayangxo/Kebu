@@ -16,8 +16,16 @@
  *   { "mcpServers": { "kebu": { "type": "http", "url": "...", "headers": { "Authorization": "Bearer ..." } } } }
  */
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import { authRateLimit } from "@/lib/api-guard";
+
+export const runtime = "nodejs";
+
+function mcpEnabled(): boolean {
+  return process.env.MCP_ENABLED === "true";
+}
 
 // ─── Supabase service client (full access) ─────────────────────────────────
 
@@ -32,9 +40,11 @@ function serviceClient() {
 
 function authorized(req: NextRequest): boolean {
   const token = process.env.MCP_BEARER_TOKEN;
-  if (!token) return false;
+  if (!mcpEnabled() || !token || token.length < 32) return false;
   const auth = req.headers.get("authorization") ?? "";
-  return auth === `Bearer ${token}`;
+  const expected = createHash("sha256").update(`Bearer ${token}`).digest();
+  const received = createHash("sha256").update(auth).digest();
+  return timingSafeEqual(expected, received);
 }
 
 // ─── Tool definitions ────────────────────────────────────────────────────────
@@ -663,6 +673,9 @@ export async function OPTIONS() {
 
 /** Discovery endpoint — returns server info without auth required. */
 export async function GET() {
+  if (!mcpEnabled()) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
   return Response.json(
     {
       name: "kebu",
@@ -689,6 +702,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!mcpEnabled()) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  const limited = authRateLimit(req);
+  if (limited) return limited;
   if (!authorized(req)) {
     return err(null, -32001, "Unauthorized — set Authorization: Bearer <MCP_BEARER_TOKEN>");
   }

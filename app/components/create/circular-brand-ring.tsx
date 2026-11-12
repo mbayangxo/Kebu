@@ -51,13 +51,32 @@ export function CircularBrandRing({
   );
 }
 
-export const LAYER_MOTION_OPTIONS = ["spin", "float", "bob", "none"] as const;
+export const LAYER_MOTION_OPTIONS = [
+  "none",
+  "fade",
+  "rise",
+  "slide-left",
+  "slide-right",
+  "pop",
+  "blur-in",
+  "float",
+  "bob",
+  "pulse",
+  "spin",
+] as const;
 export type LayerMotion = (typeof LAYER_MOTION_OPTIONS)[number];
 
 export function layerMotionClass(motion: LayerMotion | undefined, enabled: boolean): string {
   if (!enabled || !motion || motion === "none") return "";
-  if (motion === "spin") return "lb-layer-motion-spin";
-  if (motion === "float") return "lb-layer-motion-float";
-  if (motion === "bob") return "lb-layer-motion-bob";
+  if (motion === "spin") return "kebu-object-motion-spin";
+  if (motion === "float") return "kebu-object-motion-float";
+  if (motion === "bob") return "kebu-object-motion-bob";
+  if (motion === "pulse") return "kebu-object-motion-pulse";
+  if (motion === "fade") return "kebu-object-motion-fade";
+  if (motion === "rise") return "kebu-object-motion-rise";
+  if (motion === "slide-left") return "kebu-object-motion-slide-left";
+  if (motion === "slide-right") return "kebu-object-motion-slide-right";
+  if (motion === "pop") return "kebu-object-motion-pop";
+  if (motion === "blur-in") return "kebu-object-motion-blur";
   return "";
 }

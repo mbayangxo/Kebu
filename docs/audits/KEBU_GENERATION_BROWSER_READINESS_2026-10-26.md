@@ -1,0 +1,11 @@
+# Generation browser readiness — 2026-10-26
+
+Source branch `work/codex-generation-readiness-oct26`, based on `0442a59415c431b6ced254372a02428b47db8645`; no production deployment. Packaged @sparticuz/chromium 140.0.0 is a Vercel-only fallback when no explicit Chromium path is supplied. An explicit invalid path fails closed. The packaged archive is traced into generation and creative worker routes. The existing local executable override remains supported.
+
+Frozen-source local generation acceptance passed 50/50, zero failures/skips, including real Next/Chromium previews, desktop/mobile Builder and Studio review controls, real isolated PostgreSQL authority and fixture model transport. Focused browser configuration tests 2/2 passed, TypeScript and focused ESLint passed, production build completed 230/230 pages, and all generation/worker route traces include chromium.br. One run was interrupted after the tracing configuration changed during the test; it is not counted. The final clean run followed all edits.
+
+Important limits: the local acceptance run used an explicitly supplied standalone Chromium executable; the @sparticuz extraction helper could not be tested here because this sandbox rejects chown on temporary directories. The fallback needs verification in an actual Vercel function. Generated content is a model fixture, and UI and SQL authority are tested with isolated transports; no managed Supabase user journey or live AI-provider call was executed.
+
+Vercel returned HTTP 402 resource_creation_blocked when creating CREATIVE_PREVIEW_SECRET: team fair-use limits were exceeded. The secret was not created. The Vercel CLI is not available here; the provider's billing/security remedy must be handled by the team owner. AI-provider credentials and a running hosted worker/scheduler are also absent. Do not claim live readiness or promote an unverified build.
+
+Full local `npm run ci` subsequently exited 0: TypeScript, ESLint (0 errors / 346 existing warnings), 6685 tests passed / 361 skipped, and production build completed. The explicit 50-case fixture acceptance above is separate and had zero skipped.

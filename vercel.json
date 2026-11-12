@@ -15,6 +15,31 @@
     {
       "path": "/api/cron/review-requests",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/platform-worker",
+      "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/search-index",
+      "schedule": "45 5 * * *"
+    },
+    {
+      "path": "/api/cron/security-check",
+      "schedule": "0 8 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "work/kebu-completion-audit-oct13": false,
+      "work/codex-shared-generation-repair-oct26": false,
+      "work/codex-may-behance-motion-nov05": false,
+      "work/kebu-closeout-nov05": false,
+      "work/kebu-private-project-calls-nov06": false,
+      "work/kebu-public-live-app-nov06": false,
+      "work/developer-marketplace-nov08": false,
+      "work/finish-audit-nov12": false,
+      "integration/kebu-six-products-2026-11-09": false
+    }
+  }
 }

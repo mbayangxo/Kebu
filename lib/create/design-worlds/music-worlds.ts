@@ -1,9 +1,5 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const IMG1 = "";
-const IMG2 = "";
-const IMG3 = "";
-
 /** Music A — dark stage for artists (not May Lecor portfolio). */
 export function artistDarkStageWorldDefinition() {
   return buildSenegalWorld({
@@ -36,18 +32,11 @@ export function artistDarkStageWorldDefinition() {
       buttonLabel: "Listen",
       buttonHref: "/music",
       heroBg: "#0A0A0A",
-      image: { src: IMG1, alt: "Stage lights", caption: "Tonight" },
       featuresHeading: "What fans find here",
       features: [
         { title: "Music", body: "Singles and albums with clear listen links." },
         { title: "Videos", body: "Clips that load light — paste YouTube or Vimeo." },
         { title: "Book", body: "Promoters message on WhatsApp — no fake ticket checkout." },
-      ],
-      galleryHeading: "Atmosphere",
-      gallery: [
-        { src: IMG1, alt: "Live" },
-        { src: IMG2, alt: "Studio" },
-        { src: IMG3, alt: "Crowd" },
       ],
     },
     pages: [
@@ -68,11 +57,6 @@ export function artistDarkStageWorldDefinition() {
         title: "Videos",
         heading: "Videos",
         subheading: "Visuals and performance clips — paste links or upload.",
-        galleryHeading: "Stills",
-        gallery: [
-          { src: IMG2, alt: "Video still 1" },
-          { src: IMG3, alt: "Video still 2" },
-        ],
       },
       {
         slug: "shows",
@@ -97,11 +81,6 @@ export function artistDarkStageWorldDefinition() {
         heading: "Contact",
         subheading: "Management, press, and bookings.",
         formHeading: "Send a message",
-        whatsapp: {
-          label: "WhatsApp booking",
-          phone: "+221770000000",
-          message: "Hi — I want to book a show / collab.",
-        },
       },
     ],
   });
@@ -146,10 +125,6 @@ export function streamingLaunchWorldDefinition() {
         { title: "Tour strip", body: "Next cities with WhatsApp RSVP." },
         { title: "Press kit", body: "Bio + photos for media and playlists." },
       ],
-      gallery: [
-        { src: IMG2, alt: "Cover art" },
-        { src: IMG3, alt: "Live clip" },
-      ],
     },
     pages: [
       {
@@ -187,11 +162,6 @@ export function streamingLaunchWorldDefinition() {
         heading: "Contact",
         subheading: "Playlists, press, bookings.",
         formHeading: "Write to us",
-        whatsapp: {
-          label: "WhatsApp",
-          phone: "+221770000000",
-          message: "Hi — about the new release.",
-        },
       },
     ],
   });

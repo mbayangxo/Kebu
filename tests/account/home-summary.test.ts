@@ -17,6 +17,14 @@ describe("HomeSummary shape", () => {
       sites: [],
       email: { subscribers: 0, draftCampaigns: 0, lastCampaignSubject: null },
       opportunities: { count: 1, exploreHref: "/opportunity/countries" },
+      setup: {
+        intents: ["explore"],
+        tools: ["search", "opportunities", "spaces"],
+        persona: "personal",
+        workspaceName: "",
+        onboardingComplete: false,
+        version: "v2",
+      },
       personalization: {
         needsIntake: true,
         mainGoal: null,

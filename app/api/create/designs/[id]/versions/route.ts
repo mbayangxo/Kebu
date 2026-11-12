@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
@@ -44,6 +45,8 @@ export async function GET(_req: Request, { params }: Params) {
 
 /** Save a named (manual) version of the current canvas. */
 export async function POST(req: Request, { params }: Params) {
+  const blocked = assertSameOriginMutation(req);
+  if (blocked) return blocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -61,7 +64,7 @@ export async function POST(req: Request, { params }: Params) {
   try {
     body = await req.json();
   } catch {
-    body = {};
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
   const parsed = createVersionSchema.safeParse(body);
   if (!parsed.success) {
@@ -70,12 +73,16 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: design } = await supabase
     .from("create_designs")
-    .select("canvas")
+    .select("canvas, updated_at")
     .eq("id", designId)
     .maybeSingle();
 
   if (!design) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
+  }
+
+  if (parsed.data.expectedUpdatedAt && Date.parse(design.updated_at) !== Date.parse(parsed.data.expectedUpdatedAt)) {
+    return NextResponse.json({ error: "This design changed. Save or reload before naming a version.", code: "studio_version_conflict" }, { status: 409 });
   }
 
   const result = await insertDesignVersion(supabase, {

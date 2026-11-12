@@ -1,3 +1,4 @@
+import { legacyProjectWriteBlocker } from "@/lib/create/kcd-write-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { mayjorGoodWebsiteDefinition } from "./mayjor-good-site";
 
@@ -19,6 +20,8 @@ export async function upgradeMayjorGoodPortfolioProject(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<{ upgraded: boolean; detail?: string }> {
+  const blocker = await legacyProjectWriteBlocker(supabase, projectId);
+  if (blocker) return { upgraded: false, detail: blocker };
   const { data: project } = await supabase
     .from("projects")
     .select("id, description")
