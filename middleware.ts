@@ -1,3 +1,4 @@
+import { CLOUD_STATIC_CSP } from "@/lib/cloud/constants";
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { resolveSubdomainForCustomHost } from "@/lib/create/resolve-custom-domain";
@@ -82,6 +83,7 @@ export async function middleware(request: NextRequest) {
   const csrfReject = csrfMutationCheck(request);
   if (csrfReject) return csrfReject;
 
+  if (/^\/cloud-sites(?:\/|$)/.test(request.nextUrl.pathname)) return new NextResponse("Not found", { status: 404 });
   const hostname = request.headers.get("host") ?? "";
   const host = hostOnly(hostname);
   const proto = request.headers.get("x-forwarded-proto");
@@ -119,11 +121,12 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = rewrite.pathname;
     const reqHeaders = new Headers(request.headers);
+    reqHeaders.delete("cookie");
+    reqHeaders.delete("authorization");
     reqHeaders.set("x-kebu-cloud-site", "1");
-    return withDataModeCookie(
-      request,
-      withSecurityHeaders(NextResponse.rewrite(url, { request: { headers: reqHeaders } })),
-    );
+    const response = withSecurityHeaders(NextResponse.rewrite(url, { request: { headers: reqHeaders } }));
+    response.headers.set("Content-Security-Policy", CLOUD_STATIC_CSP);
+    return response;
   }
 
   if (rewrite.kind === "kebu-subdomain" || rewrite.kind === "custom-domain") {

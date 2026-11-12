@@ -67,6 +67,7 @@ describe("Slides PDF export (lib/slides/export-pdf.ts)", () => {
   });
 
   it("falls back to a placeholder rather than throwing when an image URL doesn't resolve", async () => {
+    dnsDeps.lookup.mockRejectedValueOnce(new Error("ENOTFOUND"));
     const slide = blankSlide("s1");
     const image = blankLayer("img1", "image", { x: 960, y: 540 });
     const deck = [{ ...slide, layers: [{ ...image, imageUrl: "https://example.invalid/does-not-exist.png" }] }];
@@ -111,6 +112,7 @@ describe("Slides PPTX export (lib/slides/export-pptx.ts)", () => {
   });
 
   it("falls back to a placeholder rather than throwing when an image URL doesn't resolve", async () => {
+    dnsDeps.lookup.mockRejectedValueOnce(new Error("ENOTFOUND"));
     const slide = blankSlide("s1");
     const image = blankLayer("img1", "image", { x: 960, y: 540 });
     const bytes = await buildSlidesPptx([{ ...slide, layers: [{ ...image, imageUrl: "https://example.invalid/does-not-exist.png" }] }], 1920, 1080);

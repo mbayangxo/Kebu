@@ -37,6 +37,8 @@ await db.exec(`
 // The real migrations, verbatim.
 await db.exec(read('supabase/migrations/20261016120000_library_sharing.sql'));
 await db.exec(read('supabase/migrations/20261108010000_slide_bodies.sql'));
+await db.exec(read('supabase/migrations/20261107010000_sheet_bodies.sql'));
+await db.exec(read('supabase/migrations/20261112075207_editor_revision_guards.sql'));
 
 const TABLES = {
   library_nodes: {

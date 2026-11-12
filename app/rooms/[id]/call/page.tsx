@@ -45,7 +45,7 @@ export default function RoomCallPage() {
       <h1 className="text-2xl font-semibold">Room call</h1>
       {call.error && <p role="alert" className="rounded-xl bg-red-950 p-3">{call.error}</p>}
 
-      {call.phase === "idle" && (
+      {(call.phase === "idle" || call.phase === "ended") && (
         <div className="space-y-2">
           <label className="block text-sm text-zinc-300" htmlFor="call-group-size">
             Group size if you're starting a new call (joining one already in progress keeps its own limit)
@@ -61,7 +61,8 @@ export default function RoomCallPage() {
             ))}
           </select>
           <div>
-            <button className={button} onClick={() => void call.join(groupSize)}>Join with camera and mic</button>
+            <button className={button} onClick={() => void call.join(groupSize)}>{call.phase === "ended" ? "Rejoin with camera and mic" : "Join with camera and mic"}</button>
+            <button className={button} onClick={() => void call.join(groupSize, true)}>Join with microphone only</button>
           </div>
         </div>
       )}
@@ -76,20 +77,24 @@ export default function RoomCallPage() {
           >
             <div className="overflow-hidden rounded-xl bg-zinc-900">
               <video ref={(el) => { local.current = el; if (el) el.srcObject = call.localStream; }} muted autoPlay playsInline className="aspect-video w-full object-contain" />
-              <p className="p-2 text-sm">{call.sharing ? "Your shared screen" : "You"}</p>
+              <p className="p-2 text-sm">You</p>
             </div>
             {call.peers.map((p) => (
-              <div key={p.id} className="overflow-hidden rounded-xl bg-zinc-900">
+              <div key={p.id} className={p.screenStream ? "col-span-full grid gap-3 rounded-xl bg-zinc-900 sm:grid-cols-2" : "overflow-hidden rounded-xl bg-zinc-900"}>
+                <div>
                 <RemoteVideo stream={p.stream} />
                 <p role="status" className="p-2 text-sm">
                   {nameFor(p.id)} — {p.state === "connected" ? "Connected" : p.state === "failed" ? "Connection failed" : "Connecting…"}
                 </p>
+                </div>
+                {p.screenStream && <div data-testid={`remote-screen-${p.id}`}><RemoteVideo stream={p.screenStream} /><p className="p-2 text-sm">{nameFor(p.id)} — shared screen</p></div>}
               </div>
             ))}
           </div>
+          {call.screenStream && <div className="rounded-xl bg-zinc-900"><RemoteVideo stream={call.screenStream} /><p className="p-2 text-sm">Your shared screen</p></div>}
           <div className="flex flex-wrap gap-2">
             <button className={button} onClick={call.toggleMute}>{call.muted ? "Unmute" : "Mute"}</button>
-            <button className={button} onClick={call.toggleCamera}>{call.cameraOff ? "Turn camera on" : "Turn camera off"}</button>
+            {call.localStream?.getVideoTracks().length ? <button className={button} onClick={call.toggleCamera}>{call.cameraOff ? "Turn camera on" : "Turn camera off"}</button> : <span className="p-2 text-sm text-zinc-300">Microphone-only call</span>}
             {typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function" && (
               <button className={button} onClick={() => void call.toggleShare()}>{call.sharing ? "Stop sharing" : "Share screen"}</button>
             )}

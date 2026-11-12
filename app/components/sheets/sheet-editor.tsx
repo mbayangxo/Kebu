@@ -6,7 +6,7 @@ import { computeSheet, type ComputedCell, type SheetCells } from "@/lib/sheets/e
 import { SheetGrid, type EditDirection } from "@/app/components/sheets/sheet-grid";
 import { KEBU } from "@/lib/kebu-brand";
 
-type SaveStatus = "loading" | "saved" | "pending" | "saving" | "error" | "not-found";
+type SaveStatus = "loading" | "saved" | "pending" | "saving" | "error" | "not-found" | "conflict";
 
 const AUTOSAVE_DELAY_MS = 700;
 const DEFAULT_ROWS = 100;
@@ -27,6 +27,11 @@ export function SheetEditor({ id }: { id: string }) {
   const dimsRef = useRef({ rowCount: DEFAULT_ROWS, columnCount: DEFAULT_COLS });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const revisionRef = useRef<string | null>(null);
+  const conflictRef = useRef(false);
+  const loadedRef = useRef(false);
+  const savedTitleRef = useRef("");
+  const titleRevisionRef = useRef<string | null>(null);
   const dirtySinceSaveRef = useRef(false);
   const mountedRef = useRef(true);
 
@@ -45,6 +50,10 @@ export function SheetEditor({ id }: { id: string }) {
         }
         rawCellsRef.current = nextCells;
         dimsRef.current = { rowCount: data.rowCount, columnCount: data.columnCount };
+        revisionRef.current = data.updatedAt ?? null;
+        loadedRef.current = true;
+        titleRevisionRef.current = data.nodeUpdatedAt ?? null;
+        savedTitleRef.current = data.title ?? "";
         setTitle(data.title ?? "Untitled sheet");
         setRowCount(data.rowCount);
         setColumnCount(data.columnCount);
@@ -58,6 +67,7 @@ export function SheetEditor({ id }: { id: string }) {
   }, [id]);
 
   const persist = useCallback(() => {
+    if (conflictRef.current || !loadedRef.current) return;
     if (savingRef.current) { dirtySinceSaveRef.current = true; return; }
     savingRef.current = true;
     dirtySinceSaveRef.current = false;
@@ -68,11 +78,18 @@ export function SheetEditor({ id }: { id: string }) {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cells: rawCellsRef.current, rowCount: dimsRef.current.rowCount, columnCount: dimsRef.current.columnCount }),
+          body: JSON.stringify({ expectedUpdatedAt: revisionRef.current, cells: rawCellsRef.current, rowCount: dimsRef.current.rowCount, columnCount: dimsRef.current.columnCount }),
         });
         const data = await response.json().catch(() => ({}));
+        if (response.status === 409 || response.status === 428) {
+          conflictRef.current = true;
+          setStatus("conflict");
+          setErrorMessage(data.error);
+          return;
+        }
         if (!response.ok) throw new Error(data.error || "Could not save sheet.");
-        if (mountedRef.current) { setComputed(data.cells); setStatus(dirtySinceSaveRef.current ? "pending" : "saved"); }
+        revisionRef.current = data.updatedAt;
+        if (mountedRef.current) { if (!dirtySinceSaveRef.current) setComputed(data.cells); setStatus(dirtySinceSaveRef.current ? "pending" : "saved"); }
       } catch (cause) {
         if (mountedRef.current) { setStatus("error"); setErrorMessage(cause instanceof Error ? cause.message : "Could not save sheet."); }
       } finally {
@@ -83,6 +100,7 @@ export function SheetEditor({ id }: { id: string }) {
   }, [id]);
 
   const scheduleSave = useCallback(() => {
+    if (conflictRef.current || !loadedRef.current) return;
     setStatus("pending");
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(persist, AUTOSAVE_DELAY_MS);
@@ -145,11 +163,19 @@ export function SheetEditor({ id }: { id: string }) {
   if (status === "not-found") return <div className="p-10 text-center text-[10px] text-black/40">Sheet not found, or you don&apos;t have access.</div>;
 
   const statusLabel: Record<SaveStatus, string> = {
-    loading: "", saved: "Saved", pending: "Saving…", saving: "Saving…", error: errorMessage ?? "Could not save", "not-found": "",
+    conflict: "Newer version available — edits kept locally", loading: "", saved: "Saved", pending: "Saving…", saving: "Saving…", error: errorMessage ?? "Could not save", "not-found": "",
   };
 
   return (
     <div className="flex h-full flex-col">
+      {status === "conflict" && <div role="alert" className="border-b bg-amber-50 p-3 text-sm">
+        <p>{errorMessage}</p>
+        <button type="button" className="mr-4 underline" onClick={() => {
+          const url = URL.createObjectURL(new Blob([JSON.stringify({ title, cells: rawCellsRef.current, ...dimsRef.current }, null, 2)], { type: "application/json" }));
+          const link = document.createElement("a"); link.href = url; link.download = `kebu-${id}-recovery.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }}>Download my edits</button>
+        <button type="button" className="underline" onClick={() => { if (window.confirm("Reload the latest version? Download your edits first; reloading discards this local copy.")) window.location.reload(); }}>Reload latest</button>
+      </div>}
       <header className="flex items-center justify-between gap-3 border-b px-4 py-2.5" style={{ borderColor: KEBU.border }}>
         <div className="flex items-center gap-3">
           <Link href="/library?view=sheets" className="text-[9px] text-black/35">← Library</Link>
@@ -157,7 +183,17 @@ export function SheetEditor({ id }: { id: string }) {
             aria-label="Sheet title"
             value={title}
             onChange={e => { setTitle(e.target.value); }}
-            onBlur={() => { void fetch("/api/library/nodes", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, title: title.trim() || "Untitled sheet" }) }); }}
+            onBlur={() => {
+              const nextTitle = title.trim();
+              if (!loadedRef.current || conflictRef.current || nextTitle === savedTitleRef.current) return;
+              void fetch("/api/library/nodes", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, title: nextTitle, ...(titleRevisionRef.current ? { expectedUpdatedAt: titleRevisionRef.current } : {}) }) }).then(async response => {
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 409) { conflictRef.current = true; setStatus("conflict"); setErrorMessage("The title changed elsewhere. Download your edits before reloading."); return; }
+                if (!response.ok) throw new Error("Could not save title. Your changes are kept here.");
+                titleRevisionRef.current = data.node.updated_at;
+                savedTitleRef.current = nextTitle;
+              }).catch(cause => { setErrorMessage(cause.message); setStatus("error"); });
+            }}
             className="border-none text-[13px] font-semibold outline-none"
           />
           <span role="status" className="text-[9px]" style={{ color: status === "error" ? KEBU.red : "rgba(10,10,10,0.35)" }}>{statusLabel[status]}</span>

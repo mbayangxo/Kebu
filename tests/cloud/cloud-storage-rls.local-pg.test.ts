@@ -177,3 +177,20 @@ describe.skipIf(!root)("Kebu Cloud — real RLS: storage buckets/files, deployme
     await db.close();
   }, 30_000);
 });
+
+describe.skipIf(!root)("Cloud deployment identity constraints", () => {
+  it("rejects cross-deployment publication and forged prefixes, while deleting a live version clears only its pointer", async () => {
+    const db = await openDb();
+    try {
+      await db.exec(readFileSync(resolve("supabase/migrations/20261112075919_cloud_deployment_version_ownership.sql"), "utf8"));
+      const a = "55555555-5555-4555-8555-555555555555", b = "66666666-6666-4666-8666-666666666666", v = "77777777-7777-4777-8777-777777777777";
+      await db.query("insert into cloud_deployments(id,owner_id,name,slug) values($1,$3,'A','a'),($2,$3,'B','b')", [a,b,owner]);
+      await expect(db.query("insert into cloud_deployment_versions(id,deployment_id,version_number,storage_prefix,size_bytes,file_count) values($1,$2,1,'forged',1,1)", [v,a])).rejects.toThrow();
+      await db.query("insert into cloud_deployment_versions(id,deployment_id,version_number,storage_prefix,size_bytes,file_count) values($1,$2,1,$3,1,1)", [v,a,`${a}/${v}`]);
+      await expect(db.query("update cloud_deployments set live_version_id=$1 where id=$2", [v,b])).rejects.toThrow();
+      await db.query("update cloud_deployments set live_version_id=$1 where id=$2", [v,a]);
+      await db.query("delete from cloud_deployment_versions where id=$1", [v]);
+      expect((await db.query("select id,live_version_id from cloud_deployments where id=$1", [a])).rows).toEqual([{ id:a, live_version_id:null }]);
+    } finally { await db.close(); }
+  });
+});

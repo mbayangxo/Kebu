@@ -14,6 +14,7 @@ const createSchema = z.object({
 });
 
 const patchSchema = z.object({
+  expectedUpdatedAt: z.iso.datetime({ offset: true }).optional(),
   id: z.string().uuid(),
   title: z.string().trim().min(1).max(240).optional(),
   parentId: z.string().uuid().nullable().optional(),
@@ -117,12 +118,10 @@ export async function PATCH(req: Request) {
   if (parsed.data.starred !== undefined) patch.starred = parsed.data.starred;
   if (parsed.data.trashed !== undefined) patch.trashed_at = parsed.data.trashed ? new Date().toISOString() : null;
 
-  const { data: node, error } = await supabase
-    .from("library_nodes")
-    .update(patch)
-    .eq("id", parsed.data.id)
-    .select("*")
-    .single();
+  let query = supabase.from("library_nodes").update(patch).eq("id", parsed.data.id);
+  if (parsed.data.expectedUpdatedAt) query = query.eq("updated_at", parsed.data.expectedUpdatedAt);
+  const { data: node, error } = await query.select("*").maybeSingle();
+  if (!error && !node && parsed.data.expectedUpdatedAt) return NextResponse.json({ error: "This Library item changed elsewhere. Your local changes were kept." }, { status: 409 });
 
   if (error || !node) return NextResponse.json({ error: "Could not update Library item." }, { status: 403 });
   return NextResponse.json({ node });

@@ -269,6 +269,11 @@ describe("Cloud mutation routes reject cross-origin requests (real assertSameOri
 });
 
 describe("GET /cloud-sites/[slug]/[...path] — public static serving", () => {
+  it("rejects a forged rewrite marker on the app origin before querying storage", async () => {
+    serviceClientMock.client = { from: () => { throw new Error("must not query"); } };
+    const response = await serveCloudSite(new Request("https://kebu.africa/cloud-sites/my-app/index.html", { headers: { host: "kebu.africa", "x-kebu-cloud-site": "1" } }), { params: Promise.resolve({ slug: "my-app", path: ["index.html"] }) });
+    expect(response.status).toBe(404);
+  });
   it("refuses a request that didn't come through the x-kebu-cloud-site middleware rewrite (direct main-origin access)", async () => {
     const req = new Request("https://kebu.africa/cloud-sites/my-app/index.html");
     const res = await serveCloudSite(req, { params: Promise.resolve({ slug: "my-app", path: ["index.html"] }) });
@@ -277,7 +282,7 @@ describe("GET /cloud-sites/[slug]/[...path] — public static serving", () => {
 
   it("404s a slug with no live version, even with the correct header", async () => {
     serviceClientMock.client = { from: () => chain({ data: null, error: null }), storage: storageMock() };
-    const req = new Request("https://my-app.cloud.kebu.africa/index.html", { headers: { "x-kebu-cloud-site": "1" } });
+    const req = new Request("https://my-app.cloud.kebu.africa/index.html", { headers: { "x-kebu-cloud-site": "1", host: "my-app.cloud.kebu.africa" } });
     const res = await serveCloudSite(req, { params: Promise.resolve({ slug: "my-app", path: ["index.html"] }) });
     expect(res.status).toBe(404);
   });
@@ -286,16 +291,17 @@ describe("GET /cloud-sites/[slug]/[...path] — public static serving", () => {
     const storage = storageMock();
     serviceClientMock.client = {
       from: (table: string) => {
-        if (table === "cloud_deployments") return chain({ data: { live_version_id: versionId }, error: null });
-        if (table === "cloud_deployment_versions") return chain({ data: { storage_prefix: `${deploymentId}/v1` }, error: null });
+        if (table === "cloud_deployments") return chain({ data: { id: deploymentId, live_version_id: versionId }, error: null });
+        if (table === "cloud_deployment_versions") return chain({ data: { id: versionId, deployment_id: deploymentId }, error: null });
         throw new Error(`unexpected table ${table}`);
       },
       storage,
     };
-    const req = new Request("https://my-app.cloud.kebu.africa/style.css", { headers: { "x-kebu-cloud-site": "1" } });
+    const req = new Request("https://my-app.cloud.kebu.africa/style.css", { headers: { "x-kebu-cloud-site": "1", host: "my-app.cloud.kebu.africa" } });
     const res = await serveCloudSite(req, { params: Promise.resolve({ slug: "my-app", path: ["style.css"] }) });
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("text/css");
     expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("Content-Security-Policy")).toContain("sandbox allow-scripts");
   });
 });

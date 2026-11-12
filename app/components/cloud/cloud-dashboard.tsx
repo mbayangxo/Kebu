@@ -28,6 +28,7 @@ export function CloudDashboard() {
           Storage & static hosting
         </h1>
         <p className="text-sm" style={{ color: KEBU.muted }}>
+          Static deployments are isolated: forms, popups, browser storage and embedded frames are restricted.
           Real object storage and static site hosting. No server-side code runs here — every deployment is served as-is,
           on its own subdomain, isolated from your Kebu account.
         </p>

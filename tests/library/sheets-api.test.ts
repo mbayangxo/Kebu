@@ -26,7 +26,7 @@ function setupAuth(fromImpl: (table: string) => unknown) {
 function req(method: string, body?: unknown) {
   return new Request(`https://kebu.test/api/library/sheets/${sheetId}`, {
     method,
-    ...(body !== undefined ? { body: JSON.stringify(body), headers: { "Content-Type": "application/json" } } : {}),
+    ...(body !== undefined ? { body: JSON.stringify(typeof body === "object" && body !== null ? { expectedUpdatedAt: null, ...body } : body), headers: { "Content-Type": "application/json" } } : {}),
   });
 }
 
@@ -115,5 +115,26 @@ describe("PATCH /api/library/sheets/[id]", () => {
     expect(res.status).toBe(200);
     expect(data.ok).toBe(true);
     expect(data.cells.A2).toMatchObject({ display: "7", isFormula: true });
+  });
+});
+
+describe("revision protection", () => {
+  const payload = { cells: {} };
+  it("rejects a duplicate first save without overwriting", async () => {
+    const body = chain({ data: null, error: { code: "23505" } });
+    setupAuth(table => table === "library_nodes" ? chain({ data: { id: sheetId }, error: null }) : body);
+    const res = await PATCH(req("PATCH", payload), params(sheetId));
+    expect(res.status).toBe(409);
+    expect(body.insert).toHaveBeenCalled();
+    expect(body.upsert).not.toHaveBeenCalled();
+  });
+  it("uses an atomic revision condition and rejects a stale save", async () => {
+    const body = chain({ data: null, error: null });
+    setupAuth(table => table === "library_nodes" ? chain({ data: { id: sheetId }, error: null }) : body);
+    const expectedUpdatedAt = "2026-11-12T00:00:00.123456+00:00";
+    const res = await PATCH(req("PATCH", { ...payload, expectedUpdatedAt }), params(sheetId));
+    expect(res.status).toBe(409);
+    expect(body.eq).toHaveBeenCalledWith("updated_at", expectedUpdatedAt);
+    expect(body.upsert).not.toHaveBeenCalled();
   });
 });

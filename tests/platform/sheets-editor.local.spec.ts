@@ -94,9 +94,43 @@ test("a sheet is invisible to a user it was never shared with, enforced by the r
     await session(stranger, other);
     const get = await stranger.request.get(`http://127.0.0.1:38438/api/library/sheets/${id}`);
     expect(get.status()).toBe(404);
-    const patch = await stranger.request.patch(`http://127.0.0.1:38438/api/library/sheets/${id}`, { data: { cells: { A1: { raw: "hijacked" } } } });
+    const patch = await stranger.request.patch(`http://127.0.0.1:38438/api/library/sheets/${id}`, { data: { expectedUpdatedAt: null, cells: { A1: { raw: "hijacked" } } } });
     expect(patch.status()).toBe(404);
   } finally {
     await stranger.close();
   }
+});
+
+
+test("two tabs preserve the losing tab's edits instead of overwriting a newer save", async ({ page, request, context }) => {
+  const id = await createSheet(page, request);
+  const otherTab = await context.newPage();
+  await otherTab.goto(`/sheets/${id}`);
+  await expect(otherTab.getByRole("status")).toHaveText("Saved");
+  await typeAndCommit(page, "A1", "winner");
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await typeAndCommit(otherTab, "A1", "keep my draft");
+  await expect(otherTab.getByRole("alert").filter({ hasText: "newer version" })).toContainText("newer version");
+  await expect(otherTab.getByTestId("cell-A1")).toHaveText("keep my draft");
+  await expect(otherTab.getByRole("button", { name: "Download my edits" })).toBeVisible();
+  const saved = await context.request.get(`/api/library/sheets/${id}`);
+  expect((await saved.json()).cells.A1.raw).toBe("winner");
+});
+
+test("notification bell refreshes on open and reports failed read updates", async ({ page }) => {
+  await session(page.context());
+  let loads = 0;
+  await page.route("**/api/me/notifications", async route => {
+    if (route.request().method() === "PATCH") return route.fulfill({ status: 503, json: { error: "Unavailable" } });
+    loads++;
+    return route.fulfill({ json: { unread: 1, notifications: [{ id: "11111111-1111-4111-8111-111111111111", kind: "test", title: "A real room update", body: "New activity", action_url: null, read_at: null, created_at: "2026-11-12T00:00:00Z" }] } });
+  });
+  await page.goto("/library?view=sheets");
+  await expect.poll(() => loads).toBeGreaterThan(0);
+  const before = loads;
+  await page.getByRole("button", { name: "Notifications", exact: true }).click();
+  await expect.poll(() => loads).toBeGreaterThan(before);
+  await page.getByRole("button", { name: /A real room update/ }).click();
+  await expect(page.getByText("Could not mark notification read. Try again.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Notifications", exact: true })).toHaveText("1");
 });

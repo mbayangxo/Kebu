@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { CLOUD_DEPLOYMENTS_BUCKET, DEPLOYMENT_SLUG_PATTERN, mimeFromExtension } from "@/lib/cloud/constants";
+import { CLOUD_STATIC_CSP, CLOUD_DEPLOYMENTS_BUCKET, DEPLOYMENT_SLUG_PATTERN, mimeFromExtension } from "@/lib/cloud/constants";
 import { sanitizeZipEntryPath } from "@/lib/cloud/zip-extract";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: Params) {
   }
 
   const { slug, path } = await params;
-  if (!DEPLOYMENT_SLUG_PATTERN.test(slug)) {
+  if (!DEPLOYMENT_SLUG_PATTERN.test(slug) || (req.headers.get("host") ?? "").toLowerCase().split(":")[0] !== `${slug}.cloud.kebu.africa`) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -41,7 +41,7 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data: deployment } = await admin
     .from("cloud_deployments")
-    .select("live_version_id")
+    .select("id, live_version_id")
     .eq("slug", slug)
     .maybeSingle();
   if (!deployment?.live_version_id) {
@@ -50,20 +50,21 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data: version } = await admin
     .from("cloud_deployment_versions")
-    .select("storage_prefix")
+    .select("id, deployment_id")
     .eq("id", deployment.live_version_id)
+    .eq("deployment_id", deployment.id)
     .maybeSingle();
   if (!version) {
     return new Response("Site not live.", { status: 404 });
   }
 
-  const asset = await fetchAsset(admin, `${version.storage_prefix}/${safePath}`);
+  const asset = await fetchAsset(admin, `${deployment.id}/${version.id}/${safePath}`);
   if (asset) return assetResponse(asset, safePath);
 
   // SPA client-side-routing fallback: any unmatched path serves index.html
   // (every version is guaranteed to have one -- enforced at extraction time).
   if (safePath !== "index.html") {
-    const fallback = await fetchAsset(admin, `${version.storage_prefix}/index.html`);
+    const fallback = await fetchAsset(admin, `${deployment.id}/${version.id}/index.html`);
     if (fallback) return assetResponse(fallback, "index.html");
   }
 
@@ -85,7 +86,9 @@ function assetResponse(body: ArrayBuffer, path: string): Response {
     headers: {
       "Content-Type": mimeFromExtension(path),
       "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "public, max-age=60",
+      "Cache-Control": "no-store",
+      "Content-Security-Policy": CLOUD_STATIC_CSP,
+      "Access-Control-Allow-Origin": "*",
     },
   });
 }

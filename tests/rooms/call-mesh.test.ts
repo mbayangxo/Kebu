@@ -101,3 +101,12 @@ describe("mesh participant cap", () => {
     expect(MESH_PARTICIPANT_OPTIONS.some((o) => o.value < MAX_MESH_PARTICIPANTS)).toBe(true);
   });
 });
+
+describe("screen sharing signals", () => {
+  it("requires a boolean state and keeps initial sharing metadata in offers", () => {
+    expect(parseSignalMessage({ type:"screen", from:"a", to:"b", enabled:true })).toEqual({ type:"screen", from:"a", to:"b", enabled:true });
+    expect(parseSignalMessage({ type:"screen", from:"a", to:"b", enabled:"yes" })).toBeNull();
+    expect(parseSignalMessage({ type:"offer", from:"a", to:"b", sdp:"test", screenSharing:true })).toMatchObject({ screenSharing:true });
+    expect(parseSignalMessage({ type:"offer", from:"a", to:"b", sdp:"test", screenSharing:"yes" })).toBeNull();
+  });
+});

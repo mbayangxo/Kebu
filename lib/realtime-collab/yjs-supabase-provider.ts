@@ -50,7 +50,7 @@ export function createYjsSupabaseProvider(opts: {
     onStatusChange?.(next);
   };
 
-  const channel: RealtimeChannel = supabase.channel(channelName, { config: { presence: { key: selfId } } });
+  const channel: RealtimeChannel = supabase.channel(channelName, { config: { private: true, presence: { key: selfId } } });
 
   const broadcastUpdate = (update: Uint8Array) => {
     void channel.send({ type: "broadcast", event: "collab", payload: encodeUpdateMessage(selfId, update) });

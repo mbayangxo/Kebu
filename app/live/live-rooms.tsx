@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { startBroadcast } from "@/lib/live/start-broadcast";
 import { Room, RoomEvent, Track, type RemoteTrack } from "livekit-client";
 
 type Broadcast = { id: string; title: string; expires_at: string };
@@ -170,8 +171,11 @@ export function LiveRooms() {
         {setup && <form className="space-y-3 rounded-[20px] border border-black/10 bg-white p-5" onSubmit={event => {
           event.preventDefault();
           void run(async () => {
-            const { room } = await api<{ room: Broadcast }>({ action: "start", title: title.trim() });
-            await enter(room);
+            await startBroadcast(
+              async () => (await api<{ room: Broadcast }>({ action: "start", title: title.trim() })).room,
+              enter,
+              id => api({ action: "end", id }),
+            );
             setSetup(false);
           });
         }}>

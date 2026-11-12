@@ -48,3 +48,6 @@ export function isAllowedDeploymentExtension(path: string): boolean {
   const ext = path.split(".").pop()?.toLowerCase() ?? "";
   return ext in DEPLOYMENT_MIME_BY_EXT;
 }
+
+/** Uploaded pages execute in a sandbox with an opaque origin, never the app origin. */
+export const CLOUD_STATIC_CSP = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' https:; style-src 'unsafe-inline' https:; img-src https: data: blob:; font-src https: data:; media-src https: blob:; connect-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";

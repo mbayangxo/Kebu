@@ -34,7 +34,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { data: node, error: nodeError } = await supabase
     .from("library_nodes")
-    .select("id, title, kind")
+    .select("id, title, kind, updated_at")
     .eq("id", id)
     .eq("kind", "sheet")
     .maybeSingle();
@@ -42,11 +42,13 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Sheet not found." }, { status: 404 });
   }
 
-  const { data: body } = await supabase
+  const { data: body, error: bodyError } = await supabase
     .from("sheet_bodies")
     .select("cells, row_count, column_count, updated_at")
     .eq("id", id)
     .maybeSingle();
+
+  if (bodyError) return NextResponse.json({ error: "Could not load saved content. Please retry." }, { status: 503 });
 
   const cells = (body?.cells ?? {}) as SheetCells;
   const rowCount = body?.row_count ?? 100;
@@ -56,6 +58,7 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     id: node.id,
     title: node.title,
+    nodeUpdatedAt: node.updated_at,
     rowCount,
     columnCount,
     cells: computed,
@@ -64,7 +67,7 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 /**
- * Real write, upserting the body row (a brand-new sheet has a library_nodes
+ * Revision-checked write to the body row (a brand-new sheet has a library_nodes
  * row but no sheet_bodies row yet -- the first save creates it). RLS on
  * sheet_bodies enforces owner-or-editor for both the insert and update paths;
  * a viewer-only share's write is rejected by Postgres itself, not by an
@@ -106,15 +109,21 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Sheet not found." }, { status: 404 });
   }
 
+  const revision = z.object({ expectedUpdatedAt: z.iso.datetime({ offset: true }).nullable() }).safeParse(json);
+  if (!revision.success) return NextResponse.json({ error: "Reload the latest version before saving." }, { status: 428 });
+
   const patch: Record<string, unknown> = { id, cells: parsed.data.cells };
   if (parsed.data.rowCount !== undefined) patch.row_count = parsed.data.rowCount;
   if (parsed.data.columnCount !== undefined) patch.column_count = parsed.data.columnCount;
 
-  const { data: saved, error } = await supabase
-    .from("sheet_bodies")
-    .upsert(patch, { onConflict: "id" })
-    .select("updated_at")
-    .single();
+  const bodyQuery = supabase.from("sheet_bodies");
+  const { data: saved, error } = revision.data.expectedUpdatedAt === null
+    ? await bodyQuery.insert(patch).select("updated_at").maybeSingle()
+    : await bodyQuery.update(patch).eq("id", id).eq("updated_at", revision.data.expectedUpdatedAt).select("updated_at").maybeSingle();
+
+  if (error?.code === "23505" || (!error && !saved)) {
+    return NextResponse.json({ error: "Someone saved a newer version. Your edits have been kept here; download a recovery copy before reloading." }, { status: 409 });
+  }
 
   if (error || !saved) {
     return NextResponse.json({ error: "Could not save sheet." }, { status: 403 });

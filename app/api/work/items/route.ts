@@ -1,3 +1,5 @@
+import * as Y from "yjs";
+import { yXmlFragmentToProsemirrorJSON } from "y-prosemirror";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { z } from "zod";
 import { NextResponse } from "next/server";
@@ -117,6 +119,23 @@ export async function PATCH(req: Request) {
       patch.rich_content = richParsed.data;
       patch.body = extractPlainText(richParsed.data);
     }
+  }
+
+  if (parsed.data.collabState !== undefined) {
+    const doc = new Y.Doc();
+    try {
+      Y.applyUpdate(doc, Buffer.from(parsed.data.collabState, "base64"));
+      const stateContent = yXmlFragmentToProsemirrorJSON(doc.getXmlFragment("default"));
+      if (extractPlainText(stateContent) !== patch.body) return NextResponse.json({ error: "Live document changed while saving. Your local edits are kept; retry." }, { status: 409 });
+    }
+    catch { return NextResponse.json({ error: "Invalid collaboration state." }, { status: 400 }); }
+    finally { doc.destroy(); }
+    patch.collab_state = parsed.data.collabState;
+    patch.collab_write_id = crypto.randomUUID();
+  } else if (parsed.data.richContent !== undefined || parsed.data.body !== undefined) {
+    patch.collab_state = null;
+    patch.collab_epoch = null;
+    patch.collab_write_id = null;
   }
 
   const { data, error } = await supabase.from("workspace_items").update(patch).eq("id", parsed.data.id)

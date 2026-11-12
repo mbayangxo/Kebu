@@ -1,4 +1,9 @@
 # Kebu — Implementation Status
+
+## November 12 — integration audit fixes, local acceptance
+
+Cloud host/version boundaries, revision-checked Sheets/Slides and titles, notification recovery, room member controls, independent camera/screen sharing, rejoin/audio-only calls, failed-broadcast cleanup, and durable/private Docs collaboration are repaired on Claude's integration base. Local evidence and exact release limitations are in [the audit closeout](audits/KEBU_AUDIT_FINISH_2026-11-12.md). Four forward migrations remain unapplied to hosted databases. May's custom domain still returns Vercel `DEPLOYMENT_DISABLED`; automatic approval review blocked shared-project unpause pending clarification. Source merge is not a production launch or whole-platform certification.
+
 ## November 8 — optional developer App Store source candidate
 
 The developer → Record review → account add/open/remove path is implemented for reviewed, externally hosted free apps. Paid/subscription publication is blocked pending real billing/entitlements. Local database acceptance passes 20 assertions, focused tests 25 cases and two local browser flows at desktop/phone widths verify persistence and suspension. The developer marketplace's screenshots were visually inspected locally; this does not certify the separately built Live Rooms streaming feature. Local TypeScript, full lint (zero errors / 359 warnings), all 6,948 repository tests (473 explicit environment skips), and the production build pass. The initial worktree dependency-link build failure was resolved with a clean local npm ci; no application workaround or deployment was needed. Hosted migrations and preview release remain unapplied/blocked. [Scope, evidence and explicit remaining work](audits/KEBU_DEVELOPER_MARKETPLACE_2026-11-08.md).

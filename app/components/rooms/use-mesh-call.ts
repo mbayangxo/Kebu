@@ -15,18 +15,21 @@ type PresenceMeta = { userId: string };
 type PeerEntry = {
   pc: RTCPeerConnection;
   stream: MediaStream | null;
+  screenStream: MediaStream | null;
+  screenActive: boolean;
+  screenSender: RTCRtpSender | null;
   state: PeerConnectionState;
   pendingCandidates: RTCIceCandidateInit[];
 };
 
-export type PeerView = { id: string; stream: MediaStream | null; state: PeerConnectionState };
+export type PeerView = { id: string; stream: MediaStream | null; screenStream: MediaStream | null; state: PeerConnectionState };
 
 type Phase = "idle" | "joining" | "in-call" | "ended";
 
 type SupabaseChannel = ReturnType<ReturnType<typeof createClient>["channel"]>;
 
-async function waitForDevices(): Promise<MediaStream> {
-  return navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+async function waitForDevices(audioOnly = false): Promise<MediaStream> {
+  return navigator.mediaDevices.getUserMedia({ video: !audioOnly, audio: true });
 }
 
 /**
@@ -45,6 +48,7 @@ export function useMeshCall(roomId: string) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [sharing, setSharing] = useState(false);
 
   const peerMap = useRef<Map<string, PeerEntry>>(new Map());
@@ -53,9 +57,10 @@ export function useMeshCall(roomId: string) {
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const mounted = useRef(true);
+  const leaveRef = useRef<() => Promise<void>>(async () => {});
 
   const renderPeers = useCallback(() => {
-    setPeers([...peerMap.current.entries()].map(([id, e]) => ({ id, stream: e.stream, state: e.state })));
+    setPeers([...peerMap.current.entries()].map(([id, e]) => ({ id, stream: e.stream, screenStream: e.screenActive ? e.screenStream : null, state: e.state })));
   }, []);
 
   const broadcast = useCallback((message: SignalMessage) => {
@@ -71,8 +76,6 @@ export function useMeshCall(roomId: string) {
   }, [renderPeers]);
 
   const currentVideoTrack = useCallback(() => {
-    const screen = screenStreamRef.current;
-    if (screen) return screen.getVideoTracks()[0] ?? null;
     return localStreamRef.current?.getVideoTracks()[0] ?? null;
   }, []);
 
@@ -81,18 +84,27 @@ export function useMeshCall(roomId: string) {
     if (existing) return existing;
 
     const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
-    const entry: PeerEntry = { pc, stream: null, state: "connecting", pendingCandidates: [] };
+    const entry: PeerEntry = { pc, stream: null, screenStream: null, screenActive: false, screenSender: null, state: "connecting", pendingCandidates: [] };
     peerMap.current.set(peerId, entry);
 
     const audioTrack = localStreamRef.current?.getAudioTracks()[0];
     if (audioTrack) pc.addTrack(audioTrack, localStreamRef.current!);
     const videoTrack = currentVideoTrack();
-    if (videoTrack) pc.addTrack(videoTrack, localStreamRef.current ?? new MediaStream([videoTrack]));
+    if (videoTrack) pc.addTrack(videoTrack, localStreamRef.current!);
+    // Only the offerer creates extra m-lines. The answerer binds its screen
+    // sender to the incoming screen m-line after setRemoteDescription.
+    if (shouldInitiateOffer(self, peerId)) {
+      if (!videoTrack) pc.addTransceiver("video", { direction: "sendrecv", streams: localStreamRef.current ? [localStreamRef.current] : [] });
+      const screenTrack = screenStreamRef.current?.getVideoTracks()[0];
+      entry.screenSender = pc.addTransceiver(screenTrack ?? "video", { direction: "sendrecv", streams: [screenStreamRef.current ?? new MediaStream()] }).sender;
+    }
 
     pc.ontrack = (event) => {
       const entryNow = peerMap.current.get(peerId);
       if (!entryNow) return;
-      entryNow.stream = event.streams[0] ?? entryNow.stream;
+      if (event.transceiver.mid === "2") {
+        entryNow.screenStream = event.streams[0] ?? new MediaStream([event.track]);
+      } else entryNow.stream = event.streams[0] ?? entryNow.stream;
       renderPeers();
     };
     pc.onicecandidate = (event) => {
@@ -114,23 +126,37 @@ export function useMeshCall(roomId: string) {
     const entry = ensurePeer(peerId, self);
     const offer = await entry.pc.createOffer();
     await entry.pc.setLocalDescription(offer);
-    broadcast({ type: "offer", from: self, to: peerId, sdp: offer.sdp! });
+    broadcast({ type: "offer", from: self, to: peerId, sdp: offer.sdp!, screenSharing: Boolean(screenStreamRef.current) });
   }, [broadcast, ensurePeer]);
 
   const handleSignal = useCallback(async (raw: unknown, self: string) => {
     const msg = parseSignalMessage(raw);
     if (!msg || msg.to !== self) return;
+    if (msg.type === "screen") {
+      const entry = peerMap.current.get(msg.from);
+      if (entry) { entry.screenActive = msg.enabled; renderPeers(); }
+      return;
+    }
     if (msg.type === "offer") {
       const entry = ensurePeer(msg.from, self);
+      entry.screenActive = msg.screenSharing ?? false;
       await entry.pc.setRemoteDescription({ type: "offer", sdp: msg.sdp });
+      const screenTransceiver = entry.pc.getTransceivers().find(t => t.mid === "2");
+      if (screenTransceiver) {
+        screenTransceiver.direction = "sendrecv";
+        entry.screenSender = screenTransceiver.sender;
+        entry.screenSender.setStreams(screenStreamRef.current ?? new MediaStream());
+        await entry.screenSender.replaceTrack(screenStreamRef.current?.getVideoTracks()[0] ?? null);
+      }
       for (const c of entry.pendingCandidates) await entry.pc.addIceCandidate(c).catch(() => {});
       entry.pendingCandidates = [];
       const answer = await entry.pc.createAnswer();
       await entry.pc.setLocalDescription(answer);
-      broadcast({ type: "answer", from: self, to: msg.from, sdp: answer.sdp! });
+      broadcast({ type: "answer", from: self, to: msg.from, sdp: answer.sdp!, screenSharing: Boolean(screenStreamRef.current) });
     } else if (msg.type === "answer") {
       const entry = peerMap.current.get(msg.from);
       if (!entry || entry.pc.remoteDescription) return;
+      entry.screenActive = msg.screenSharing ?? false;
       await entry.pc.setRemoteDescription({ type: "answer", sdp: msg.sdp });
       for (const c of entry.pendingCandidates) await entry.pc.addIceCandidate(c).catch(() => {});
       entry.pendingCandidates = [];
@@ -140,9 +166,9 @@ export function useMeshCall(roomId: string) {
       if (entry.pc.remoteDescription) await entry.pc.addIceCandidate(msg.candidate).catch(() => {});
       else entry.pendingCandidates.push(msg.candidate);
     }
-  }, [broadcast, ensurePeer]);
+  }, [broadcast, ensurePeer, renderPeers]);
 
-  const join = useCallback(async (maxParticipants?: number) => {
+  const join = useCallback(async (maxParticipants?: number, audioOnly = false) => {
     if (phase === "joining" || phase === "in-call") return;
     setError("");
     setPhase("joining");
@@ -150,7 +176,9 @@ export function useMeshCall(roomId: string) {
       // Get media permission before telling the server we've joined — a
       // denied/missing camera must not leave an orphaned "joined" participant
       // row behind (capacity and history are no-leave-call-needed clean).
-      const stream = await waitForDevices();
+      const stream = await waitForDevices(audioOnly);
+      setCameraOff(audioOnly);
+      setMuted(false);
       if (!mounted.current) { stream.getTracks().forEach((t) => t.stop()); return; }
 
       const res = await fetch(`/api/rooms/${encodeURIComponent(roomId)}/call`, {
@@ -170,7 +198,7 @@ export function useMeshCall(roomId: string) {
       setSelfId(self);
 
       const supabase = createClient();
-      const channel = supabase.channel(`room-call:${data.id}`, { config: { presence: { key: self } } });
+      const channel = supabase.channel(`room-call:${data.id}`, { config: { private: true, presence: { key: self } } });
       channelRef.current = channel;
       channel
         .on("broadcast", { event: "signal" }, ({ payload }: { payload: unknown }) => void handleSignal(payload, self))
@@ -182,6 +210,10 @@ export function useMeshCall(roomId: string) {
         })
         .subscribe(async (status: string) => {
           if (status === "SUBSCRIBED") await channel.track({ userId: self });
+          else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status) && channelRef.current === channel) {
+            setError("Could not connect to the secure call channel. Please rejoin.");
+            void leaveRef.current();
+          }
         });
 
       setPhase("in-call");
@@ -198,11 +230,11 @@ export function useMeshCall(roomId: string) {
     if (!channelRef.current && !localStreamRef.current) return;
     const id = callId;
     for (const peerId of [...peerMap.current.keys()]) closePeer(peerId);
-    if (channelRef.current) { const supabase = createClient(); void supabase.removeChannel(channelRef.current); channelRef.current = null; }
+    if (channelRef.current) { const channel = channelRef.current; channelRef.current = null; const supabase = createClient(); void supabase.removeChannel(channel); }
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null; screenStreamRef.current = null;
-    setLocalStream(null); setPeers([]); setPhase("ended"); setSharing(false);
+    setScreenStream(null); setLocalStream(null); setPeers([]); setPhase("ended"); setSharing(false);
     if (id) {
       try {
         await fetch(`/api/rooms/${encodeURIComponent(roomId)}/call`, {
@@ -212,9 +244,11 @@ export function useMeshCall(roomId: string) {
     }
   }, [callId, closePeer, roomId]);
 
+  useEffect(() => { leaveRef.current = leave; }, [leave]);
+
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; void leave(); };
+    return () => { mounted.current = false; void leaveRef.current(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -249,13 +283,14 @@ export function useMeshCall(roomId: string) {
   const stopSharing = useCallback(async () => {
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
-    const camTrack = localStreamRef.current?.getVideoTracks()[0] ?? null;
-    for (const entry of peerMap.current.values()) {
-      const sender = entry.pc.getSenders().find((s) => s.track?.kind === "video");
-      if (sender) await sender.replaceTrack(camTrack).catch(() => {});
+    setScreenStream(null);
+    for (const [peerId, entry] of peerMap.current) {
+      try { await entry.screenSender?.replaceTrack(null); }
+      catch { if (entry.pc.signalingState !== "closed") setError("A screen connection could not be cleared. Leave and rejoin if needed."); }
+      if (selfId) broadcast({ type: "screen", from: selfId, to: peerId, enabled: false });
     }
     setSharing(false);
-  }, []);
+  }, [broadcast, selfId]);
 
   const toggleShare = useCallback(async () => {
     if (sharing) { await stopSharing(); return; }
@@ -264,17 +299,18 @@ export function useMeshCall(roomId: string) {
       const track = screen.getVideoTracks()[0];
       if (!track) return;
       screenStreamRef.current = screen;
-      for (const entry of peerMap.current.values()) {
-        const sender = entry.pc.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(track);
-        else entry.pc.addTrack(track, screen);
+      setScreenStream(screen);
+      for (const [peerId, entry] of peerMap.current) {
+        await entry.screenSender?.replaceTrack(track);
+        if (selfId) broadcast({ type: "screen", from: selfId, to: peerId, enabled: true });
       }
       setSharing(true);
       track.onended = () => void stopSharing();
     } catch (e) {
+      await stopSharing();
       setError(e instanceof Error ? e.message : "Could not share your screen.");
     }
-  }, [sharing, stopSharing]);
+  }, [sharing, stopSharing, broadcast, selfId]);
 
-  return { phase, error, callId, selfId, peers, localStream, muted, cameraOff, sharing, join, leave, toggleMute, toggleCamera, toggleShare };
+  return { screenStream, phase, error, callId, selfId, peers, localStream, muted, cameraOff, sharing, join, leave, toggleMute, toggleCamera, toggleShare };
 }

@@ -41,6 +41,11 @@ await db.exec(read('supabase/migrations/20261014043916_workspace_item_identity_g
 await db.exec(read('supabase/migrations/20261016150000_workspace_item_visibility.sql'));
 await db.exec(read('supabase/migrations/20261107040000_workspace_item_rich_content.sql').replace(/notify pgrst[^;]*;/i, ''));
 
+await db.exec(`create schema realtime; create table realtime.messages(topic text,extension text);
+  alter table realtime.messages enable row level security;
+  create function realtime.topic() returns text language sql stable as $$select current_setting('request.topic',true)$$;`);
+await db.exec(read('supabase/migrations/20261112075718_document_collaboration_state.sql'));
+
 const docId = '99999999-9999-4999-8999-999999999999';
 await db.query('insert into businesses(id, public_kebu_id, legal_name, trading_name) values($1,$2,$3,$4)', [business, 'kebu-collab-biz', 'Collab Biz', 'Collab Biz']);
 for (const uid of [userA, userB]) {
@@ -62,7 +67,7 @@ async function asUser(uid, sql, params = []) {
 assert.equal((await asUser(stranger, 'select id from workspace_items where id=$1', [docId])).rows.length, 0);
 assert.equal((await asUser(userB, 'select id from workspace_items where id=$1', [docId])).rows.length, 1);
 
-const workspaceItemColumns = new Set(['id', 'owner_id', 'business_id', 'room_id', 'kind', 'title', 'body', 'rich_content', 'status', 'due_at', 'start_at', 'end_at', 'visibility', 'created_at', 'updated_at']);
+const workspaceItemColumns = new Set(['id', 'owner_id', 'business_id', 'room_id', 'kind', 'title', 'body', 'rich_content', 'collab_state', 'collab_epoch', 'collab_write_id', 'status', 'due_at', 'start_at', 'end_at', 'visibility', 'created_at', 'updated_at']);
 let queries = 0, totalQueries = 0;
 function identity(req) {
   try {

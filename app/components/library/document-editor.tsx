@@ -6,7 +6,7 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type * as Y from "yjs";
 import type { Awareness } from "y-protocols/awareness";
 import type { RichDocument } from "@/lib/work/rich-text";
@@ -24,8 +24,8 @@ function buildExtensions(collab: DocumentCollabBinding | null) {
   }
   // Collaboration ships its own Yjs-backed undo history; ProseMirror's local
   // history plugin (StarterKit's default) must be disabled alongside it —
-  // local undo/redo stacks don't make sense once remote edits interleave
-  // with your own, so Undo/Redo become no-ops while connected (see Toolbar).
+  // local history is replaced by Collaboration's undo/redo commands, which
+  // track this client's edits without undoing a teammate's changes.
   return [
     StarterKit.configure({ history: false }),
     LINK_EXTENSION,
@@ -94,15 +94,17 @@ function Toolbar({ editor, disabled }: { editor: Editor; disabled: boolean }) {
  * every render, so the parent owns the actual persisted content between
  * remounts via onUpdate.
  */
-export function DocumentEditor({ docKey, initialContent, collab, disabled, onUpdate, onBlur, onSaveShortcut }: {
+export function DocumentEditor({ docKey, initialContent, collab, disabled, onReady, onUpdate, onBlur, onSaveShortcut }: {
   docKey: string;
   initialContent: RichDocument;
   collab: DocumentCollabBinding | null;
   disabled: boolean;
+  onReady: (doc: RichDocument) => void;
   onUpdate: (doc: RichDocument) => void;
   onBlur: () => void;
   onSaveShortcut: () => void;
 }) {
+  const ready = useRef(false);
   const editor = useEditor({
     extensions: buildExtensions(collab),
     // Collaboration mode hydrates its content entirely from the already-
@@ -118,7 +120,9 @@ export function DocumentEditor({ docKey, initialContent, collab, disabled, onUpd
         return false;
       },
     },
-    onUpdate: ({ editor: current }) => onUpdate(current.getJSON() as RichDocument),
+    onBeforeCreate: () => { ready.current = false; },
+    onCreate: ({ editor: current }) => { ready.current = true; onReady(current.getJSON() as RichDocument); },
+    onUpdate: ({ editor: current }) => { if (ready.current) onUpdate(current.getJSON() as RichDocument); },
     onBlur: () => onBlur(),
   }, [docKey]);
 

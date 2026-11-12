@@ -1,5 +1,7 @@
 "use client";
 
+import * as Y from "yjs";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
 import type { WorkItemRow } from "@/lib/work/items";
@@ -9,9 +11,8 @@ import { richDocumentSchema, extractPlainText, plainTextToRichDocument, richDocu
 import { DocumentEditor } from "./document-editor";
 import { useDocumentCollab } from "./use-document-collab";
 
-const EMPTY_DOC: RichDocument = { type: "doc", content: [] };
 
-type Draft = { body: string; savedBody: string; content: RichDocument; contentVersion: number; revision: string; status: "saved" | "pending" | "saving" | "error" | "conflict" | "offline"; error?: string; server?: WorkItemRow };
+type Draft = { body: string; savedBody: string; savedContent: string; content: RichDocument; contentVersion: number; revision: string; status: "saved" | "pending" | "saving" | "error" | "conflict" | "offline"; error?: string; server?: WorkItemRow };
 
 /** The server's real source of truth for kind="doc" is rich_content; a doc never opened in the rich editor has none yet, so fall back to migrating its plain body into a minimal valid document. */
 function parseRichContent(row: WorkItemRow): RichDocument {
@@ -22,6 +23,7 @@ function parseRichContent(row: WorkItemRow): RichDocument {
 export function LibraryDocumentsPanel() {
   const [items, setItems] = useState<WorkItemRow[]>([]);
   const [workspace, setWorkspace] = useState<AccountWorkspaceContext | null>(null);
+  const [collabBlockedIds, setCollabBlockedIds] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
@@ -37,7 +39,7 @@ export function LibraryDocumentsPanel() {
   const userId = useRef<string | null>(null);
   const mounted = useRef(true);
   const createId = useRef<string | null>(null);
-  const collabConnectedIdRef = useRef<string | null>(null);
+  const collabDocRef = useRef<{ id: string; doc: Y.Doc } | null>(null);
   const saveDocRef = useRef<(id: string) => Promise<void>>(async () => {});
 
   /**
@@ -56,7 +58,7 @@ export function LibraryDocumentsPanel() {
   const cache = useCallback((id: string, draft: Draft) => {
     if (!userId.current) return false;
     try {
-      localStorage.setItem(`kebu-document-v1:${userId.current}:${id}`, JSON.stringify({ body: draft.body, savedBody: draft.savedBody, content: draft.content, revision: draft.revision, dirty: draft.body !== draft.savedBody }));
+      localStorage.setItem(`kebu-document-v1:${userId.current}:${id}`, JSON.stringify({ body: draft.body, savedBody: draft.savedBody, savedContent: draft.savedContent, content: draft.content, revision: draft.revision, dirty: JSON.stringify(draft.content) !== draft.savedContent }));
       return true;
     } catch { return false; }
   }, []);
@@ -73,23 +75,24 @@ export function LibraryDocumentsPanel() {
       if (userId.current && userId.current !== data.userId) {
         queues.current.forEach(queue => queue.cancel()); queues.current.clear();
         timers.current.forEach(clearTimeout); timers.current.clear();
-        draftsRef.current = {}; setDrafts({}); setSelectedId(null);
+        draftsRef.current = {}; setDrafts({}); setSelectedId(null); setCollabBlockedIds([]);
       }
       userId.current = data.userId;
       const rows = data.items as WorkItemRow[];
       for (const row of rows) {
         let draft = draftsRef.current[row.id];
         if (!draft) {
-          draft = { body: row.body, savedBody: row.body, content: parseRichContent(row), contentVersion: 0, revision: row.updated_at, status: "saved" };
+          draft = { body: row.body, savedBody: row.body, savedContent: JSON.stringify(parseRichContent(row)), content: parseRichContent(row), contentVersion: 0, revision: row.updated_at, status: "saved" };
           try {
             const saved = JSON.parse(localStorage.getItem(`kebu-document-v1:${data.userId}:${row.id}`) ?? "null");
-            if (saved?.dirty && saved.body !== row.body && typeof saved.body === "string" && saved.body.length <= 20000 && typeof saved.revision === "string") {
+            if (saved?.dirty && JSON.stringify(saved.content) !== JSON.stringify(parseRichContent(row)) && typeof saved.body === "string" && saved.body.length <= 20000 && typeof saved.revision === "string") {
+              setCollabBlockedIds(current => current.includes(row.id) ? current : [...current, row.id]);
               const savedContent = richDocumentSchema.safeParse(saved.content);
-              draft = { body: saved.body, savedBody: typeof saved.savedBody === "string" ? saved.savedBody : row.body, content: savedContent.success ? savedContent.data : plainTextToRichDocument(saved.body), contentVersion: 0, revision: saved.revision, status: saved.revision === row.updated_at ? "pending" : "conflict", ...(saved.revision !== row.updated_at ? { server: row } : {}) };
+              draft = { body: saved.body, savedBody: typeof saved.savedBody === "string" ? saved.savedBody : row.body, savedContent: typeof saved.savedContent === "string" ? saved.savedContent : JSON.stringify(parseRichContent(row)), content: savedContent.success ? savedContent.data : plainTextToRichDocument(saved.body), contentVersion: 0, revision: saved.revision, status: saved.revision === row.updated_at ? "pending" : "conflict", ...(saved.revision !== row.updated_at ? { server: row } : {}) };
             }
           } catch { /* A malformed device draft cannot replace authenticated server data. */ }
-        } else if (draft.body === draft.savedBody) {
-          draft = { body: row.body, savedBody: row.body, content: parseRichContent(row), contentVersion: nextVersion(row.id), revision: row.updated_at, status: "saved" };
+        } else if (JSON.stringify(draft.content) === draft.savedContent) {
+          draft = { body: row.body, savedBody: row.body, savedContent: JSON.stringify(parseRichContent(row)), content: parseRichContent(row), contentVersion: nextVersion(row.id), revision: row.updated_at, status: "saved" };
         } else if (draft.revision !== row.updated_at) {
           draft = { ...draft, status: "conflict", server: row };
         }
@@ -124,17 +127,19 @@ export function LibraryDocumentsPanel() {
 
   const saveDoc = useCallback(async (id: string) => {
     const queue = queues.current.get(id), requested = draftsRef.current[id];
-    if (!queue || !requested || deleting.current.has(id) || requested.body === requested.savedBody || queue.isBlocked()) return;
+    if (!queue || !requested || deleting.current.has(id) || JSON.stringify(requested.content) === requested.savedContent || queue.isBlocked()) return;
     const text = requested.body;
     const content = requested.content;
+    const contentKey = JSON.stringify(content);
+    const collabState = collabDocRef.current?.id === id ? btoa(Array.from(Y.encodeStateAsUpdate(collabDocRef.current.doc), byte => String.fromCharCode(byte)).join("")) : undefined;
     const cached = cache(id, requested);
     await queue.run(async context => {
       const draft = draftsRef.current[id];
-      if (!context.active() || context.blocked() || deleting.current.has(id) || !draft || draft.body !== text || draft.savedBody === text) return;
+      if (!context.active() || context.blocked() || deleting.current.has(id) || !draft || JSON.stringify(draft.content) !== contentKey || draft.savedContent === contentKey) return;
       if (!navigator.onLine) { updateDraft(id, { ...draft, status: cached ? "offline" : "error", error: cached ? "Saved on this device. Reconnect to sync." : "Device storage failed. Keep this tab open and reconnect." }); return; }
       updateDraft(id, { ...draft, status: "saving", error: undefined });
       try {
-        const response = await fetch("/api/work/items", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, richContent: content, expectedUpdatedAt: context.revision() }) });
+        const response = await fetch("/api/work/items", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, richContent: content, ...(collabState ? { collabState } : {}), expectedUpdatedAt: context.revision() }) });
         const data = await response.json().catch(() => ({}));
         if (!context.active()) return;
         if (response.status === 409) {
@@ -142,21 +147,12 @@ export function LibraryDocumentsPanel() {
           const latest = await latestResponse.json().catch(() => ({}));
           if (!context.active()) return;
           const server = latestResponse.ok ? latest.items?.find((row: WorkItemRow) => row.id === id) : undefined;
-          if (server && collabConnectedIdRef.current === id) {
-            // Both sides are live-collaborating through the same Yjs
-            // document, so a 409 here only means this tab's revision pointer
-            // went stale while the other tab's save landed first — Yjs
-            // already merged both tabs' edits client-side, so there is no
-            // real conflict to ask about. Advance the pointer and retry
-            // shortly, instead of surfacing the manual conflict UI (which
-            // would otherwise make a connected collaborator choose between
-            // two copies of the exact same converged text).
+          if (server && JSON.stringify(parseRichContent(server)) === contentKey) {
             context.acknowledge(server.updated_at);
-            const next = { ...draftsRef.current[id]!, revision: server.updated_at, status: draftsRef.current[id]!.body === draftsRef.current[id]!.savedBody ? "saved" as const : "pending" as const };
-            updateDraft(id, next); setItems(current => current.map(row => row.id === id ? server : row));
-            clearTimeout(timers.current.get(id)); timers.current.set(id, setTimeout(() => void saveDocRef.current(id), 50));
-            return;
+            const next = { ...draftsRef.current[id]!, savedBody: text, savedContent: contentKey, revision: server.updated_at, status: JSON.stringify(draftsRef.current[id]!.content) === contentKey ? "saved" as const : "pending" as const };
+            updateDraft(id, next); cache(id, next); return;
           }
+          setCollabBlockedIds(current => current.includes(id) ? current : [...current, id]);
           context.conflict();
           updateDraft(id, { ...draftsRef.current[id]!, status: "conflict", server, error: server ? "This document changed elsewhere. Choose which text to keep." : "Could not load the newer document. Your text is kept. Reload the list before retrying." }); return;
         }
@@ -165,7 +161,7 @@ export function LibraryDocumentsPanel() {
           context.conflict(); throw new Error("Could not confirm this save. Reload the list before retrying; your text is kept.");
         }
         context.acknowledge(data.item.updated_at);
-        const next = { ...draftsRef.current[id]!, savedBody: text, revision: data.item.updated_at, status: draftsRef.current[id]!.body === text ? "saved" as const : "pending" as const, error: undefined };
+        const next = { ...draftsRef.current[id]!, savedBody: text, savedContent: contentKey, revision: data.item.updated_at, status: JSON.stringify(draftsRef.current[id]!.content) === contentKey ? "saved" as const : "pending" as const, error: undefined };
         updateDraft(id, next); cache(id, next);
         setItems(current => current.map(row => row.id === id ? data.item : row));
       } catch (cause) {
@@ -177,7 +173,7 @@ export function LibraryDocumentsPanel() {
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (Object.values(draftsRef.current).some(draft => draft.body !== draft.savedBody)) { event.preventDefault(); event.returnValue = ""; }
+      if (Object.values(draftsRef.current).some(draft => JSON.stringify(draft.content) !== draft.savedContent)) { event.preventDefault(); event.returnValue = ""; }
     };
     const online = () => Object.keys(draftsRef.current).forEach(id => void saveDoc(id));
     window.addEventListener("beforeunload", beforeUnload); window.addEventListener("online", online);
@@ -195,10 +191,10 @@ export function LibraryDocumentsPanel() {
   }
   const selected = useMemo(() => items.find(item => item.id === selectedId) ?? null, [items, selectedId]);
   const selectedDraft = selectedId ? drafts[selectedId] : undefined;
-  const collab = useDocumentCollab(selectedId, selectedDraft?.content ?? EMPTY_DOC);
+  const collab = useDocumentCollab(collabBlockedIds.includes(selectedId ?? "") ? null : selectedId);
   useEffect(() => {
-    collabConnectedIdRef.current = collab.status === "connected" ? selectedId : null;
-  }, [collab.status, selectedId]);
+    collabDocRef.current = collab.status === "connected" && selectedId && collab.doc ? { id: selectedId, doc: collab.doc } : null;
+  }, [collab.status, selectedId, collab.doc]);
   const collabBinding = collab.status === "connected" && collab.doc && collab.awareness
     ? { doc: collab.doc, awareness: collab.awareness, label: collab.label, color: collab.color }
     : null;
@@ -215,8 +211,8 @@ export function LibraryDocumentsPanel() {
     if (!draft || !server || !validStudioSaveReceipt(server, id)) return;
     const queue = queues.current.get(id)!; queue.reset(server.updated_at);
     const next: Draft = keepLocal
-      ? { body: draft.body, savedBody: server.body, content: draft.content, contentVersion: draft.contentVersion, revision: server.updated_at, status: "pending" }
-      : { body: server.body, savedBody: server.body, content: parseRichContent(server), contentVersion: nextVersion(id), revision: server.updated_at, status: "saved" };
+      ? { body: draft.body, savedBody: server.body, savedContent: JSON.stringify(parseRichContent(server)), content: draft.content, contentVersion: draft.contentVersion, revision: server.updated_at, status: "pending" }
+      : { body: server.body, savedBody: server.body, savedContent: JSON.stringify(parseRichContent(server)), content: parseRichContent(server), contentVersion: nextVersion(id), revision: server.updated_at, status: "saved" };
     updateDraft(id, next); cache(id, next); setItems(current => current.map(row => row.id === id ? server : row));
     if (keepLocal) await saveDoc(id);
   }
@@ -231,7 +227,7 @@ export function LibraryDocumentsPanel() {
       if (data.code === "work_create_conflict" && validStudioSaveReceipt(data.item, id)) createId.current = null;
       if (!response.ok || !validStudioSaveReceipt(data.item, id) || data.item.body !== body || data.item.title !== title.trim() || data.item.kind !== "doc" || data.item.business_id !== (workspace?.activeBusinessId ?? null)) throw new Error(data.error || "Could not confirm creation. Retry or reload the list; your text is kept.");
       const queue = new RevisionQueue(id); queue.reset(data.item.updated_at); queues.current.set(id, queue);
-      updateDraft(id, { body: data.item.body, savedBody: data.item.body, content: parseRichContent(data.item), contentVersion: 0, revision: data.item.updated_at, status: "saved" });
+      updateDraft(id, { body: data.item.body, savedBody: data.item.body, savedContent: JSON.stringify(parseRichContent(data.item)), content: parseRichContent(data.item), contentVersion: 0, revision: data.item.updated_at, status: "saved" });
       setItems(current => [data.item, ...current.filter(row => row.id !== id)]); setSelectedId(id); setTitle(""); setBody(""); setCreating(false); createId.current = null;
     } catch (cause) { if (mounted.current) setError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Creation failed. Your text is kept; retry when connected."); }
     finally { if (mounted.current) setBusy(false); }
@@ -285,16 +281,22 @@ export function LibraryDocumentsPanel() {
       </section>
       <section className="min-h-[420px] min-w-0">
         {selected && selectedDraft ? <div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3"><h2 className="text-lg font-semibold">{selected.title}</h2><div className="flex flex-wrap gap-2"><button type="button" disabled={busy || selectedDraft.status === "saving" || selectedDraft.status === "conflict" || selectedDraft.body === selectedDraft.savedBody} onClick={() => void saveDoc(selected.id)} className="min-h-11 rounded-full border px-4 text-xs">Save document</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "txt")} className="min-h-11 rounded-full border px-4 text-xs">Export .txt</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "html")} className="min-h-11 rounded-full border px-4 text-xs">Export .html</button><button type="button" disabled={busy} onClick={() => void removeDoc(selected.id)} className="min-h-11 px-3 text-xs font-semibold text-red-700">Delete document</button></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3"><h2 className="text-lg font-semibold">{selected.title}</h2><div className="flex flex-wrap gap-2"><button type="button" disabled={busy || selectedDraft.status === "saving" || selectedDraft.status === "conflict" || JSON.stringify(selectedDraft.content) === selectedDraft.savedContent} onClick={() => void saveDoc(selected.id)} className="min-h-11 rounded-full border px-4 text-xs">Save document</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "txt")} className="min-h-11 rounded-full border px-4 text-xs">Export .txt</button><button type="button" onClick={() => exportDoc(selected.id, selected.title, "html")} className="min-h-11 rounded-full border px-4 text-xs">Export .html</button><button type="button" disabled={busy} onClick={() => void removeDoc(selected.id)} className="min-h-11 px-3 text-xs font-semibold text-red-700">Delete document</button></div></div>
           <p role="status" className="mt-2 text-xs text-black/60">{({ saved: "Saved", pending: "Unsaved changes", saving: "Saving…", error: "Save failed", conflict: "Version conflict", offline: "Saved on this device" })[selectedDraft.status]}</p>
           <p role="status" className="mt-1 text-xs" style={{ color: collab.status === "connected" ? "#1B6B3A" : KEBU.muted }}>
             {collab.status === "connected"
               ? `Live collaboration: connected${collab.peerCount > 0 ? ` · ${collab.peerCount} other${collab.peerCount === 1 ? "" : "s"} editing` : ""}`
-              : collab.status === "connecting" ? "Live collaboration: connecting…" : "Live collaboration: offline (autosave only)"}
+              : collabBlockedIds.includes(selectedId ?? "") ? "Live collaboration paused to protect recovered or conflicting edits. Save or resolve your draft, then reload to reconnect." : collab.status === "connecting" ? "Live collaboration: connecting…" : "Live collaboration: offline (autosave only)"}
           </p>
           {selectedDraft.error ? <p role="alert" className="mt-2 text-xs text-red-700">{selectedDraft.error}</p> : null}
           {selectedDraft.status === "conflict" && selectedDraft.server ? <div className="mt-3 rounded-lg border border-amber-300 p-3"><p className="text-sm">A newer version is saved elsewhere.</p><details className="my-2"><summary className="cursor-pointer text-xs">Review saved text</summary><p className="whitespace-pre-wrap text-sm">{selectedDraft.server.body}</p></details><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveConflict(selected.id, true)} className="min-h-11 rounded-full border px-4 text-xs">Keep my text</button><button type="button" onClick={() => void resolveConflict(selected.id, false)} className="min-h-11 rounded-full border px-4 text-xs">Use saved text</button></div></div> : null}
-          <DocumentEditor docKey={`${selected.id}:${selectedDraft.contentVersion}:${collabBinding ? "collab" : "solo"}`} initialContent={selectedDraft.content} collab={collabBinding} disabled={busy} onUpdate={doc => edit(selected.id, doc)} onBlur={() => void saveDoc(selected.id)} onSaveShortcut={() => void saveDoc(selected.id)} />
+          <DocumentEditor docKey={`${selected.id}:${selectedDraft.contentVersion}:${collabBinding ? "collab" : "solo"}`} initialContent={selectedDraft.content} collab={collabBinding} disabled={busy} onReady={content => {
+            const current = draftsRef.current[selected.id];
+            if (!current) return;
+            if (current.status === "saved" && extractPlainText(content) === current.savedBody) {
+              updateDraft(selected.id, { ...current, content, savedContent: JSON.stringify(content) });
+            } else if (JSON.stringify(content) !== JSON.stringify(current.content)) edit(selected.id, content);
+          }} onUpdate={doc => edit(selected.id, doc)} onBlur={() => void saveDoc(selected.id)} onSaveShortcut={() => void saveDoc(selected.id)} />
         </div> : <p className="py-20 text-center text-sm text-black/50">Select a document to start writing.</p>}
       </section>
     </div>

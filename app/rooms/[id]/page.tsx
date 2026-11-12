@@ -150,6 +150,8 @@ export default function RoomPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roomFiles, setRoomFiles] = useState<RoomFile[]>([]);
+  const [memberId, setMemberId] = useState("");
+  const [memberRole, setMemberRole] = useState("member");
   const [fileBusy, setFileBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -278,11 +280,11 @@ export default function RoomPage() {
               )}
               <button
                 type="button"
-                disabled
-                title="Share — coming soon"
-                className="cursor-not-allowed rounded-full border border-white/10 px-3 py-2 text-[8px] font-semibold text-white/30"
+                onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => window.alert("Room link copied. Recipients must already have room access."), () => window.prompt("Copy room link (membership required)", window.location.href)); }}
+                title="Copy room link (membership required)"
+                className="rounded-full border border-white/30 px-3 py-2 text-xs font-semibold hover:bg-white/10"
               >
-                Share
+                Copy room link
               </button>
             </div>
           </div>
@@ -457,14 +459,7 @@ export default function RoomPage() {
                             <p className="text-white/30">
                               {item.start_at ? new Date(item.start_at).toLocaleDateString() : ""}
                             </p>
-                            <button
-                              type="button"
-                              disabled
-                              title="Video calls — coming soon"
-                              className="cursor-not-allowed rounded-full bg-[#FFB09A]/20 px-2 py-0.5 text-[7px] font-semibold text-[#FFB09A]/50"
-                            >
-                              Join
-                            </button>
+                            {room?.room_type !== "community" && <Link href={`/rooms/${id}/call`} className="rounded-full bg-[#FFB09A]/20 px-2 py-0.5 text-[9px] font-semibold text-[#FFB09A]">Join room call</Link>}
                           </div>
                         </div>
                       ))}
@@ -698,6 +693,26 @@ export default function RoomPage() {
           {/* People */}
           {tab === "people" ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <form className="col-span-full space-y-3 rounded-xl border border-white/15 p-4" onSubmit={async event => {
+                event.preventDefault(); setBusy(true); setError(null);
+                try {
+                  const lookup = await fetch(`/api/people/find?q=${encodeURIComponent(memberId.trim())}`, { cache: "no-store", credentials: "include" });
+                  const person = await lookup.json();
+                  if (!lookup.ok || !person.person?.id) throw new Error(person.error || "No matching person found. Check their public Kebu ID.");
+                  const response = await fetch(`/api/rooms/${id}`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "member", userId: person.person.id, role: memberRole }) });
+                  const data = await response.json();
+                  if (!response.ok) throw new Error(data.error || "Could not add member.");
+                  setMemberId(""); await load();
+                } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not add member."); }
+                finally { setBusy(false); }
+              }}>
+                <h2 className="font-semibold">Add an existing Kebu member</h2>
+                <p className="text-xs text-white/60">Room owners and admins can grant access using the person's public Kebu ID. This grants access immediately.</p>
+                <label className="block text-sm">Public Kebu ID<input required placeholder="KBU-P-…" value={memberId} onChange={event => setMemberId(event.target.value)} className="ml-3 rounded border border-white/30 bg-black p-2" /></label>
+                <label className="block text-sm">Room role<select value={memberRole} onChange={event => setMemberRole(event.target.value)} className="ml-3 rounded bg-black p-2"><option value="member">Member</option><option value="viewer">Viewer</option><option value="admin">Admin</option></select></label>
+                <button type="submit" disabled={busy} className="rounded-full bg-[#FF6A00] px-4 py-2 text-sm font-semibold disabled:opacity-50">Add room member</button>
+                {room?.business_id && <p className="text-xs"><Link className="underline" href={`/business/${room.business_id}`}>Invite someone to the business team by email</Link> — business membership and room membership are managed separately.</p>}
+              </form>
               {members.map((member) => {
                 const p = profileById.get(member.user_id);
                 const name = p?.name ?? p?.email ?? "Kebu member";

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 
@@ -16,31 +16,42 @@ type Notice = {
 };
 
 export function KebuNotifications() {
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notice[]>([]);
   const [unread, setUnread] = useState(0);
+  const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
+    try {
     const res = await fetch("/api/me/notifications", { credentials: "include" });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return;
+    if (!res.ok) throw new Error("Could not load notifications. Try again.");
     setItems(Array.isArray(data.notifications) ? data.notifications : []);
     setUnread(typeof data.unread === "number" ? data.unread : 0);
-    setLoaded(true);
+    setError("");
+    } catch { setError("Could not load notifications. Try again."); }
+    finally { setLoaded(true); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); triggerRef.current?.focus(); } };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [open]);
+
   async function readOne(id: string) {
-    setItems((current) => current.map((item) => item.id === id ? { ...item, read_at: item.read_at ?? new Date().toISOString() } : item));
-    setUnread((current) => Math.max(0, current - 1));
-    await fetch("/api/me/notifications", {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    }).catch(() => {});
+    try {
+      const response = await fetch("/api/me/notifications", {
+        method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
+      });
+      if (!response.ok) throw new Error();
+      await load();
+    } catch { setError("Could not mark notification read. Try again."); }
   }
 
   async function readAll() {
@@ -55,7 +66,8 @@ export function KebuNotifications() {
     }).catch(() => null);
     if (!res?.ok) {
       setUnread(count);
-      void load();
+      await load();
+      setError("Could not mark all notifications read. Try again.");
     }
   }
 
@@ -63,9 +75,10 @@ export function KebuNotifications() {
     <div className="relative">
       <button
         type="button"
+        ref={triggerRef}
         aria-label="Notifications"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => { setOpen((value) => !value); if (!open) void load(); }}
         className="relative flex h-9 w-9 items-center justify-center rounded-full border bg-white outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
         style={{ borderColor: KEBU.borders.default, color: KEBU.black }}
       >
@@ -84,6 +97,7 @@ export function KebuNotifications() {
               {unread > 0 ? <button type="button" onClick={() => void readAll()} className="text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Read all</button> : null}
             </header>
             <div className="max-h-[60vh] overflow-y-auto">
+              {error && <div role="alert" className="p-4 text-xs"><p>{error}</p><button type="button" className="underline" onClick={() => void load()}>Retry</button></div>}
               {!loaded ? <p className="p-5 text-xs" style={{ color: KEBU.muted }}>Loading…</p> : items.length ? items.map((item) => {
                 const inner = (
                   <>

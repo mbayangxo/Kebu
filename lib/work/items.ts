@@ -51,6 +51,7 @@ export const createWorkItemSchema = z.object(workItemFields).extend({
 
 export const updateWorkItemSchema = z.object(workItemFields).partial().extend({
   id: z.string().uuid(),
+  collabState: z.string().max(2_000_000).regex(/^[A-Za-z0-9+/]*={0,2}$/).optional(),
   expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 

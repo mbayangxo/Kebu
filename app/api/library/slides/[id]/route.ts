@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { data: node, error: nodeError } = await supabase
     .from("library_nodes")
-    .select("id, title, kind")
+    .select("id, title, kind, updated_at")
     .eq("id", id)
     .eq("kind", "slide")
     .maybeSingle();
@@ -34,16 +34,19 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Deck not found." }, { status: 404 });
   }
 
-  const { data: body } = await supabase
+  const { data: body, error: bodyError } = await supabase
     .from("slide_bodies")
     .select("slides, width, height, updated_at")
     .eq("id", id)
     .maybeSingle();
 
+  if (bodyError) return NextResponse.json({ error: "Could not load saved content. Please retry." }, { status: 503 });
+
   const slides = Array.isArray(body?.slides) && body.slides.length ? body.slides : [blankSlide(newSlideId())];
   return NextResponse.json({
     id: node.id,
     title: node.title,
+    nodeUpdatedAt: node.updated_at,
     width: body?.width ?? 1920,
     height: body?.height ?? 1080,
     slides,
@@ -52,7 +55,7 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 /**
- * Real write, upserting the body row -- a brand-new deck has a library_nodes
+ * Revision-checked write to the body row -- a brand-new deck has a library_nodes
  * row but no slide_bodies row yet (first save creates it). RLS enforces
  * owner-or-editor for both insert and update; a viewer-only share's write is
  * rejected by Postgres itself.
@@ -92,15 +95,21 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Deck not found." }, { status: 404 });
   }
 
+  const revision = z.object({ expectedUpdatedAt: z.iso.datetime({ offset: true }).nullable() }).safeParse(json);
+  if (!revision.success) return NextResponse.json({ error: "Reload the latest version before saving." }, { status: 428 });
+
   const patch: Record<string, unknown> = { id, slides: parsed.data.slides };
   if (parsed.data.width !== undefined) patch.width = parsed.data.width;
   if (parsed.data.height !== undefined) patch.height = parsed.data.height;
 
-  const { data: saved, error } = await supabase
-    .from("slide_bodies")
-    .upsert(patch, { onConflict: "id" })
-    .select("updated_at")
-    .single();
+  const bodyQuery = supabase.from("slide_bodies");
+  const { data: saved, error } = revision.data.expectedUpdatedAt === null
+    ? await bodyQuery.insert(patch).select("updated_at").maybeSingle()
+    : await bodyQuery.update(patch).eq("id", id).eq("updated_at", revision.data.expectedUpdatedAt).select("updated_at").maybeSingle();
+
+  if (error?.code === "23505" || (!error && !saved)) {
+    return NextResponse.json({ error: "Someone saved a newer version. Your edits have been kept here; download a recovery copy before reloading." }, { status: 409 });
+  }
 
   if (error || !saved) {
     return NextResponse.json({ error: "Could not save deck." }, { status: 403 });

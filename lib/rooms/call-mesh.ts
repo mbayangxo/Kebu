@@ -32,8 +32,9 @@ export const MESH_PARTICIPANT_OPTIONS: { value: number; label: string }[] = [
 ];
 
 export type SignalMessage =
-  | { type: "offer"; from: string; to: string; sdp: string }
-  | { type: "answer"; from: string; to: string; sdp: string }
+  | { type: "screen"; from: string; to: string; enabled: boolean }
+  | { type: "offer"; from: string; to: string; sdp: string; screenSharing?: boolean }
+  | { type: "answer"; from: string; to: string; sdp: string; screenSharing?: boolean }
   | { type: "candidate"; from: string; to: string; candidate: RTCIceCandidateInitLike };
 
 export type RTCIceCandidateInitLike = {
@@ -58,9 +59,13 @@ export function parseSignalMessage(raw: unknown): SignalMessage | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.from !== "string" || !r.from || typeof r.to !== "string" || !r.to) return null;
+  if (r.type === "screen") {
+    return typeof r.enabled === "boolean" ? { type: "screen", from: r.from, to: r.to, enabled: r.enabled } : null;
+  }
   if (r.type === "offer" || r.type === "answer") {
     if (typeof r.sdp !== "string" || !r.sdp) return null;
-    return { type: r.type, from: r.from, to: r.to, sdp: r.sdp };
+    if (r.screenSharing !== undefined && typeof r.screenSharing !== "boolean") return null;
+    return { type: r.type, from: r.from, to: r.to, sdp: r.sdp, ...(r.screenSharing === undefined ? {} : { screenSharing: r.screenSharing }) };
   }
   if (r.type === "candidate") {
     if (!r.candidate || typeof r.candidate !== "object") return null;
