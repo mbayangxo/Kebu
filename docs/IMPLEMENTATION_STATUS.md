@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## November 14 — offline launch audit
+
+Verified the shared `8a026538` source includes Claude’s integration and the prior audit repairs. Repaired a duplicate migration version without changing SQL, added migration hygiene to local CI, and escaped untrusted invitation-email HTML. See [the current audit receipt](audits/KEBU_OFFLINE_LAUNCH_AUDIT_2026-11-14.md) and [closeout register](KEBU_CLOSEOUT_REGISTER.md). Vercel remains deferred at the user’s direction; restoration approval is already resolved, but unpause did not remove the observed 402 restriction. Hosted schema/provider and actual May-project visual acceptance remain open.
+
 ## November 12 — integration audit fixes, local acceptance
 
 Cloud host/version boundaries, revision-checked Sheets/Slides and titles, notification recovery, room member controls, independent camera/screen sharing, rejoin/audio-only calls, failed-broadcast cleanup, and durable/private Docs collaboration are repaired on Claude's integration base. Local evidence and exact release limitations are in [the audit closeout](audits/KEBU_AUDIT_FINISH_2026-11-12.md). Four forward migrations remain unapplied to hosted databases. May's custom domain still returns Vercel `DEPLOYMENT_DISABLED`; automatic approval review blocked shared-project unpause pending clarification. Source merge is not a production launch or whole-platform certification.

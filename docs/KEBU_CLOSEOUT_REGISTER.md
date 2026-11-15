@@ -4,6 +4,17 @@ Updated November 5, 2026 (America/New_York). **Open; not a launch certificate.**
 
 The user explicitly retained the full KEBU scope. This register sequences the work; it does not remove products or requirements to make a smaller release look complete. Preserve the [99 recovered requirement groups](KEBU-RECOVERED-REQUEST-AUDIT.md), all [25 Creative OS acceptance groups](product/KEBU-STUDIO-CREATIVE-OS-ACCEPTANCE.md), and later accepted work. Those detailed requirements remain binding; the workstreams below are not substitutes for their individual acceptance cases. Historical preferences, unapproved suggestions and separate ecosystem companies must not silently become new KEBU commitments.
 
+## November 14 — offline launch audit follow-up
+
+Verified current authoritative source: `8a026538d70b3d1c47ca61e237dd900fc86fe4a1`, containing Claude's integration and the November 12 repairs. A fresh isolated worktree was created; existing dirty closeout/meetings worktrees were preserved. The original restored closeout checkout was 51 commits behind and was not used as an implementation base.
+
+Two additional defects were reproduced by inspection/checks and repaired in this pass:
+
+- **REL02 / migration collision:** `migration:check` failed because Cloud storage and the Calls created-flag migration both used version `20261109010000`. The existing, source-only Calls file is renumbered to `20261109010001`; its SQL is byte-for-byte unchanged. It remains after the mesh prerequisite and before the later call-cap replacement, avoiding recreation of the removed overload. The SQL test loader follows the new path. The local `ci` command now runs the same hygiene gate already present in GitHub CI. If any environment manually applied the colliding Calls file, inspect and reconcile its migration ledger before rollout; this pass makes no assertion about uninspected hosted ledgers and does not change one.
+- **ACC01 / invitation HTML:** an untrusted business name was interpolated directly into outgoing invitation HTML, allowing inserted content/links. Escape all dynamic HTML fields while retaining readable plain text and the generated acceptance link. A focused regression checks the malicious-name case without sending email. This repair does not close the previously documented revoke-versus-accept race.
+
+Detailed execution and remaining acceptance are in [the offline audit receipt](audits/KEBU_OFFLINE_LAUNCH_AUDIT_2026-11-14.md). The user explicitly chose to wait for Vercel's reset. Earlier restoration permission was granted and an unpause API request succeeded, but subsequent public checks still returned `402 DEPLOYMENT_DISABLED`; the account-dashboard login did not complete. Do not repeat the superseded claim that restoration approval is missing. No further Vercel attempt, paid upgrade, provider activation or hosted database write is part of this pass.
+
 ## November 6 — team invitation follow-up
 
 The scoped invite fix adapts Claude's branch: a duplicate membership insert is recoverable only if rereading the exact business and user confirms an active membership. The response uses the stored role; a mismatched email remains denied. Targeted service tests pass. This does not close concurrent revocation versus acceptance, two-user hosted QA or the broader team role matrix. All 99 recovered requirements and 25 Studio acceptance groups remain tracked.

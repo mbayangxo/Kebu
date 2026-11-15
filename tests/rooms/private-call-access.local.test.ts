@@ -52,7 +52,7 @@ it.skipIf(!root)("group calls: membership-gated join/leave/end, capacity, and RL
         ('${room}','${guest}','member'), ('${room}','${admin}','admin'), ('${room}','${bystander}','member');
     `);
     await db.exec(readFileSync("supabase/migrations/20261108020000_room_calls_mesh.sql", "utf8"));
-    await db.exec(readFileSync("supabase/migrations/20261109010000_room_call_join_created_flag.sql", "utf8"));
+    await db.exec(readFileSync("supabase/migrations/20261109010001_room_call_join_created_flag.sql", "utf8"));
     await db.exec(readFileSync("supabase/migrations/20261109020000_room_call_default_cap.sql", "utf8"));
 
     async function as<T>(actor: string, sql: string, values: unknown[] = []): Promise<T> {

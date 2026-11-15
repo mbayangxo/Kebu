@@ -11,6 +11,13 @@ import {
 
 export { INVITE_ROLES, inviteRoleLabel, isInviteRole, type InviteRole };
 
+// Business names and recipient addresses are plain text, even inside email HTML.
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character]!);
+}
+
 export function newInviteToken(): string {
   return randomBytes(24).toString("base64url");
 }
@@ -120,9 +127,9 @@ export async function createBusinessInvite(
     fromName: opts.businessName.slice(0, 60),
     subject: `Join ${opts.businessName} on Kebu`,
     text,
-    html: `<p>You were invited to join <strong>${opts.businessName}</strong> as <strong>${inviteRoleLabel(opts.role)}</strong>.</p>
-<p><a href="${acceptUrl}">Accept invite</a></p>
-<p>Sign in with <strong>${email}</strong>. Link expires in 14 days.</p>`,
+    html: `<p>You were invited to join <strong>${escapeHtml(opts.businessName)}</strong> as <strong>${escapeHtml(inviteRoleLabel(opts.role))}</strong>.</p>
+<p><a href="${escapeHtml(acceptUrl)}">Accept invite</a></p>
+<p>Sign in with <strong>${escapeHtml(email)}</strong>. Link expires in 14 days.</p>`,
   });
 
   return { ok: true, inviteId: row.id, token: row.token, acceptUrl, emailed };

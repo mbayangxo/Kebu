@@ -1,0 +1,32 @@
+{
+  "sourceBase": "8a026538d70b3d1c47ca61e237dd900fc86fe4a1",
+  "timezone": "America/New_York",
+  "date": "2026-11-14",
+  "focused": {
+    "files": 4,
+    "passed": 15,
+    "skipped": 0,
+    "sqlEngine": "PGlite 0.5.10; disposable minimal prerequisites plus real Cloud/Calls migrations"
+  },
+  "migrationHygiene": {
+    "passed": true,
+    "uniqueVersions": 144,
+    "renamedSQLUnchanged": true
+  },
+  "fullUnit": {
+    "passed": 7183,
+    "skipped": 507,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 368
+  },
+  "build": "passed",
+  "browser": "not verified; runtime font rendering and system socket restriction",
+  "hostedWrites": false,
+  "deployments": false,
+  "payments": false,
+  "ci": "passed"
+}
