@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
-import { assertBusinessManager } from "@/lib/business/assert-manager";
+import {
+  invitableRoles,
+  teamMembership,
+} from "@/lib/business/team-permissions";
 import {
   createBusinessInvite,
   inviteRoleLabel,
-  INVITE_ROLES,
   isInviteRole,
   listBusinessInvites,
   revokeBusinessInvite,
@@ -22,27 +24,30 @@ export async function GET(_req: Request, { params }: Params) {
   const { supabase, user } = auth;
   const { id: businessId } = await params;
 
-  if (!(await assertBusinessManager(supabase, businessId, user.id))) {
-    // founders/admins only for list — also allow any active member to see roster without tokens
-    const { data: mem } = await supabase
-      .from("business_members")
-      .select("role")
-      .eq("business_id", businessId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-    if (!mem) {
-      return NextResponse.json({ error: "Not allowed." }, { status: 403 });
-    }
-  }
+  const membership = await teamMembership(supabase, businessId, user.id);
+  if (membership.error)
+    return NextResponse.json(
+      { error: "Could not verify team access." },
+      { status: 503 },
+    );
+  if (!membership.role)
+    return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+  const allowedRoles = invitableRoles(membership.role);
 
-  const { data: members } = await supabase
+  const { data: members, error: rosterError } = await supabase
     .from("business_members")
     .select("id, user_id, role, status, created_at")
     .eq("business_id", businessId)
     .order("created_at", { ascending: true });
 
-  const invites = await listBusinessInvites(supabase, businessId);
+  if (rosterError)
+    return NextResponse.json(
+      { error: "Could not load the team." },
+      { status: 503 },
+    );
+  const invites = allowedRoles.length
+    ? await listBusinessInvites(supabase, businessId)
+    : { invites: [], error: undefined };
 
   return NextResponse.json({
     members: members ?? [],
@@ -59,7 +64,8 @@ export async function GET(_req: Request, { params }: Params) {
       // token only for managers who can invite
       acceptPath: `/invite/${i.token}`,
     })),
-    roles: INVITE_ROLES.map((r) => ({ id: r, label: inviteRoleLabel(r) })),
+    canInvite: allowedRoles.length > 0,
+    roles: allowedRoles.map((r) => ({ id: r, label: inviteRoleLabel(r) })),
     warning: invites.error,
   });
 }
@@ -76,9 +82,18 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { supabase, user } = auth;
   const { id: businessId } = await params;
 
-  if (!(await assertBusinessManager(supabase, businessId, user.id))) {
-    return NextResponse.json({ error: "Only founders/admins/managers can invite." }, { status: 403 });
-  }
+  const membership = await teamMembership(supabase, businessId, user.id);
+  if (membership.error)
+    return NextResponse.json(
+      { error: "Could not verify team access." },
+      { status: 503 },
+    );
+  const allowedRoles = invitableRoles(membership.role ?? "");
+  if (!allowedRoles.length)
+    return NextResponse.json(
+      { error: "You cannot invite team members." },
+      { status: 403 },
+    );
 
   let body: unknown;
   try {
@@ -86,18 +101,19 @@ export async function POST(req: NextRequest, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
-  const rec = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const rec =
+    body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const email = typeof rec.email === "string" ? rec.email : "";
   const role = typeof rec.role === "string" ? rec.role : "";
   const message = typeof rec.message === "string" ? rec.message : "";
 
-  if (!isInviteRole(role)) {
+  if (!isInviteRole(role) || !allowedRoles.includes(role)) {
     return NextResponse.json({ error: "Invalid role." }, { status: 400 });
   }
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name")
+    .select("id, legal_name, trading_name")
     .eq("id", businessId)
     .maybeSingle();
   if (!business) {
@@ -110,7 +126,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     role,
     invitedBy: user.id,
     message,
-    businessName: business.name || "Kebu business",
+    businessName:
+      business.trading_name || business.legal_name || "Kebu business",
   });
 
   if (!result.ok) {
@@ -148,9 +165,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { supabase, user } = auth;
   const { id: businessId } = await params;
 
-  if (!(await assertBusinessManager(supabase, businessId, user.id))) {
+  const membership = await teamMembership(supabase, businessId, user.id);
+  if (membership.error)
+    return NextResponse.json(
+      { error: "Could not verify team access." },
+      { status: 503 },
+    );
+  if (!invitableRoles(membership.role ?? "").length)
     return NextResponse.json({ error: "Not allowed." }, { status: 403 });
-  }
 
   let body: unknown;
   try {
@@ -158,12 +180,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
-  const rec = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const rec =
+    body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const inviteId = typeof rec.inviteId === "string" ? rec.inviteId : "";
   const action = typeof rec.action === "string" ? rec.action : "";
 
   if (action !== "revoke" || !/^[0-9a-f-]{36}$/i.test(inviteId)) {
-    return NextResponse.json({ error: "Invalid revoke request." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid revoke request." },
+      { status: 400 },
+    );
   }
 
   const result = await revokeBusinessInvite(supabase, { businessId, inviteId });

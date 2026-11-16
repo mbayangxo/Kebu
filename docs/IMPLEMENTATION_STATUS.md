@@ -1,5 +1,10 @@
 # Kebu — Implementation Status
 
+## November 16 — company operations source candidate
+
+Permissions and atomic invitations, optional Liguey installation, operator-reviewed recruitment, consent-based interviews, onboarding lessons/quizzes, operational projects and shared-resource links, private HR/pay records, schedules/benefits and authorized multi-company summaries have source and local SQL acceptance. They remain gated off pending hosted schema reconciliation and browser acceptance. The four November 12 migrations are repaired and repeatability-tested locally; none were applied to hosted QA, whose required tables are missing. See [the November 16 audit](audits/KEBU_COMPANY_OPERATIONS_2026-11-16.md). Vercel, provider delivery and May acceptance remain open.
+
+
 ## November 14 — offline launch audit
 
 Verified the shared `8a026538` source includes Claude’s integration and the prior audit repairs. Repaired a duplicate migration version without changing SQL, added migration hygiene to local CI, and escaped untrusted invitation-email HTML. See [the current audit receipt](audits/KEBU_OFFLINE_LAUNCH_AUDIT_2026-11-14.md) and [closeout register](KEBU_CLOSEOUT_REGISTER.md). Vercel remains deferred at the user’s direction; restoration approval is already resolved, but unpause did not remove the observed 402 restriction. Hosted schema/provider and actual May-project visual acceptance remain open.

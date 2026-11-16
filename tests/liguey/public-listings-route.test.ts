@@ -1,11 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const service = vi.hoisted(() => vi.fn());
+const reviews = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/liguey/employer-safety", () => ({
+  reviewedEmployerIds: reviews,
+}));
 vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: service }));
 vi.mock("@/lib/api-guard", () => ({ publicSiteRateLimit: () => null }));
 import { GET } from "@/app/api/public/liguey/listings/route";
 
 const businessId = "11111111-1111-4111-8111-111111111111";
-const listingRow = { id: "l1", business_id: businessId, public_id: "job_abc", title: "Translator", employment_type: "contract", location_type: "remote", location: "", pay_label: "2,000 XOF/day", photo_url: "https://cdn.test/photo.jpg", updated_at: "2026-10-16T00:00:00.000Z" };
+const listingRow = {
+  id: "l1",
+  business_id: businessId,
+  public_id: "job_abc",
+  title: "Translator",
+  employment_type: "contract",
+  location_type: "remote",
+  location: "",
+  pay_label: "2,000 XOF/day",
+  photo_url: "https://cdn.test/photo.jpg",
+  updated_at: "2026-10-16T00:00:00.000Z",
+};
 
 function setup(opts: { listResult?: { data: unknown; error: unknown } } = {}) {
   const result = opts.listResult ?? { data: [listingRow], error: null };
@@ -13,26 +28,40 @@ function setup(opts: { listResult?: { data: unknown; error: unknown } } = {}) {
   // return itself) and is also directly thenable/awaitable at any point,
   // since the real route conditionally chains more .eq() calls AFTER
   // .limit(100) and then awaits the whole thing.
-  const query: Record<string, unknown> & { then: (resolve: (value: unknown) => void) => void } = {
+  const query: Record<string, unknown> & {
+    then: (resolve: (value: unknown) => void) => void;
+  } = {
     then: (resolve: (value: unknown) => void) => resolve(result),
   } as never;
   query.select = vi.fn().mockReturnValue(query);
   query.eq = vi.fn().mockReturnValue(query);
   query.order = vi.fn().mockReturnValue(query);
   query.limit = vi.fn().mockReturnValue(query);
-  const businessesIn = vi.fn().mockResolvedValue({ data: [{ id: businessId, legal_name: "Legal Co", trading_name: "Trade Co" }], error: null });
+  const businessesIn = vi
+    .fn()
+    .mockResolvedValue({
+      data: [
+        { id: businessId, legal_name: "Legal Co", trading_name: "Trade Co" },
+      ],
+      error: null,
+    });
   const from = vi.fn((table: string) => {
     if (table === "job_listings") return query;
-    if (table === "businesses") return { select: vi.fn().mockReturnThis(), in: businessesIn };
+    if (table === "businesses")
+      return { select: vi.fn().mockReturnThis(), in: businessesIn };
     throw new Error("unexpected table " + table);
   });
   service.mockReturnValue({ from });
   return { query };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  reviews.mockResolvedValue({ ids: new Set([businessId]), error: null });
+});
 
-const request = (search = "") => new Request("https://kebu.test/api/public/liguey/listings" + search);
+const request = (search = "") =>
+  new Request("https://kebu.test/api/public/liguey/listings" + search);
 
 describe("Public Liguey listings route", () => {
   it("returns published listings with the employer's display name", async () => {
@@ -40,7 +69,13 @@ describe("Public Liguey listings route", () => {
     const response = await GET(request());
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.listings[0]).toMatchObject({ publicId: "job_abc", title: "Translator", employerName: "Trade Co", payLabel: "2,000 XOF/day", photoUrl: "https://cdn.test/photo.jpg" });
+    expect(body.listings[0]).toMatchObject({
+      publicId: "job_abc",
+      title: "Translator",
+      employerName: "Trade Co",
+      payLabel: "2,000 XOF/day",
+      photoUrl: "https://cdn.test/photo.jpg",
+    });
   });
 
   it("filters by employment type when provided", async () => {
@@ -61,4 +96,17 @@ describe("Public Liguey listings route", () => {
     expect(response.status).toBe(200);
     expect((await response.json()).listings).toEqual([]);
   });
+});
+
+it("does not expose jobs from an unreviewed employer", async () => {
+  setup();
+  reviews.mockResolvedValue({ ids: new Set(), error: null });
+  const r = await GET(request());
+  expect((await r.json()).listings).toEqual([]);
+});
+it("fails closed when employer review storage is unavailable", async () => {
+  setup();
+  reviews.mockResolvedValue({ ids: new Set(), error: { message: "missing" } });
+  const r = await GET(request());
+  expect(r.status).toBe(503);
 });

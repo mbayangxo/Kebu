@@ -1,6 +1,6 @@
 -- Strictly advance body revision even for multiple writes in one transaction.
 create or replace function public.advance_library_body_revision()
-returns trigger language plpgsql set search_path = public as $$
+returns trigger language plpgsql set search_path = '' as $$
 begin
   new.updated_at := greatest(clock_timestamp(), old.updated_at + interval '1 microsecond');
   return new;

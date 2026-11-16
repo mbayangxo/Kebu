@@ -124,3 +124,9 @@ Remote [native PostgreSQL race acceptance 41981674872](https://github.com/mbayan
 ### November 5 — external access recheck
 
 A fresh Supabase `get_project` request for the existing QA project returned permission denied. No hosted SQL, customer data or schema was queried or changed. Do not substitute production or create another project. Restoring this existing connection remains a founder/account-owner dependency. The Vercel creation block remains the last observed deployment result; no upgrade/payment or new deployment was attempted during this closeout pass.
+
+## November 16 — company operations and optional Liguey
+
+Accepted scope is expanded in `product/KEBU-COMPANY-PORTAL.md`. Source candidate covers ACC01 atomic invitations/current-role checks, WRK01 optional Liguey plus reviewed recruiting/consent-based interviews, BIZ01 worker onboarding/projects/schedules/benefits/private HR/pay records and authorized portfolio summaries. Company Docs and existing resource links preserve original ACLs; independent companies remain separate. DEV01 uses the existing optional account-app installation model; no separate Liguey identity or arbitrary-code hosting was added.
+
+Evidence and release gaps: `audits/KEBU_COMPANY_OPERATIONS_2026-11-16.md`. QA is reachable but missing foundation tables. Four repairs were tested locally, not applied to hosted data. Native concurrent PostgreSQL acceptance, real two-user browser/media/provider checks, May approved content/motion and hosted rollout remain open. Manual employer reviews require real independent operator checks and do not guarantee physical safety. Naming research does not provide Africa-wide trademark clearance. No production release, schema write, provider send or spending occurred.

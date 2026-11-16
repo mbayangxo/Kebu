@@ -1,3 +1,4 @@
+import { reviewedEmployerIds } from "@/lib/liguey/employer-safety";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { publicSiteRateLimit } from "@/lib/api-guard";
@@ -18,7 +19,11 @@ export async function GET(req: Request) {
   if (limited) return limited;
 
   const admin = createServiceClient();
-  if (!admin) return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+  if (!admin)
+    return NextResponse.json(
+      { error: "Service unavailable." },
+      { status: 503 },
+    );
 
   const url = new URL(req.url);
   const employmentType = url.searchParams.get("employmentType");
@@ -26,7 +31,9 @@ export async function GET(req: Request) {
 
   let query = admin
     .from("job_listings")
-    .select("id, business_id, public_id, title, employment_type, location_type, location, pay_label, photo_url, updated_at")
+    .select(
+      "id, business_id, public_id, title, employment_type, location_type, location, pay_label, photo_url, updated_at",
+    )
     .eq("status", "published")
     .order("updated_at", { ascending: false })
     .limit(100);
@@ -34,27 +41,54 @@ export async function GET(req: Request) {
   if (locationType) query = query.eq("location_type", locationType);
 
   const { data: listings, error } = await query;
-  if (error) return NextResponse.json({ error: "Could not load listings." }, { status: 503 });
+  if (error)
+    return NextResponse.json(
+      { error: "Could not load listings." },
+      { status: 503 },
+    );
 
-  const businessIds = [...new Set((listings ?? []).map((listing) => listing.business_id))];
-  let businesses: { id: string; legal_name: string; trading_name: string | null }[] = [];
+  const businessIds = [
+    ...new Set((listings ?? []).map((listing) => listing.business_id)),
+  ];
+  const approved = await reviewedEmployerIds(admin, businessIds);
+  if (approved.error)
+    return NextResponse.json(
+      { error: "Employer reviews are unavailable. Please retry." },
+      { status: 503 },
+    );
+  let businesses: {
+    id: string;
+    legal_name: string;
+    trading_name: string | null;
+  }[] = [];
   if (businessIds.length) {
-    const { data } = await admin.from("businesses").select("id, legal_name, trading_name").in("id", businessIds);
+    const { data } = await admin
+      .from("businesses")
+      .select("id, legal_name, trading_name")
+      .in("id", businessIds);
     businesses = data ?? [];
   }
-  const businessNameById = new Map(businesses.map((business) => [business.id, business.trading_name || business.legal_name]));
+  const businessNameById = new Map(
+    businesses.map((business) => [
+      business.id,
+      business.trading_name || business.legal_name,
+    ]),
+  );
 
   return NextResponse.json({
-    listings: (listings ?? []).map((listing) => ({
-      publicId: listing.public_id,
-      title: listing.title,
-      employmentType: listing.employment_type,
-      locationType: listing.location_type,
-      location: listing.location,
-      payLabel: listing.pay_label,
-      photoUrl: listing.photo_url,
-      employerName: businessNameById.get(listing.business_id) ?? "Kebu business",
-      updatedAt: listing.updated_at,
-    })),
+    listings: (listings ?? [])
+      .filter((listing) => approved.ids.has(listing.business_id))
+      .map((listing) => ({
+        publicId: listing.public_id,
+        title: listing.title,
+        employmentType: listing.employment_type,
+        locationType: listing.location_type,
+        location: listing.location,
+        payLabel: listing.pay_label,
+        photoUrl: listing.photo_url,
+        employerName:
+          businessNameById.get(listing.business_id) ?? "Kebu business",
+        updatedAt: listing.updated_at,
+      })),
   });
 }

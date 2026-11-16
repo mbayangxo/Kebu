@@ -1,3 +1,4 @@
+import { reviewedEmployerIds } from "@/lib/liguey/employer-safety";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { publicSiteRateLimit } from "@/lib/api-guard";
@@ -14,17 +15,40 @@ export async function GET(req: Request, { params }: Params) {
   const { publicId: raw } = await params;
   const publicId = raw.trim().toLowerCase();
   const admin = createServiceClient();
-  if (!admin) return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+  if (!admin)
+    return NextResponse.json(
+      { error: "Service unavailable." },
+      { status: 503 },
+    );
 
   const { data: listing, error } = await admin
     .from("job_listings")
-    .select("id, business_id, public_id, title, description, requirements, employment_type, location_type, location, pay_label, photo_url, status, updated_at")
+    .select(
+      "id, business_id, public_id, title, description, requirements, employment_type, location_type, location, pay_label, photo_url, status, updated_at",
+    )
     .eq("public_id", publicId)
     .maybeSingle();
-  if (error) return NextResponse.json({ error: "Could not load listing." }, { status: 503 });
-  if (!listing || listing.status !== "published") return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  if (error)
+    return NextResponse.json(
+      { error: "Could not load listing." },
+      { status: 503 },
+    );
+  if (!listing || listing.status !== "published")
+    return NextResponse.json({ error: "Listing not found." }, { status: 404 });
 
-  const { data: business } = await admin.from("businesses").select("legal_name, trading_name, description, website").eq("id", listing.business_id).maybeSingle();
+  const approved = await reviewedEmployerIds(admin, [listing.business_id]);
+  if (approved.error)
+    return NextResponse.json(
+      { error: "Employer review unavailable." },
+      { status: 503 },
+    );
+  if (!approved.ids.has(listing.business_id))
+    return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  const { data: business } = await admin
+    .from("businesses")
+    .select("legal_name, trading_name, description, website")
+    .eq("id", listing.business_id)
+    .maybeSingle();
 
   return NextResponse.json({
     listing: {
@@ -39,7 +63,9 @@ export async function GET(req: Request, { params }: Params) {
       location: listing.location,
       payLabel: listing.pay_label,
       photoUrl: listing.photo_url,
-      employerName: business ? (business.trading_name || business.legal_name) : "Kebu business",
+      employerName: business
+        ? business.trading_name || business.legal_name
+        : "Kebu business",
       employerAbout: business?.description ?? "",
       employerWebsite: business?.website ?? "",
       updatedAt: listing.updated_at,

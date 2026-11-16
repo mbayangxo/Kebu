@@ -13,9 +13,17 @@ export { INVITE_ROLES, inviteRoleLabel, isInviteRole, type InviteRole };
 
 // Business names and recipient addresses are plain text, even inside email HTML.
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  })[character]!);
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]!,
+  );
 }
 
 export function newInviteToken(): string {
@@ -56,7 +64,13 @@ export async function createBusinessInvite(
     businessName: string;
   },
 ): Promise<
-  | { ok: true; inviteId: string; token: string; acceptUrl: string; emailed: boolean }
+  | {
+      ok: true;
+      inviteId: string;
+      token: string;
+      acceptUrl: string;
+      emailed: boolean;
+    }
   | { ok: false; error: string }
 > {
   const email = opts.email.trim().toLowerCase();
@@ -80,7 +94,10 @@ export async function createBusinessInvite(
     .maybeSingle();
 
   if (pending) {
-    return { ok: false, error: "A pending invite already exists for this email." };
+    return {
+      ok: false,
+      error: "A pending invite already exists for this email.",
+    };
   }
 
   const token = newInviteToken();
@@ -139,13 +156,21 @@ export async function revokeBusinessInvite(
   supabase: SupabaseClient,
   opts: { businessId: string; inviteId: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("business_invites")
     .update({ status: "revoked", updated_at: new Date().toISOString() })
     .eq("id", opts.inviteId)
     .eq("business_id", opts.businessId)
-    .eq("status", "pending");
-  if (error) return { ok: false, error: error.message };
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: "Could not revoke this invitation." };
+  if (!data)
+    return {
+      ok: false,
+      error:
+        "Invitation is no longer pending or you cannot revoke it. Refresh its status.",
+    };
   return { ok: true };
 }
 
@@ -157,100 +182,26 @@ export async function acceptBusinessInvite(
   | { ok: true; businessId: string; role: string }
   | { ok: false; error: string; status?: number }
 > {
-  const { data: invite, error } = await admin
-    .from("business_invites")
-    .select("id, business_id, email, role, status, expires_at")
-    .eq("token", opts.token)
-    .maybeSingle();
-
-  if (error || !invite) {
-    return { ok: false, error: "Invite not found.", status: 404 };
-  }
-  if (invite.status === "accepted") {
-    return { ok: false, error: "Invite already accepted.", status: 409 };
-  }
-  if (invite.status === "revoked") {
-    return { ok: false, error: "Invite was revoked.", status: 410 };
-  }
-  if (new Date(invite.expires_at).getTime() < Date.now()) {
-    await admin
-      .from("business_invites")
-      .update({ status: "expired" })
-      .eq("id", invite.id);
-    return { ok: false, error: "Invite expired.", status: 410 };
-  }
-
-  const userEmail = opts.userEmail.trim().toLowerCase();
-  if (userEmail !== String(invite.email).toLowerCase()) {
+  // The authenticated RPC derives identity/email itself and atomically commits
+  // membership, invitation consumption and audit. Never fall back to separate writes.
+  void admin;
+  const { data, error } = await supabase.rpc("accept_business_invite", {
+    p_token: opts.token,
+  });
+  if (error)
     return {
       ok: false,
-      error: `Sign in with ${invite.email} to accept this invite.`,
-      status: 403,
+      error:
+        "Team invitation acceptance is unavailable. Please retry or contact support.",
+      status: 503,
     };
-  }
-
-  const findMembership = () => admin
-    .from("business_members")
-    .select("id, status, role")
-    .eq("business_id", invite.business_id)
-    .eq("user_id", opts.userId)
-    .maybeSingle();
-  const { data: existing, error: membershipError } = await findMembership();
-  if (membershipError) {
-    return { ok: false, error: "Could not verify team membership.", status: 500 };
-  }
-
-  let effectiveRole = invite.role;
-  if (existing?.status === "active") {
-    effectiveRole = existing.role;
-  } else if (existing) {
-    const { error: upErr } = await admin
-      .from("business_members")
-      .update({ status: "active", role: invite.role })
-      .eq("id", existing.id);
-    if (upErr) return { ok: false, error: upErr.message, status: 500 };
-  } else {
-    const { error: insErr } = await admin.from("business_members").insert({
-      business_id: invite.business_id,
-      user_id: opts.userId,
-      role: invite.role,
-      status: "active",
-    });
-    if (insErr?.code === "23505") {
-      // Only recover a duplicate when the winning membership belongs to this
-      // exact business/account and is active; never infer access from 23505 alone.
-      const { data: winner, error: winnerError } = await findMembership();
-      if (winnerError || winner?.status !== "active") {
-        return { ok: false, error: "Could not verify team membership.", status: 500 };
-      }
-      effectiveRole = winner.role;
-    } else if (insErr) {
-      return {
-        ok: false,
-        error: /role|check/i.test(insErr.message)
-          ? "Apply 055_team_invites_demo_orders.sql so manager/creative roles work."
-          : insErr.message,
-        status: 500,
-      };
-    }
-  }
-
-  const { error: acceptError } = await admin
-    .from("business_invites")
-    .update({
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
-      accepted_user_id: opts.userId,
-    })
-    .eq("id", invite.id);
-  if (acceptError) return { ok: false, error: "Could not finalize team invite.", status: 500 };
-
-  await admin.from("business_audit_logs").insert({
-    business_id: invite.business_id,
-    actor_user_id: opts.userId,
-    action: "team.invite_accepted",
-    metadata: { role: effectiveRole, email: invite.email },
-  });
-
-  return { ok: true, businessId: invite.business_id, role: effectiveRole };
+  if (!data || typeof data.ok !== "boolean")
+    return {
+      ok: false,
+      error: "Could not verify the invitation result.",
+      status: 503,
+    };
+  return data as
+    | { ok: true; businessId: string; role: string }
+    | { ok: false; error: string; status: number };
 }

@@ -19,6 +19,7 @@ type MemberRow = { id: string; user_id: string; role: string; status: string };
 export function BusinessTeamPanel({ businessId }: { businessId: string }) {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [canInvite, setCanInvite] = useState(false);
   const [roles, setRoles] = useState<RoleOpt[]>([]);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("creative");
@@ -33,17 +34,26 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/businesses/${businessId}/team`, { credentials: "include" });
+      const res = await fetch(`/api/businesses/${businessId}/team`, {
+        credentials: "include",
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not load team.");
+        setError(
+          typeof data.error === "string" ? data.error : "Could not load team.",
+        );
         return;
       }
       setMembers(Array.isArray(data.members) ? data.members : []);
       setInvites(Array.isArray(data.invites) ? data.invites : []);
       setRoles(Array.isArray(data.roles) ? data.roles : []);
-      if (typeof data.warning === "string" && data.warning) setError(data.warning);
-      if (data.roles?.length && !data.roles.some((r: RoleOpt) => r.id === role)) {
+      setCanInvite(data.canInvite === true);
+      if (typeof data.warning === "string" && data.warning)
+        setError(data.warning);
+      if (
+        data.roles?.length &&
+        !data.roles.some((r: RoleOpt) => r.id === role)
+      ) {
         setRole(data.roles[0].id);
       }
     } catch {
@@ -71,7 +81,9 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Invite failed.");
+        setError(
+          typeof data.error === "string" ? data.error : "Invite failed.",
+        );
         return;
       }
       setHint(typeof data.hint === "string" ? data.hint : "Invite created.");
@@ -89,13 +101,23 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
   async function revoke(inviteId: string) {
     setBusy(true);
     try {
-      await fetch(`/api/businesses/${businessId}/team`, {
+      const res = await fetch(`/api/businesses/${businessId}/team`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "revoke", inviteId }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not revoke this invitation.");
+        return;
+      }
+      setHint("Invitation revoked.");
       await load();
+    } catch {
+      setError(
+        "Could not reach Kebu. Check the invitation status before retrying.",
+      );
     } finally {
       setBusy(false);
     }
@@ -108,8 +130,8 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
     >
       <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Team</h2>
       <p className="mb-4 text-xs leading-relaxed" style={{ color: KEBU.muted }}>
-        Invite real managers and creatives by email. They get a role on this Kebu ID — not a fake
-        roster. Studio poster editor is not built yet — use Reels · MVs for video links.
+        Invite colleagues with access limited to this business. Joining a team
+        does not share their personal files or other businesses.
       </p>
 
       {loading ? (
@@ -118,7 +140,10 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
         </p>
       ) : (
         <>
-          <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.faint }}>
+          <h3
+            className="text-[10px] font-bold uppercase tracking-wider mb-2"
+            style={{ color: KEBU.faint }}
+          >
             Members
           </h3>
           <ul className="mb-4 space-y-1 text-sm">
@@ -133,63 +158,87 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
             )}
           </ul>
 
-          <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.faint }}>
-            Invite someone
-          </h3>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
-            <label className="text-[10px] font-bold uppercase tracking-wider flex-1 min-w-[160px]">
-              Email
-              <input
-                type="email"
-                className="mt-0.5 w-full rounded-md border px-2 py-1.5 text-xs normal-case tracking-normal"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="creative@example.com"
-              />
-            </label>
-            <label className="text-[10px] font-bold uppercase tracking-wider">
-              Role
-              <select
-                className="mt-0.5 ml-0 sm:ml-1 block rounded-md border px-2 py-1.5 text-xs normal-case tracking-normal"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
+          {canInvite ? (
+            <>
+              <h3
+                className="text-[10px] font-bold uppercase tracking-wider mb-2"
+                style={{ color: KEBU.faint }}
               >
-                {(roles.length ? roles : [{ id: "creative", label: "Creative" }]).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              disabled={busy || !email.trim()}
-              onClick={() => void sendInvite()}
-              className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
-              style={{ background: KEBU.orange }}
+                Invite someone
+              </h3>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                <label className="text-[10px] font-bold uppercase tracking-wider flex-1 min-w-[160px]">
+                  Email
+                  <input
+                    type="email"
+                    className="mt-0.5 w-full rounded-md border px-2 py-1.5 text-xs normal-case tracking-normal"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="creative@example.com"
+                  />
+                </label>
+                <label className="text-[10px] font-bold uppercase tracking-wider">
+                  Role
+                  <select
+                    className="mt-0.5 ml-0 sm:ml-1 block rounded-md border px-2 py-1.5 text-xs normal-case tracking-normal"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                  >
+                    {(roles.length
+                      ? roles
+                      : [{ id: "creative", label: "Creative" }]
+                    ).map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  disabled={busy || !email.trim()}
+                  onClick={() => void sendInvite()}
+                  className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
+                  style={{ background: KEBU.orange }}
+                >
+                  Send invite
+                </button>
+              </div>
+              <label className="mt-2 block text-[10px] font-bold uppercase tracking-wider">
+                Note (optional)
+                <input
+                  className="mt-0.5 w-full rounded-md border px-2 py-1.5 text-xs normal-case tracking-normal"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Welcome to the DkLNS desk…"
+                  maxLength={400}
+                />
+              </label>
+            </>
+          ) : (
+            <p className="text-sm">
+              Contact a company administrator to invite someone.
+            </p>
+          )}
+          {error ? (
+            <p
+              role="alert"
+              className="mt-2 text-sm"
+              style={{ color: "#8B1E1E" }}
             >
-              Send invite
-            </button>
-          </div>
-          <label className="mt-2 block text-[10px] font-bold uppercase tracking-wider">
-            Note (optional)
-            <input
-              className="mt-0.5 w-full rounded-md border px-2 py-1.5 text-xs normal-case tracking-normal"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Welcome to the DkLNS desk…"
-              maxLength={400}
-            />
-          </label>
-
-          {error ? <p className="mt-2 text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
+              {error}
+            </p>
+          ) : null}
           {hint ? (
             <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>
               {hint}
             </p>
           ) : null}
           {lastLink ? (
-            <p className="mt-1 break-all text-[11px]" style={{ color: KEBU.orange }}>
+            <p
+              className="mt-1 break-all text-[11px]"
+              style={{ color: KEBU.orange }}
+            >
               {lastLink}
             </p>
           ) : null}
@@ -209,7 +258,10 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
                     <li
                       key={i.id}
                       className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2"
-                      style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}
+                      style={{
+                        background: KEBU.cream,
+                        border: `1px solid ${KEBU.border}`,
+                      }}
                     >
                       <span>
                         {i.email} · {i.roleLabel}
@@ -219,13 +271,21 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
                           type="button"
                           className="text-[10px] font-bold uppercase tracking-wider underline"
                           style={{ color: KEBU.orange }}
-                          onClick={() => {
+                          onClick={async () => {
                             const url =
                               typeof window !== "undefined"
                                 ? `${window.location.origin}${i.acceptPath}`
                                 : i.acceptPath;
-                            void navigator.clipboard?.writeText(url);
-                            setHint("Invite link copied.");
+                            try {
+                              if (!navigator.clipboard)
+                                throw new Error("Unavailable");
+                              await navigator.clipboard.writeText(url);
+                              setHint("Invite link copied.");
+                            } catch {
+                              setError(
+                                "Could not copy the link. Please try again.",
+                              );
+                            }
                           }}
                         >
                           Copy link

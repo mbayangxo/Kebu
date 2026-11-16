@@ -1,8 +1,8 @@
 # Kebu Company Portal
 
-Requirement recorded November 15, 2026 (America/New_York).
+Requirement recorded November 15; expanded November 16, 2026.
 
-**User direction:** Companies should use Kebu to find and hire people, onboard them, and keep track of projects and companies. Build on the existing Business Kebu portal and first-party products. This document records accepted intent and a proposed implementation sequence; it does not claim the missing workflows are built or production-tested.
+**User direction:** Companies should use Kebu to find and hire people, onboard them, and keep track of projects and companies. Build on the existing Business Kebu portal and first-party products. Source implementation and local database acceptance are recorded in the November 16 audit. Hosted and browser acceptance remain open; this is not a production completion claim.
 
 ## Product outcome
 
@@ -77,3 +77,16 @@ Defer payroll/tax engines, automatic legal hiring decisions, a complete ERP, unt
 ## Follow-through
 
 Track this requirement within ACC01 (identity/roles), WRK01 (Liguey/Work/Rooms), BIZ01 (company operations) and DEV01 (optional app ecosystem) of `docs/KEBU_CLOSEOUT_REGISTER.md`. Preserve all previous accepted scope and the November 14 repairs. Vercel remains deferred until reset; do not introduce a paid upgrade, new hosting or hosted schema write to prepare this workflow.
+
+
+## November 16 accepted expansion and source candidate
+
+Kebu Business is the company operating workspace. Liguey is a separate optional Kebu marketplace app added to the existing account, without another signup. Removing it stops new recruitment/interview acceptance; company membership and existing employment records are not deleted. Keep RECT and other ecosystem companies separate.
+
+The source candidate connects reviewed employer listings, private applicant review, consent-based online/office interviews, explicit accepted team invitations, onboarding lessons and graded questions, operational projects/tasks, feedback, company Rooms, shared Docs and links to existing Sheets/Slides. Attached resources retain their original ACLs: attachment is not automatic permission. Workers can read their shifts, company benefits, private HR requests, pay-method preference and employer-entered pay records. This does not execute payroll, capture bank credentials, calculate tax or provide a full benefits administrator. Portfolio reports aggregate only the signed-in person's active memberships, not presumed company-group ownership.
+
+Employer registration submissions require a country, registration authority/number, source link and recruiter identity. Only an actual operator review can approve publication. Office interviews require separately reviewed office details. Reviews expire, candidate reports remain private, and a report does not automatically establish guilt. This reduces exposure; it cannot guarantee physical safety or independently verify registries without staff/provider work. Mandatory legal incorporation is not assumed for every informal business: unreviewed businesses can draft and run internal work, but cannot publish recruiting listings under this candidate policy.
+
+Name research saves a person's private shortlist and compares only active reviewed KEBU businesses in the selected country. Official WIPO/OAPI/ARIPO/national registry links support manual research. It does not check every African trademark, reserve a name, determine legal clearance or claim name availability. Do not scrape restricted registry services.
+
+Rollout gates: company portal and Liguey have independent, explicit non-production QA flags restricted to the known QA origin/loopback. Hosted missing schema must be reconciled before either is enabled. The current state endpoints explicitly flag truncated lists at their 100-record boundary; pagination/export/retention and larger-enterprise acceptance remain follow-up work. No broad enterprise completion claim is permitted.

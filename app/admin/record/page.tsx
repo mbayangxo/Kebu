@@ -30,7 +30,12 @@ type HelpReply = {
   created_at: string;
 };
 
-type AttentionItem = { kind: string; label: string; detail: string; at: string };
+type AttentionItem = {
+  kind: string;
+  label: string;
+  detail: string;
+  at: string;
+};
 
 type RecordOverview = {
   generatedAt: string;
@@ -98,7 +103,13 @@ type RecordOverview = {
     migrationNeeded?: boolean;
   };
   needsAttention: AttentionItem[];
-  domains: Array<{ id: string; hostname: string; status: string; provider: string; project_id: string }>;
+  domains: Array<{
+    id: string;
+    hostname: string;
+    status: string;
+    provider: string;
+    project_id: string;
+  }>;
   recentBusinesses: Array<{
     id: string;
     public_kebu_id: string;
@@ -134,7 +145,10 @@ export default function KebuRecordPortalPage() {
     void load();
   }, [load]);
 
-  async function setHelpStatus(id: string, status: "in_progress" | "helped" | "closed" | "open") {
+  async function setHelpStatus(
+    id: string,
+    status: "in_progress" | "helped" | "closed" | "open",
+  ) {
     setBusyId(id);
     try {
       const res = await fetch("/api/admin/record", {
@@ -161,7 +175,9 @@ export default function KebuRecordPortalPage() {
     }
     setOpenThreadId(id);
     if (!threads[id]) {
-      const res = await fetch(`/api/admin/help/${id}`, { credentials: "include" });
+      const res = await fetch(`/api/admin/help/${id}`, {
+        credentials: "include",
+      });
       const json = await res.json().catch(() => ({}));
       if (res.ok) setThreads((prev) => ({ ...prev, [id]: json.replies ?? [] }));
     }
@@ -184,7 +200,10 @@ export default function KebuRecordPortalPage() {
         return;
       }
       setReplyDrafts((prev) => ({ ...prev, [id]: "" }));
-      setThreads((prev) => ({ ...prev, [id]: [...(prev[id] ?? []), json.reply] }));
+      setThreads((prev) => ({
+        ...prev,
+        [id]: [...(prev[id] ?? []), json.reply],
+      }));
       await load();
     } finally {
       setReplyBusyId(null);
@@ -195,10 +214,19 @@ export default function KebuRecordPortalPage() {
     <div className="min-h-screen bg-warm-ivory">
       <div className="bg-deep-green text-ivory py-10 px-4">
         <div className="max-w-6xl mx-auto">
-          <p className="text-gold text-xs font-semibold uppercase tracking-widest mb-2">Internal · Team only</p>
+          <p className="text-gold text-xs font-semibold uppercase tracking-widest mb-2">
+            Internal · Team only
+          </p>
           <h1 className="font-display text-3xl font-bold">Kebu Record</h1>
+          <Link
+            href="/admin/employer-reviews"
+            className="inline-block min-h-11 underline"
+          >
+            Employer reviews and candidate safety reports
+          </Link>
           <p className="text-ivory/70 text-sm mt-2 max-w-2xl">
-            Platform ops — new accounts, help requests, cron / site health, businesses and hosted assets.
+            Platform ops — new accounts, help requests, cron / site health,
+            businesses and hosted assets.
           </p>
           <div className="flex gap-4 mt-4 text-sm">
             <Link href="/admin" className="underline text-ivory/80">
@@ -210,8 +238,13 @@ export default function KebuRecordPortalPage() {
             <Link href="/create" className="underline text-ivory/80">
               Kebu Builder
             </Link>
-            <Link href="/admin/app-reviews" className="underline text-ivory/80">App reviews</Link>
-            <Link href="/admin/developer-payouts" className="underline text-ivory/80">
+            <Link href="/admin/app-reviews" className="underline text-ivory/80">
+              App reviews
+            </Link>
+            <Link
+              href="/admin/developer-payouts"
+              className="underline text-ivory/80"
+            >
               Developer payouts
             </Link>
             <Link href="/admin/fulfillment" className="underline text-ivory/80">
@@ -223,24 +256,36 @@ export default function KebuRecordPortalPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
         {error ? <p className="text-red-700">{error}</p> : null}
-        {!data && !error ? <p className="text-muted">Loading platform snapshot…</p> : null}
+        {!data && !error ? (
+          <p className="text-muted">Loading platform snapshot…</p>
+        ) : null}
 
         {data ? (
           <>
-            <p className="text-xs text-muted">Snapshot {new Date(data.generatedAt).toLocaleString()}</p>
+            <p className="text-xs text-muted">
+              Snapshot {new Date(data.generatedAt).toLocaleString()}
+            </p>
 
             <section>
-              <h2 className="font-display text-lg font-bold mb-3">Needs attention</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                Needs attention
+              </h2>
               <p className="text-xs text-muted mb-3">
-                Site-health, cron, security, and payment failures — read fresh on every load of this page, not yet a push/email alert.
+                Site-health, cron, security, and payment failures — read fresh
+                on every load of this page, not yet a push/email alert.
               </p>
               <div className="bg-white border border-border rounded-2xl p-6">
                 {data.needsAttention.length === 0 ? (
-                  <p className="text-sm text-muted">Nothing failing right now.</p>
+                  <p className="text-sm text-muted">
+                    Nothing failing right now.
+                  </p>
                 ) : (
                   <ul className="space-y-2 text-sm">
                     {data.needsAttention.map((a, i) => (
-                      <li key={`${a.kind}-${i}`} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/40 pb-2">
+                      <li
+                        key={`${a.kind}-${i}`}
+                        className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/40 pb-2"
+                      >
                         <span>
                           <span className="rounded-full bg-amber-100 text-amber-900 text-[9px] font-bold uppercase px-2 py-0.5 mr-2">
                             {a.kind}
@@ -248,7 +293,9 @@ export default function KebuRecordPortalPage() {
                           <span className="font-semibold">{a.label}</span>
                           <span className="text-muted"> — {a.detail}</span>
                         </span>
-                        <span className="text-xs text-muted">{new Date(a.at).toLocaleString()}</span>
+                        <span className="text-xs text-muted">
+                          {new Date(a.at).toLocaleString()}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -257,7 +304,9 @@ export default function KebuRecordPortalPage() {
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-bold mb-3">New accounts</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                New accounts
+              </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   ["Today", data.accounts.day],
@@ -265,8 +314,13 @@ export default function KebuRecordPortalPage() {
                   ["Last 30 days", data.accounts.month],
                   ["All time", data.accounts.total],
                 ].map(([label, value]) => (
-                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
-                    <p className="font-display text-3xl font-bold text-deep-green">{value as number}</p>
+                  <div
+                    key={label as string}
+                    className="bg-white border border-border rounded-2xl p-5 text-center"
+                  >
+                    <p className="font-display text-3xl font-bold text-deep-green">
+                      {value as number}
+                    </p>
                     <p className="text-xs text-muted mt-1">{label as string}</p>
                   </div>
                 ))}
@@ -274,10 +328,13 @@ export default function KebuRecordPortalPage() {
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-bold mb-3">Customer help</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                Customer help
+              </h2>
               {data.help.migrationNeeded ? (
                 <p className="text-sm text-amber-800 mb-3">
-                  Apply <code>APPLY_083_HELP_AND_CRON.sql</code> to track help requests.
+                  Apply <code>APPLY_083_HELP_AND_CRON.sql</code> to track help
+                  requests.
                 </p>
               ) : null}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
@@ -287,8 +344,13 @@ export default function KebuRecordPortalPage() {
                   ["Helped / closed", data.help.helpedOrClosed],
                   ["Requests this week", data.help.requestsThisWeek],
                 ].map(([label, value]) => (
-                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
-                    <p className="font-display text-3xl font-bold text-deep-green">{value as number}</p>
+                  <div
+                    key={label as string}
+                    className="bg-white border border-border rounded-2xl p-5 text-center"
+                  >
+                    <p className="font-display text-3xl font-bold text-deep-green">
+                      {value as number}
+                    </p>
                     <p className="text-xs text-muted mt-1">{label as string}</p>
                   </div>
                 ))}
@@ -296,7 +358,9 @@ export default function KebuRecordPortalPage() {
               <div className="bg-white border border-border rounded-2xl p-6">
                 <h3 className="text-sm font-bold mb-3">Recent help requests</h3>
                 {data.help.recent.length === 0 ? (
-                  <p className="text-sm text-muted">No help requests yet — they arrive from /contact.</p>
+                  <p className="text-sm text-muted">
+                    No help requests yet — they arrive from /contact.
+                  </p>
                 ) : (
                   <ul className="space-y-3 text-sm">
                     {data.help.recent.map((h) => (
@@ -311,15 +375,25 @@ export default function KebuRecordPortalPage() {
                             </p>
                             {h.accountContext ? (
                               <p className="text-xs text-deep-green mt-1">
-                                Account since {h.accountContext.accountCreatedAt ? new Date(h.accountContext.accountCreatedAt).toLocaleDateString() : "unknown"}
+                                Account since{" "}
+                                {h.accountContext.accountCreatedAt
+                                  ? new Date(
+                                      h.accountContext.accountCreatedAt,
+                                    ).toLocaleDateString()
+                                  : "unknown"}
                                 {h.accountContext.businesses.length
                                   ? h.accountContext.businesses
-                                      .map((b) => ` · ${b.legalName} (${b.publicKebuId})`)
+                                      .map(
+                                        (b) =>
+                                          ` · ${b.legalName} (${b.publicKebuId})`,
+                                      )
                                       .join("")
                                   : " · no business yet"}
                               </p>
                             ) : (
-                              <p className="text-xs text-muted mt-1">Guest submission — no Kebu account.</p>
+                              <p className="text-xs text-muted mt-1">
+                                Guest submission — no Kebu account.
+                              </p>
                             )}
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -335,7 +409,9 @@ export default function KebuRecordPortalPage() {
                                 type="button"
                                 disabled={busyId === h.id}
                                 className="rounded-full border px-3 py-1 text-[10px] font-bold uppercase"
-                                onClick={() => void setHelpStatus(h.id, "in_progress")}
+                                onClick={() =>
+                                  void setHelpStatus(h.id, "in_progress")
+                                }
                               >
                                 Start
                               </button>
@@ -345,7 +421,9 @@ export default function KebuRecordPortalPage() {
                                 type="button"
                                 disabled={busyId === h.id}
                                 className="rounded-full bg-deep-green px-3 py-1 text-[10px] font-bold uppercase text-ivory"
-                                onClick={() => void setHelpStatus(h.id, "helped")}
+                                onClick={() =>
+                                  void setHelpStatus(h.id, "helped")
+                                }
                               >
                                 Mark helped
                               </button>
@@ -356,9 +434,18 @@ export default function KebuRecordPortalPage() {
                           <div className="mt-3 rounded-xl bg-warm-ivory p-3 space-y-2">
                             <p className="text-sm">{h.body}</p>
                             {(threads[h.id] ?? []).map((r) => (
-                              <div key={r.id} className="text-xs border-t border-border/40 pt-2">
-                                <span className="font-bold">{r.author_type === "team" ? r.author_name : h.name}</span>{" "}
-                                <span className="text-muted">{new Date(r.created_at).toLocaleString()}</span>
+                              <div
+                                key={r.id}
+                                className="text-xs border-t border-border/40 pt-2"
+                              >
+                                <span className="font-bold">
+                                  {r.author_type === "team"
+                                    ? r.author_name
+                                    : h.name}
+                                </span>{" "}
+                                <span className="text-muted">
+                                  {new Date(r.created_at).toLocaleString()}
+                                </span>
                                 <p>{r.body}</p>
                               </div>
                             ))}
@@ -368,15 +455,25 @@ export default function KebuRecordPortalPage() {
                                 rows={2}
                                 placeholder="Reply — sent to their Kebu account email"
                                 value={replyDrafts[h.id] ?? ""}
-                                onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [h.id]: e.target.value }))}
+                                onChange={(e) =>
+                                  setReplyDrafts((prev) => ({
+                                    ...prev,
+                                    [h.id]: e.target.value,
+                                  }))
+                                }
                               />
                               <button
                                 type="button"
-                                disabled={replyBusyId === h.id || !(replyDrafts[h.id] ?? "").trim()}
+                                disabled={
+                                  replyBusyId === h.id ||
+                                  !(replyDrafts[h.id] ?? "").trim()
+                                }
                                 className="rounded-full bg-deep-green px-3 py-1 text-[10px] font-bold uppercase text-ivory self-start disabled:opacity-50"
                                 onClick={() => void sendReply(h.id)}
                               >
-                                {replyBusyId === h.id ? "Sending…" : "Send & email"}
+                                {replyBusyId === h.id
+                                  ? "Sending…"
+                                  : "Send & email"}
                               </button>
                             </div>
                           </div>
@@ -389,10 +486,13 @@ export default function KebuRecordPortalPage() {
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-bold mb-3">Cron & site health</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                Cron & site health
+              </h2>
               {data.crons.migrationNeeded ? (
                 <p className="text-sm text-amber-800 mb-3">
-                  Apply <code>APPLY_083_HELP_AND_CRON.sql</code> for cron run history.
+                  Apply <code>APPLY_083_HELP_AND_CRON.sql</code> for cron run
+                  history.
                 </p>
               ) : null}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
@@ -402,8 +502,13 @@ export default function KebuRecordPortalPage() {
                   ["Billing past due", data.health.billingPastDue],
                   ["Shop orders (7d)", data.health.shopOrdersThisWeek],
                 ].map(([label, value]) => (
-                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
-                    <p className="font-display text-3xl font-bold text-deep-green">{value as number}</p>
+                  <div
+                    key={label as string}
+                    className="bg-white border border-border rounded-2xl p-5 text-center"
+                  >
+                    <p className="font-display text-3xl font-bold text-deep-green">
+                      {value as number}
+                    </p>
                     <p className="text-xs text-muted mt-1">{label as string}</p>
                   </div>
                 ))}
@@ -412,13 +517,19 @@ export default function KebuRecordPortalPage() {
                 <div className="bg-white border border-border rounded-2xl p-6">
                   <h3 className="text-sm font-bold mb-3">Recent cron runs</h3>
                   {data.crons.recent.length === 0 ? (
-                    <p className="text-sm text-muted">No cron runs logged yet (after next scheduled job).</p>
+                    <p className="text-sm text-muted">
+                      No cron runs logged yet (after next scheduled job).
+                    </p>
                   ) : (
                     <ul className="text-xs space-y-2">
                       {data.crons.recent.map((c) => (
-                        <li key={c.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                        <li
+                          key={c.id}
+                          className="flex justify-between gap-2 border-b border-border/40 pb-2"
+                        >
                           <span>
-                            <span className="font-mono">{c.job_name}</span> · {c.status}
+                            <span className="font-mono">{c.job_name}</span> ·{" "}
+                            {c.status}
                             {c.error_message ? ` — ${c.error_message}` : ""}
                           </span>
                           <span className="text-muted shrink-0">
@@ -432,40 +543,61 @@ export default function KebuRecordPortalPage() {
                 <div className="bg-white border border-border rounded-2xl p-6">
                   <h3 className="text-sm font-bold mb-3">Failing live sites</h3>
                   {data.health.recentFailures.length === 0 ? (
-                    <p className="text-sm text-muted">No failing probes right now.</p>
+                    <p className="text-sm text-muted">
+                      No failing probes right now.
+                    </p>
                   ) : (
                     <ul className="text-xs space-y-2">
                       {data.health.recentFailures.map((f) => (
-                        <li key={f.subdomain} className="border-b border-border/40 pb-2">
+                        <li
+                          key={f.subdomain}
+                          className="border-b border-border/40 pb-2"
+                        >
                           <span className="font-mono">{f.subdomain}</span>
-                          {f.error_message ? ` — ${f.error_message}` : f.http_status ? ` — HTTP ${f.http_status}` : ""}
+                          {f.error_message
+                            ? ` — ${f.error_message}`
+                            : f.http_status
+                              ? ` — HTTP ${f.http_status}`
+                              : ""}
                         </li>
                       ))}
                     </ul>
                   )}
                   <p className="text-[10px] text-muted mt-3">
-                    AI events (30d): {data.health.aiEventsThisMonth} · Billing expired rows:{" "}
-                    {data.health.billingExpired}
+                    AI events (30d): {data.health.aiEventsThisMonth} · Billing
+                    expired rows: {data.health.billingExpired}
                   </p>
                 </div>
               </div>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-bold mb-3">Security signals (24h)</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                Security signals (24h)
+              </h2>
               {data.security.migrationNeeded ? (
                 <p className="text-sm text-amber-800 mb-3">
-                  Apply <code>20261103130000_security_events_log.sql</code> for security signal history.
+                  Apply <code>20261103130000_security_events_log.sql</code> for
+                  security signal history.
                 </p>
               ) : null}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                 {[
                   ["CSRF rejections", data.security.last24h.csrfRejected],
-                  ["Auth rate-limit trips", data.security.last24h.authRateLimited],
-                  ["Admin login failures", data.security.last24h.adminLoginFailed],
+                  [
+                    "Auth rate-limit trips",
+                    data.security.last24h.authRateLimited,
+                  ],
+                  [
+                    "Admin login failures",
+                    data.security.last24h.adminLoginFailed,
+                  ],
                   ["Total signals (24h)", data.security.last24h.total],
                 ].map(([label, value]) => (
-                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
+                  <div
+                    key={label as string}
+                    className="bg-white border border-border rounded-2xl p-5 text-center"
+                  >
                     <p
                       className={`font-display text-3xl font-bold ${(value as number) > 0 ? "text-amber-700" : "text-deep-green"}`}
                     >
@@ -478,15 +610,24 @@ export default function KebuRecordPortalPage() {
               <div className="bg-white border border-border rounded-2xl p-6">
                 <h3 className="text-sm font-bold mb-3">Recent signals</h3>
                 {data.security.recent.length === 0 ? (
-                  <p className="text-sm text-muted">No security signals logged — nothing has tripped CSRF, auth rate limits, or admin login checks.</p>
+                  <p className="text-sm text-muted">
+                    No security signals logged — nothing has tripped CSRF, auth
+                    rate limits, or admin login checks.
+                  </p>
                 ) : (
                   <ul className="text-xs space-y-2">
                     {data.security.recent.map((s) => (
-                      <li key={s.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                      <li
+                        key={s.id}
+                        className="flex justify-between gap-2 border-b border-border/40 pb-2"
+                      >
                         <span>
-                          <span className="font-mono">{s.event_type}</span> · {s.source}
+                          <span className="font-mono">{s.event_type}</span> ·{" "}
+                          {s.source}
                         </span>
-                        <span className="text-muted shrink-0">{new Date(s.created_at).toLocaleString()}</span>
+                        <span className="text-muted shrink-0">
+                          {new Date(s.created_at).toLocaleString()}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -495,7 +636,9 @@ export default function KebuRecordPortalPage() {
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-bold mb-3">Platform totals</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                Platform totals
+              </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   ["Businesses", data.counts.businesses],
@@ -506,8 +649,13 @@ export default function KebuRecordPortalPage() {
                   ["Catalog products", data.counts.catalogProducts],
                   ["Create designs", data.counts.createDesigns],
                 ].map(([label, value]) => (
-                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
-                    <p className="font-display text-3xl font-bold text-deep-green">{value as number}</p>
+                  <div
+                    key={label as string}
+                    className="bg-white border border-border rounded-2xl p-5 text-center"
+                  >
+                    <p className="font-display text-3xl font-bold text-deep-green">
+                      {value as number}
+                    </p>
                     <p className="text-xs text-muted mt-1">{label as string}</p>
                   </div>
                 ))}
@@ -515,7 +663,9 @@ export default function KebuRecordPortalPage() {
             </section>
 
             <div className="bg-white border border-border rounded-2xl p-6">
-              <h2 className="font-display text-lg font-bold mb-4">Recent businesses</h2>
+              <h2 className="font-display text-lg font-bold mb-4">
+                Recent businesses
+              </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -529,10 +679,14 @@ export default function KebuRecordPortalPage() {
                   <tbody>
                     {data.recentBusinesses.map((b) => (
                       <tr key={b.id} className="border-b border-border/50">
-                        <td className="py-2 pr-4 font-mono text-xs">{b.public_kebu_id}</td>
+                        <td className="py-2 pr-4 font-mono text-xs">
+                          {b.public_kebu_id}
+                        </td>
                         <td className="py-2 pr-4">{b.legal_name}</td>
                         <td className="py-2 pr-4">{b.country_code}</td>
-                        <td className="py-2">{new Date(b.created_at).toLocaleDateString()}</td>
+                        <td className="py-2">
+                          {new Date(b.created_at).toLocaleDateString()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -541,13 +695,20 @@ export default function KebuRecordPortalPage() {
             </div>
 
             <div className="bg-white border border-border rounded-2xl p-6">
-              <h2 className="font-display text-lg font-bold mb-4">Hosted & connected domains</h2>
+              <h2 className="font-display text-lg font-bold mb-4">
+                Hosted & connected domains
+              </h2>
               {data.domains.length === 0 ? (
-                <p className="text-sm text-muted">No custom domains connected yet.</p>
+                <p className="text-sm text-muted">
+                  No custom domains connected yet.
+                </p>
               ) : (
                 <ul className="text-sm space-y-2">
                   {data.domains.map((d) => (
-                    <li key={d.id} className="flex justify-between gap-4 border-b border-border/40 pb-2">
+                    <li
+                      key={d.id}
+                      className="flex justify-between gap-4 border-b border-border/40 pb-2"
+                    >
                       <span className="font-mono">{d.hostname}</span>
                       <span className="text-muted capitalize">
                         {d.status} · {d.provider}
