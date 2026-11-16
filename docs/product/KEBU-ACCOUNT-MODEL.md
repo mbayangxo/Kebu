@@ -3,6 +3,8 @@
 **Unified identity (full vision):** `docs/product/KEBU-UNIFIED-ACCOUNT.md`  
 **Agent rule:** `.cursor/rules/kebu-account-model.mdc`
 
+**Company operations requirement (November 15):** [Kebu Company Portal](KEBU-COMPANY-PORTAL.md) — connect hiring, explicit team onboarding, operational projects and authorized multi-company oversight within existing Business Kebu. This is a recorded requirement and implementation plan, not a completion claim.
+
 One **Kebu Account** (login). One identity graph. **Not** separate accounts for Search, Builder, Cloud, Mail, or Analytics.
 
 ---
