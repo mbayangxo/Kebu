@@ -9,7 +9,7 @@ export const companyIds = {
   business: "10000000-0000-4000-8000-000000000005",
   second: "10000000-0000-4000-8000-000000000006",
 };
-export async function companyDatabase() {
+export async function companyCoreDatabase() {
   const root = process.env.KEBU_LOCAL_PGLITE_ROOT!;
   const { PGlite } = await import(
     pathToFileURL(resolve(root, "dist/index.js")).href
@@ -18,22 +18,13 @@ export async function companyDatabase() {
     pathToFileURL(resolve(root, "dist/contrib/pgcrypto.js")).href
   );
   const db = new PGlite({ extensions: { pgcrypto } });
+  await db.exec(companyCoreSql());
+  return { db };
+}
+export async function companyDatabase() {
+  const { db } = await companyCoreDatabase();
   const ids = companyIds,
     read = (path: string) => readFileSync(path, "utf8");
-  await db.exec(`create extension pgcrypto;create schema auth;create schema private;create role anon;create role authenticated;create role service_role bypassrls;
- create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
- create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
- create function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at=clock_timestamp();return new;end$$;
- create table public.businesses(id uuid primary key,legal_name text,trading_name text,public_kebu_id text,lifecycle_status text default 'active');
- create table public.user_profiles(id uuid primary key,name text,public_kebu_id text);
- create table public.business_members(id uuid primary key default gen_random_uuid(),business_id uuid references businesses(id),user_id uuid references auth.users(id),role text,status text default 'active',created_at timestamptz default clock_timestamp(),updated_at timestamptz default clock_timestamp(),unique(business_id,user_id));
- create table public.business_audit_logs(id uuid default gen_random_uuid(),business_id uuid,actor_user_id uuid,action text,metadata jsonb);
- grant usage on schema public,auth to authenticated,anon,service_role;grant execute on function auth.uid() to authenticated,anon,service_role;grant select on businesses,business_members to authenticated;
- insert into auth.users values('${ids.owner}','owner@test.test',now()),('${ids.worker}','worker@test.test',now()),('${ids.other}','other@test.test',now()),('${ids.finance}','finance@test.test',now());
- insert into user_profiles values('${ids.owner}','Owner','KA-OWNER'),('${ids.worker}','Worker','KA-WORKER'),('${ids.other}','Other','KA-OTHER'),('${ids.finance}','Finance','KA-FINANCE');
- insert into businesses values('${ids.business}','Company A',null,'KB-A','active'),('${ids.second}','Company B',null,'KB-B','active');
- insert into business_members(business_id,user_id,role)values('${ids.business}','${ids.owner}','founder'),('${ids.business}','${ids.worker}','employee'),('${ids.business}','${ids.finance}','finance_manager'),('${ids.second}','${ids.other}','founder');
- `);
   const inviteSQL = read(
     "supabase/migrations_archive/legacy/055_team_invites_demo_orders.sql",
   );
@@ -107,4 +98,22 @@ export async function companyDatabase() {
     ).rows[0].result;
   }
   return { db, actor, action };
+}
+
+export function companyCoreSql() {
+  const ids = companyIds;
+  return `create extension pgcrypto;create schema auth;create schema private;do $roles$begin if not exists(select 1 from pg_roles where rolname='anon')then create role anon;end if;if not exists(select 1 from pg_roles where rolname='authenticated')then create role authenticated;end if;if not exists(select 1 from pg_roles where rolname='service_role')then create role service_role bypassrls;end if;end$roles$;
+ create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at=clock_timestamp();return new;end$$;
+ create table public.businesses(id uuid primary key,legal_name text,trading_name text,public_kebu_id text,lifecycle_status text default 'active');
+ create table public.user_profiles(id uuid primary key,name text);
+ create table public.business_members(id uuid primary key default gen_random_uuid(),business_id uuid references businesses(id),user_id uuid references auth.users(id),role text,status text default 'active',created_at timestamptz default clock_timestamp(),updated_at timestamptz default clock_timestamp(),unique(business_id,user_id));
+ create table public.business_audit_logs(id uuid default gen_random_uuid(),business_id uuid,actor_user_id uuid,action text,metadata jsonb);
+ grant usage on schema public,auth to authenticated,anon,service_role;grant execute on function auth.uid() to authenticated,anon,service_role;grant select on businesses,business_members to authenticated;
+ insert into auth.users values('${ids.owner}','owner@test.test',now()),('${ids.worker}','worker@test.test',now()),('${ids.other}','other@test.test',now()),('${ids.finance}','finance@test.test',now());
+ insert into user_profiles values('${ids.owner}','Owner'),('${ids.worker}','Worker'),('${ids.other}','Other'),('${ids.finance}','Finance');
+ insert into businesses values('${ids.business}','Company A',null,'KB-A','active'),('${ids.second}','Company B',null,'KB-B','active');
+ insert into business_members(business_id,user_id,role)values('${ids.business}','${ids.owner}','founder'),('${ids.business}','${ids.worker}','employee'),('${ids.business}','${ids.finance}','finance_manager'),('${ids.second}','${ids.other}','founder');
+ `;
 }

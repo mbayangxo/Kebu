@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## November 16 — foundation batch and native company races
+
+The exact legacy-QA convergence batch is generated from reviewed source and rehearsed locally. The roster no longer relies on an invented personal-ID column; first callers and last leave serialize on the parent room, with an active-call uniqueness index. Native PostgreSQL 17.11 passes five observed-lock-barrier cases in three runs (15 passes, zero skips), and focused company SQL passes 15 cases. Hosted application remains blocked: both Supabase migration confirmations expired, and no hosted success is claimed. Production, live providers and May acceptance remain open. See [the foundation receipt](audits/KEBU_QA_FOUNDATIONS_2026-11-16.md).
+
 ## November 16 — deeper release and payout audit
 
 Fresh QA inventory finds only 2 of 26 selected company/editor/cloud prerequisites present. Public May HTTP still returns 402; verified domains do not establish a live project. Automated outbound payout adapters are now held off because their provider contracts were guessed; developer dispatch rejects unconverted USD and an unavailable FX conversion no longer silently erases existing reserved payouts. These are source safety repairs, not live payout implementation. Atomic developer reservation/reconciliation, native invitation/interview/initial-call races, managed QA foundations, production rollout gates and May's unfinished scene/content acceptance remain open. See [the deep release audit](audits/KEBU_DEEP_RELEASE_AUDIT_2026-11-16.md) and [Kebu × JOKKO payout contract](product/KEBU-JOKKO-PAYOUTS.md). No hosted writes, deploy, financial transfer or spending occurred.

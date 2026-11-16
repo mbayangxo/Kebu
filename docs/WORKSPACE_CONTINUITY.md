@@ -2,6 +2,10 @@
 
 The authoritative development branch is `origin/work/kebu-completion-audit-oct13` in `mbayangxo/Kebu`. A temporary workspace, a chat summary or an unpushed local commit is not a durable checkpoint. Deployment serves the application; it does not repair an old source checkout.
 
+## November 16 — QA repair authorization and provider gate
+
+The user approved proceeding with the reviewed release-closure plan, including the targeted Kebu-qa foundation repair. This supersedes the earlier hosted-write hold for that QA repair only, after local rehearsal and review. Production/DNS/deployment, new spending and real-money transfers remain held. The exact batch and evidence are in `audits/KEBU_QA_FOUNDATIONS_2026-11-16.md`. Two Supabase apply_migration confirmations expired before execution; no hosted success is claimed. Reissue only when the provider confirmation can be acknowledged; do not bypass it through execute_sql or an alternate channel. Preserve the reviewed digest and recheck schema/ledger before any retry.
+
 ## Current authorization — October 28
 
 The local `work/kebu-completion-audit-oct13` branch is the single development integration line. When it exists and contains newer commits than GitHub, every feature checkout must contain it before further edits. `workspace:check` now enforces this local ancestry as well as the fetched remote checkpoint. Do not resume an older worktree just because it matches GitHub. Preserve local changes, reconcile the consolidated branch, then rerun the check. The check does not write files or push. The user now explicitly authorizes updating all reviewed source on GitHub so Claude can see it. The deployment and hosted-write hold remains: do not deploy, activate workers or apply hosted migrations. The shared branch is disabled in vercel.json git.deploymentEnabled. Preserve original local commit authors in the recovery bundle when connector-only source sharing is necessary.

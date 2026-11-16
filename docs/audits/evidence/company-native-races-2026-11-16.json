@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-16",
+  "database_engine": "PostgreSQL 17.11 native processes",
+  "scope": "Five company lock scenarios; source SQL/auth.uid fixture, not hosted Supabase Auth or browser acceptance",
+  "iterations": [
+    {
+      "iteration": 1,
+      "passed": 5,
+      "skipped": 0,
+      "failed": 0,
+      "cases": [
+        {
+          "name": "native company locks with independent backend PIDs double acceptance produces one membership and one audit event",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs an accept waiting on a revocation cannot grant access",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs removing the inviter while acceptance waits prevents a stale grant",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs simultaneous first callers join one active call",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs an interview and a shift cannot concurrently reserve the same participant time",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "passed": 5,
+      "skipped": 0,
+      "failed": 0,
+      "cases": [
+        {
+          "name": "native company locks with independent backend PIDs double acceptance produces one membership and one audit event",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs an accept waiting on a revocation cannot grant access",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs removing the inviter while acceptance waits prevents a stale grant",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs simultaneous first callers join one active call",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs an interview and a shift cannot concurrently reserve the same participant time",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "passed": 5,
+      "skipped": 0,
+      "failed": 0,
+      "cases": [
+        {
+          "name": "native company locks with independent backend PIDs double acceptance produces one membership and one audit event",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs an accept waiting on a revocation cannot grant access",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs removing the inviter while acceptance waits prevents a stale grant",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs simultaneous first callers join one active call",
+          "status": "passed"
+        },
+        {
+          "name": "native company locks with independent backend PIDs an interview and a shift cannot concurrently reserve the same participant time",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "cleanup": "Each disposable database was dropped after ending all pools; local server stopped",
+  "migration": {
+    "path": "supabase/migrations/20261116060247_qa_company_foundations.sql",
+    "sha256": "99ee2f63c9c487a0498a495a802913a51c464b642e12720ef15ef3eea1302800"
+  }
+}

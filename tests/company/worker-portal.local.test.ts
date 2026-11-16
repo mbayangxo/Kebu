@@ -8,6 +8,17 @@ describe.skipIf(!enabled)(
       const f = await companyDatabase();
       try {
         await f.actor(ids.owner);
+        expect(
+          (
+            await f.db.query("select company_roster($1) as roster", [
+              ids.business,
+            ])
+          ).rows[0].roster,
+        ).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ name: "Worker", kebuId: null }),
+          ]),
+        );
         const project = crypto.randomUUID();
         await f.action("project_create", {
           id: project,

@@ -1,0 +1,239 @@
+{
+  "target": "supabase/migrations/20261116060247_qa_company_foundations.sql",
+  "tables": [
+    "workspace_items",
+    "space_channels",
+    "space_messages",
+    "rooms",
+    "room_members",
+    "room_posts",
+    "room_links",
+    "room_decisions",
+    "room_files",
+    "library_nodes",
+    "library_shares",
+    "worker_profiles",
+    "worker_profile_evidence",
+    "job_listings",
+    "job_applications",
+    "liguey_applicant_insights",
+    "liguey_ai_usage",
+    "liguey_company_reviews",
+    "kebu_builtin_app_installs",
+    "kebu_friends_profiles",
+    "sheet_bodies",
+    "slide_bodies",
+    "room_calls",
+    "room_call_participants",
+    "cloud_storage_buckets",
+    "cloud_storage_files",
+    "cloud_deployments",
+    "cloud_deployment_versions",
+    "business_employer_verifications",
+    "employer_review_events",
+    "company_projects",
+    "company_project_tasks",
+    "company_project_feedback",
+    "company_project_resources",
+    "company_learning_modules",
+    "company_learning_assignments",
+    "company_learning_attempts",
+    "company_hr_requests",
+    "company_shifts",
+    "company_benefits",
+    "company_pay_preferences",
+    "company_pay_statements",
+    "liguey_interviews",
+    "liguey_interview_calendar",
+    "liguey_safety_reports",
+    "business_name_shortlists",
+    "user_notifications"
+  ],
+  "sources": [
+    {
+      "name": "20260920081000_workspace_items.sql",
+      "sha256": "400d043fbbf3f73c0259cf83e9fa71aa781b9ee453d3a65b0cb7580266712ff4",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20260920082000_space_chat.sql",
+      "sha256": "1fc348a164583faf823900d82ea70239660be8500a61e0bc9e347d6c4806f95c",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20260920083000_workspace_scope_hardening.sql",
+      "sha256": "d9d704a252025f037556d32bd74cb911791bb7dbe6c46f0b91983a52906eda27",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20260920085000_kebu_rooms.sql",
+      "sha256": "dffdb374dc44bff693baa0c2cea7af2445a47895f67297e2e405978c83ea7214",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20260920086000_room_scope_hardening.sql",
+      "sha256": "310e3c99b051206aa9b560d355553fa214ca3bcbe2db31f57c2282b5e0b96e87",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20260920090000_room_files.sql",
+      "sha256": "0145b0dec4cae2607c04debe54546ecfe8da5c432a84506ccb5a62b4226c7ba5",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261014034852_room_file_storage_identity.sql",
+      "sha256": "94e8be30ea28882911f25773bd078ff57cace09fd962db2732e4b230b715d0fb",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261014043916_workspace_item_identity_guard.sql",
+      "sha256": "78c67a73580a0d85bb4dfa1e7a48110d78e30a66def4545242d7a3df6ac0739a",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016120000_library_sharing.sql",
+      "sha256": "edf5c4b61c98da0844cc41ce492282785dba3e48fea9d0c2696e9a4b5e81a8c0",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016150000_workspace_item_visibility.sql",
+      "sha256": "b95b643e0793ae94888eb55910b7bd4d9251f11cba064161203000e934ded1d0",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016160000_room_chat_read_policy.sql",
+      "sha256": "5e582877ed472bf8f397eb2c89acb0010f7611c2a1f98643c0875870f2454c4d",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016161000_room_creation_returning_fix.sql",
+      "sha256": "348e432e1e60db4032bd1319f526a96a504ea9a777eba97baef252ad0b7b355d",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016162000_room_members_recursion_fix.sql",
+      "sha256": "d8d52967a13ec9789d8f4cbc2f2c101f741e1840644241387acc7c3a6c9ce12b",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016180000_liguey_worker_profiles.sql",
+      "sha256": "19b017516106ba9df21dc05448928b4ad9807ad6ac8d977cd659e5fe595b7898",
+      "transformation": "Preserve existing set_updated_at definition; omit redundant replacement"
+    },
+    {
+      "name": "20261016190000_liguey_job_listings_applications.sql",
+      "sha256": "221fef93bcf98e94ff22d6b6999f4abc59a7ed52cd40206c5b6e580ec3d5bf5d",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016200000_liguey_profile_visibility_for_reviewers.sql",
+      "sha256": "83bee093479bb68ec2131254b4ce11baa47f5e9827d577695e8a8b87147b768b",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261016210000_liguey_applicant_listing_visibility.sql",
+      "sha256": "434110bb6be9e42be60169c531261c0dd3e5dfa6f48ad16ff081cc39e3dcf186",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261020002000_liguey_yande_applicant_insight.sql",
+      "sha256": "48bb236efeefe2b3aec397a156c4b0ac50afc85c0de2ce7c090001538ee3de48",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261020020000_liguey_listing_pay_photo_and_company_reviews.sql",
+      "sha256": "689477dea87a101a46e59a01b54838ef8c410a4983b1a4cea4a3addd2324769f",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261106074222_kebu_builtin_app_installs.sql",
+      "sha256": "7e2ad3f88123ddd8ddd14ad6c279f76f3875fe3596a809b7ba281ac2f3f8a8ff",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261107010000_sheet_bodies.sql",
+      "sha256": "394dda879260124f2404231f441aad399886fa40ead7d522ad9a3e500a3078f1",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261107040000_workspace_item_rich_content.sql",
+      "sha256": "0d5f52bcde4465dc964138db3221b82aa6e262b96ed6b96be5a6a58069108a65",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261108010000_slide_bodies.sql",
+      "sha256": "7dc7e086bf9e0b808586472668229bafc88a15b2ab469e9fb6f7ab50e8b8bd03",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261108020000_room_calls_mesh.sql",
+      "sha256": "9a68e938b107dc21e7d39581f1090b95bbf0507028b97525c361ed8b3c056b95",
+      "transformation": "Omit obsolete function/table DROP; guarded new-table path only"
+    },
+    {
+      "name": "20261109010001_room_call_join_created_flag.sql",
+      "sha256": "be12eb4e65b6b97e0da81050ae2659158316ded9729be9e070a5a66d14207f2b",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261109010000_cloud_storage.sql",
+      "sha256": "3431a354538181b34f3ad3925fcb916de23adaba180f96611813d33884edd10c",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261109020000_room_call_default_cap.sql",
+      "sha256": "03e1e5274371479f5123f88652c4559a9c1cec07444d3e0e4bce667634b078e5",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261112075207_editor_revision_guards.sql",
+      "sha256": "dc586554f03011c32a3f398c76742400b3220f7f538f9f9bb4fd3715fdb8ea6e",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261112075718_document_collaboration_state.sql",
+      "sha256": "2e019214c28645e1bd75ed5febc7dd6b49e1e2a2d46a9a5e8e80e0545392612c",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261112075919_cloud_deployment_version_ownership.sql",
+      "sha256": "8c5773eb822a58a88be4464f7fdfc17b30d06ea476edd0b063f88530072b4511",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261112081206_private_room_call_signaling.sql",
+      "sha256": "903ecbbe8213e2223db3599679de18db918b159208a606daf8c97aa7a08442b8",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261116015115_company_team_invite_atomic.sql",
+      "sha256": "dbdc170f123440a61c47abd1ebdfb179804fd2fd4180400e371530d8cceade0e",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261116015814_liguey_optional_app_and_employer_safety.sql",
+      "sha256": "5b112b040f7575defb3a91a4cabda4156e96c6c6cb2d193b06738df27095f658",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261116020225_company_worker_portal.sql",
+      "sha256": "60e77b3114102f59bd2d264f606422ac0e5ef0822d3a90b184139bde71c40c78",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261116022036_liguey_interviews_and_reports.sql",
+      "sha256": "ebfe9308a0db66a178ebd17fc5a3aac741980460d9d099a9be6035d63962e27b",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "20261116022755_business_name_shortlists.sql",
+      "sha256": "a167291e9f37d34e5b12bdbb00ee3cfe0916ae424c39f8ec2975ad076788011b",
+      "transformation": "verbatim"
+    },
+    {
+      "name": "../rollouts/company-notifications.sql",
+      "sha256": "dad6de46da8549f3f90c0ad8b9961e4b46cbf725711d28d7b11efb1e365c10cd",
+      "transformation": "verbatim"
+    }
+  ]
+}

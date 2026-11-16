@@ -295,7 +295,7 @@ create or replace function public.company_roster(p_business uuid)
 returns jsonb language plpgsql security definer set search_path='' as $$
 begin
  if auth.uid() is null or private.company_role(p_business) is null then raise exception 'Not allowed';end if;
- return coalesce((select jsonb_agg(jsonb_build_object('id',m.user_id,'role',m.role,'name',coalesce(nullif(p.name,''),'Team member'),'kebuId',p.public_kebu_id))
+ return coalesce((select jsonb_agg(jsonb_build_object('id',m.user_id,'role',m.role,'name',coalesce(nullif(p.name,''),'Team member'),'kebuId',null::text))
  from public.business_members m left join public.user_profiles p on p.id=m.user_id where m.business_id=p_business and m.status='active'),'[]'::jsonb);
 end $$;
 revoke all on function public.company_roster(uuid) from public,anon;

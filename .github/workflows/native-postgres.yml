@@ -7,6 +7,8 @@ on:
       - ".github/workflows/native-postgres.yml"
       - "tests/creative-core/**"
       - "tests/shop/**"
+      - "tests/company/**"
+      - "supabase/rollouts/**"
       - "lib/shop/**"
       - "lib/create/**"
       - "supabase/migrations/**"
@@ -62,6 +64,21 @@ jobs:
               tests/creative-core/native-postgres-cleanup.local.test.ts \
               --reporter=default --reporter=json --outputFile="native-postgres-results-${iteration}.json"
           done
+      - name: Company invitation, call and interview race barriers
+        shell: bash
+        run: |
+          set -euo pipefail
+          for iteration in 1 2 3; do
+            npx vitest run tests/company/concurrency.native.test.ts --reporter=default --reporter=json --outputFile="company-native-results-${iteration}.json"
+          done
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          for(const i of [1,2,3]){
+            const r=JSON.parse(readFileSync(`company-native-results-${i}.json`,'utf8'));
+            assert.equal(r.success,true);assert.equal(r.numPassedTests,5);assert.equal(r.numPendingTests,0);assert.equal(r.numFailedTests,0);
+          }
+          JS
       - name: Atomic Shop checkout through payment, fulfillment and refund
         env:
           DATABASE_URL: postgresql://postgres:kebu_disposable_ci_only@127.0.0.1:5432/kebu_qa
@@ -95,7 +112,7 @@ jobs:
           try {
             const version = (await db.query('show server_version')).rows[0].server_version;
             assert.match(version, /^17\.6(?:\D|$)/);
-            const leftovers = await db.query("select datname from pg_database where starts_with(datname, '_kebutest_publish_') or starts_with(datname, '_kebutest_experience_') or starts_with(datname, '_kebtest_full_journey_')");
+            const leftovers = await db.query("select datname from pg_database where starts_with(datname, '_kebutest_publish_') or starts_with(datname, '_kebutest_experience_') or starts_with(datname, '_kebtest_full_journey_') or starts_with(datname, '_kebutest_payments_')");
             assert.deepEqual(leftovers.rows, []);
             console.log(JSON.stringify({ postgres: version, uniqueCases: 10, requiredIterations: 3, passed: 30, skipped: 0, databasesCleaned: true }));
           } finally { await db.end(); }

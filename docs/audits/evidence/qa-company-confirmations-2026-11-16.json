@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-16",
+  "target": "skqnxyaeimvbyrmdfzvk",
+  "batch": "qa_company_foundations",
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "expired",
+      "message": "Supabase confirmation expired before execution"
+    },
+    {
+      "attempt": 2,
+      "status": "expired",
+      "message": "Supabase confirmation expired before execution"
+    }
+  ],
+  "readback_after_second_expiry": {
+    "workspace": null,
+    "company_projects": null,
+    "private_schema": null,
+    "convergence_entries": 0,
+    "ledger_entries": 141
+  },
+  "hosted_applied": false,
+  "production_changed": false,
+  "money_transferred": false,
+  "attempted_sha256": "56ccc223a7ecd0c7de3570cffe80f88718ff766d4b8780f50f0563f44a93e69c",
+  "final_reviewed_sha256": "99ee2f63c9c487a0498a495a802913a51c464b642e12720ef15ef3eea1302800",
+  "final_normalization": "Only trailing whitespace and source-checksum comments changed after the expired confirmations; final exact bundle revalidated on native PostgreSQL and PGlite"
+}
