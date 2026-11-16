@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## November 16 — deeper release and payout audit
+
+Fresh QA inventory finds only 2 of 26 selected company/editor/cloud prerequisites present. Public May HTTP still returns 402; verified domains do not establish a live project. Automated outbound payout adapters are now held off because their provider contracts were guessed; developer dispatch rejects unconverted USD and an unavailable FX conversion no longer silently erases existing reserved payouts. These are source safety repairs, not live payout implementation. Atomic developer reservation/reconciliation, native invitation/interview/initial-call races, managed QA foundations, production rollout gates and May's unfinished scene/content acceptance remain open. See [the deep release audit](audits/KEBU_DEEP_RELEASE_AUDIT_2026-11-16.md) and [Kebu × JOKKO payout contract](product/KEBU-JOKKO-PAYOUTS.md). No hosted writes, deploy, financial transfer or spending occurred.
+
 ## November 16 — company operations source candidate
 
 Permissions and atomic invitations, optional Liguey installation, operator-reviewed recruitment, consent-based interviews, onboarding lessons/quizzes, operational projects and shared-resource links, private HR/pay records, schedules/benefits and authorized multi-company summaries have source and local SQL acceptance. They remain gated off pending hosted schema reconciliation and browser acceptance. The four November 12 migrations are repaired and repeatability-tested locally; none were applied to hosted QA, whose required tables are missing. See [the November 16 audit](audits/KEBU_COMPANY_OPERATIONS_2026-11-16.md). Vercel, provider delivery and May acceptance remain open.

@@ -119,7 +119,11 @@ export async function getDeveloperEarningsSummary(
   let claimedUsdCents = 0;
   for (const row of claimedRows ?? []) {
     const r = row as { amount_cents: number; currency: string };
-    claimedUsdCents += r.currency === "USD" ? r.amount_cents : xofToUsdCents(r.amount_cents) ?? 0;
+    const converted = r.currency === "USD" ? r.amount_cents : r.currency === "XOF" ? xofToUsdCents(r.amount_cents) : null;
+    if (converted == null || !Number.isSafeInteger(converted) || converted < 0) {
+      return { ok: false, status: 503, error: "Payout balance cannot be verified: an existing payout needs a supported currency and conversion. No funds have been made available." };
+    }
+    claimedUsdCents += converted;
   }
 
   const availableUsdCents = Math.max(0, sellerShareUsdCents - claimedUsdCents);
@@ -306,12 +310,22 @@ export async function processDeveloperPayout(
   if (readErr) return { ok: false, status: 500, error: readErr.message };
   if (!payout) return { ok: false, status: 404, error: "Payout not found." };
   if (payout.status === "paid") return { ok: true, status: "paid", viaRealDisbursement: false };
+  if (payout.currency !== "XOF") {
+    return { ok: false, status: 409, error: "A persisted, accepted currency conversion is required before disbursing this payout in XOF." };
+  }
+  if (!Number.isSafeInteger(payout.amount_cents) || payout.amount_cents <= 0) {
+    return { ok: false, status: 409, error: "The payout requires a valid whole-XOF amount." };
+  }
+  if (payout.status !== "requested") {
+    return { ok: false, status: 409, error: "Reconcile this payout's existing state before attempting another transfer." };
+  }
+
 
   if (!payoutProviderConfigured(payout.method as PayoutMethod)) {
     return {
       ok: false,
       status: 503,
-      error: `${payout.method === "wave" ? "Wave" : "Orange Money"} payout API is not configured. Send this payout manually, then use markDeveloperPayoutPaid.`,
+      error: `${payout.method === "wave" ? "Wave" : "Orange Money"} automated payouts are disabled pending provider and ledger acceptance. Record a manual transfer only after independently verifying its amount, currency and recipient.`,
     };
   }
 

@@ -1,0 +1,286 @@
+{
+  "date": "2026-11-16",
+  "timezone": "America/New_York",
+  "source_sha": "52ed00c21bc1acc381d44062b9c99c80b16fa963",
+  "scope": "Read-only release inventory; not whole-platform acceptance",
+  "qa_project": "skqnxyaeimvbyrmdfzvk",
+  "selected_tables": 26,
+  "present": 2,
+  "missing": [
+    "business_employer_verifications",
+    "cloud_deployment_versions",
+    "cloud_deployments",
+    "company_benefits",
+    "company_hr_requests",
+    "company_learning_assignments",
+    "company_learning_modules",
+    "company_pay_preferences",
+    "company_pay_statements",
+    "company_project_tasks",
+    "company_projects",
+    "company_shifts",
+    "job_applications",
+    "job_listings",
+    "kebu_builtin_app_installs",
+    "library_nodes",
+    "liguey_interviews",
+    "room_call_participants",
+    "room_calls",
+    "room_members",
+    "rooms",
+    "sheet_bodies",
+    "slide_bodies",
+    "workspace_items"
+  ],
+  "tables": [
+    {
+      "database_name": "postgres",
+      "name": "business_employer_verifications",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "business_invites",
+      "present": true,
+      "rls_enabled": true,
+      "policy_count": 2,
+      "columns": [
+        "id",
+        "business_id",
+        "email",
+        "role",
+        "token",
+        "status",
+        "invited_by",
+        "message",
+        "expires_at",
+        "accepted_at",
+        "accepted_user_id",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "database_name": "postgres",
+      "name": "business_members",
+      "present": true,
+      "rls_enabled": true,
+      "policy_count": 2,
+      "columns": [
+        "id",
+        "business_id",
+        "user_id",
+        "role",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "database_name": "postgres",
+      "name": "cloud_deployment_versions",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "cloud_deployments",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_benefits",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_hr_requests",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_learning_assignments",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_learning_modules",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_pay_preferences",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_pay_statements",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_project_tasks",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_projects",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "company_shifts",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "job_applications",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "job_listings",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "kebu_builtin_app_installs",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "library_nodes",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "liguey_interviews",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "room_call_participants",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "room_calls",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "room_members",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "rooms",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "sheet_bodies",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "slide_bodies",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    },
+    {
+      "database_name": "postgres",
+      "name": "workspace_items",
+      "present": false,
+      "rls_enabled": null,
+      "policy_count": 0,
+      "columns": null
+    }
+  ],
+  "vercel": {
+    "project": "kebu",
+    "project_live": false,
+    "custom_domains_verified": [
+      "www.maylecor.com",
+      "www.k-direction.com"
+    ],
+    "observed_may_http": 402,
+    "observed_may_vercel_error": "DEPLOYMENT_DISABLED",
+    "latest_preview_failure_is_historical": true
+  },
+  "acceptance": {
+    "browser": "Blocked before page creation: Chromium socket() operation not permitted",
+    "native_company_concurrency": "Not executed",
+    "provider_disbursement": "Not executed",
+    "hosted_ddl": "Not performed",
+    "production_deploy": "Not performed",
+    "financial_transfers": "Not performed"
+  }
+}

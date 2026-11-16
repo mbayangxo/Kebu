@@ -20,7 +20,7 @@
  * developer-payouts.ts itself, not Postgres/RLS semantics — those are
  * covered separately by tests/studio/developer-payouts.local.test.ts.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getDeveloperEarningsSummary, requestDeveloperPayout } from "@/lib/create/developer-payouts";
 
@@ -81,6 +81,7 @@ function makeMockSupabase(seed: Record<string, Row[]>) {
   return { from: builder } as unknown as SupabaseClient;
 }
 
+afterEach(() => vi.unstubAllEnvs());
 const USER = "user-1";
 
 function seedFixture() {
@@ -146,4 +147,11 @@ describe("developer seller-earnings balance (real computation, not a typed-in nu
     if (!result.ok) return;
     expect(result.summary.availableUsdCents).toBe(0);
   });
+  it("does not erase a reserved XOF payout when its conversion rate is unavailable", async () => {
+    vi.stubEnv("WAVE_XOF_PER_USD", "");
+    const fixture = seedFixture();
+    fixture.developer_payouts.push({id:"reserved-xof",developer_id:"dev-1",amount_cents:10000,currency:"XOF",status:"processing"});
+    expect(await getDeveloperEarningsSummary(makeMockSupabase(fixture), USER)).toMatchObject({ok:false,status:503});
+  });
+
 });
