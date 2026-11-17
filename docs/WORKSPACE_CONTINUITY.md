@@ -1,5 +1,11 @@
 # Durable Kebu development checkpoints
 
+## November 17 — hosted QA foundation repair applied
+
+Supersedes the earlier expired-confirmation blocker: Supabase successfully applied `qa_company_foundations` to **Kebu-qa only** (`skqnxyaeimvbyrmdfzvk`), ledger version `20261117183845`. All 47 manifest tables exist with RLS enabled; anonymous SELECT and authenticated TRUNCATE are denied. Three Cloud integrity constraints are validated, the active-call uniqueness index and four realtime policies exist, and baseline data digests plus the shared timestamp helper are unchanged. Anonymous execution is denied on the checked company/invite RPCs; employer review remains unavailable to ordinary authenticated users.
+
+Evidence: [application receipt](audits/KEBU_QA_APPLIED_2026-11-17.md), [machine-readable checks](audits/evidence/qa-company-applied-2026-11-17.json). Real authenticated/browser/provider acceptance remains open. Production hosting, live money, and May content/animation acceptance are unchanged. Do not resubmit this batch or manufacture individual legacy ledger entries. Follow-up migration-history reconciliation is separate from this successful repair.
+
 The authoritative development branch is `origin/work/kebu-completion-audit-oct13` in `mbayangxo/Kebu`. A temporary workspace, a chat summary or an unpushed local commit is not a durable checkpoint. Deployment serves the application; it does not repair an old source checkout.
 
 ## November 16 — QA repair authorization and provider gate

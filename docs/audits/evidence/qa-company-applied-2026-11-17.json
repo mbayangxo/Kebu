@@ -1,0 +1,756 @@
+{
+  "date": "2026-11-17",
+  "project_id": "skqnxyaeimvbyrmdfzvk",
+  "project_name": "Kebu-qa",
+  "status": "applied_and_catalog_verified",
+  "migration": {
+    "name": "qa_company_foundations",
+    "hosted_version": "20261117183845",
+    "source_path": "supabase/migrations/20261116060247_qa_company_foundations.sql",
+    "source_commit": "7a350d99c239ed1d213cd9f77d4d87622ba847cc",
+    "sql_sha256": "99ee2f63c9c487a0498a495a802913a51c464b642e12720ef15ef3eea1302800"
+  },
+  "acceptance": {
+    "helper": "CREATE OR REPLACE FUNCTION public.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$function$\n",
+    "ledger": [
+      {
+        "name": "qa_company_foundations",
+        "version": "20261117183845"
+      }
+    ],
+    "tables": [
+      {
+        "rls": true,
+        "name": "business_employer_verifications",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "business_name_shortlists",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "cloud_deployment_versions",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "cloud_deployments",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "cloud_storage_buckets",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "cloud_storage_files",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_benefits",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_hr_requests",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_learning_assignments",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_learning_attempts",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_learning_modules",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_pay_preferences",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_pay_statements",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_project_feedback",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_project_resources",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_project_tasks",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_projects",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "company_shifts",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "employer_review_events",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "job_applications",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "job_listings",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "kebu_builtin_app_installs",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "kebu_friends_profiles",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "library_nodes",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "library_shares",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "liguey_ai_usage",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "liguey_applicant_insights",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "liguey_company_reviews",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "liguey_interview_calendar",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "liguey_interviews",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "liguey_safety_reports",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_call_participants",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_calls",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_decisions",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_files",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_links",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_members",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "room_posts",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "rooms",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "sheet_bodies",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "slide_bodies",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "space_channels",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "space_messages",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "user_notifications",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "worker_profile_evidence",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "worker_profiles",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      },
+      {
+        "rls": true,
+        "name": "workspace_items",
+        "exists": true,
+        "anon_select": false,
+        "authenticated_truncate": false
+      }
+    ],
+    "preservation": {
+      "assets": "d751713988987e9331980363e24189ce",
+      "storage": "d751713988987e9331980363e24189ce",
+      "profiles": "d751713988987e9331980363e24189ce",
+      "deployments": "d751713988987e9331980363e24189ce"
+    },
+    "active_call_index": "room_calls_one_active_per_room",
+    "cloud_constraints": [
+      {
+        "name": "cloud_deployments_owned_live_version_fkey",
+        "validated": true
+      },
+      {
+        "name": "cloud_versions_canonical_prefix",
+        "validated": true
+      },
+      {
+        "name": "cloud_versions_deployment_identity",
+        "validated": true
+      }
+    ],
+    "realtime_policies": [
+      "Active call participants receive signals",
+      "Active call participants send signals",
+      "Document collaborators receive",
+      "Document collaborators send"
+    ]
+  },
+  "advisor": {
+    "lints": [
+      {
+        "name": "rls_enabled_no_policy",
+        "title": "RLS Enabled No Policy",
+        "level": "INFO",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "count": 11,
+        "findings": [
+          {
+            "detail": "Table \\`public.employer_review_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "employer_review_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.kcd_node_types\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "kcd_node_types",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.liguey_interview_calendar\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "liguey_interview_calendar",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.platform_cron_runs\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "platform_cron_runs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.platform_jobs\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "platform_jobs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.shop_checkout_effects\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shop_checkout_effects",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.shop_checkout_email_otps\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shop_checkout_email_otps",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.shop_checkout_requests\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shop_checkout_requests",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.shop_checkout_reservations\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shop_checkout_reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.shop_external_refund_receipts\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shop_external_refund_receipts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Table \\`public.shop_order_returns\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shop_order_returns",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          }
+        ]
+      },
+      {
+        "name": "function_search_path_mutable",
+        "title": "Function Search Path Mutable",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects functions where the search_path parameter is not set.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+        "count": 3,
+        "findings": [
+          {
+            "detail": "Function \\`public.shop_shipping_options_touch_updated_at\\` has a role mutable search_path",
+            "metadata": {
+              "name": "shop_shipping_options_touch_updated_at",
+              "type": "function",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function \\`public.shop_kebu_controlled_rails\\` has a role mutable search_path",
+            "metadata": {
+              "name": "shop_kebu_controlled_rails",
+              "type": "function",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function \\`public.shop_fulfillment_orders_touch_updated_at\\` has a role mutable search_path",
+            "metadata": {
+              "name": "shop_fulfillment_orders_touch_updated_at",
+              "type": "function",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          }
+        ]
+      },
+      {
+        "name": "extension_in_public",
+        "title": "Extension in Public",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects extensions installed in the \\`public\\` schema.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Extension \\`pg_net\\` is installed in the public schema. Move it to another schema.",
+            "metadata": {
+              "name": "pg_net",
+              "type": "extension",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          }
+        ]
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "count": 16,
+        "findings": [
+          {
+            "detail": "Function `public.apply_node_ops(p_project_id uuid, p_tx jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/apply_node_ops`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "apply_node_ops",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_project_id uuid, p_tx jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.batch_update_section_props(p_project_id uuid, p_updates jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/batch_update_section_props`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "batch_update_section_props",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_project_id uuid, p_updates jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.can_access_room(p_room_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/can_access_room`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "can_access_room",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_room_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.company_learning_for_me(p_business uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/company_learning_for_me`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "company_learning_for_me",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_business uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.company_portal_action(p_business uuid, p_action text, p_data jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/company_portal_action`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "company_portal_action",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_business uuid, p_action text, p_data jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.company_prepare_hire(p_application uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/company_prepare_hire`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "company_prepare_hire",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_application uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.company_roster(p_business uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/company_roster`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "company_roster",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_business uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.liguey_propose_interview(p_id uuid, p_application uuid, p_start timestamp with time zone, p_end timestamp with time zone, p_kind text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/liguey_propose_interview`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "liguey_propose_interview",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_id uuid, p_application uuid, p_start timestamp with time zone, p_end timestamp with time zone, p_kind text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.liguey_report_company(p_id uuid, p_business uuid, p_message text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/liguey_report_company`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "liguey_report_company",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_id uuid, p_business uuid, p_message text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.liguey_request_verification(p_business uuid, p_country text, p_authority text, p_number text, p_url text, p_recruiter text, p_office text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/liguey_request_verification`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "liguey_request_verification",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_business uuid, p_country text, p_authority text, p_number text, p_url text, p_recruiter text, p_office text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.liguey_respond_interview(p_id uuid, p_revision integer, p_status text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/liguey_respond_interview`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "liguey_respond_interview",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_id uuid, p_revision integer, p_status text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.reorder_sections(p_project_id uuid, p_ordered_ids uuid[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/reorder_sections`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "reorder_sections",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_project_id uuid, p_ordered_ids uuid[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.room_call_end(p_call uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/room_call_end`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "room_call_end",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_call uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.room_call_join(p_room uuid, p_max_participants integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/room_call_join`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "room_call_join",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_room uuid, p_max_participants integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.room_call_leave(p_call uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/room_call_leave`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "room_call_leave",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_call uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          },
+          {
+            "detail": "Function `public.shop_fulfillment_commission_total(p_project_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/shop_fulfillment_commission_total`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "shop_fulfillment_commission_total",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_project_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-17T18:40:51.706Z"
+          }
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "Catalog verification does not establish authenticated browser/provider acceptance.",
+    "No production database, deployment, live payment, or May publishing change.",
+    "Legacy migration-ledger reconciliation remains separate; do not blindly db push the full legacy history."
+  ]
+}

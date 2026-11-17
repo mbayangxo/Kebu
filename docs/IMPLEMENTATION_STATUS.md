@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+## November 17 — hosted QA foundation repair applied
+
+Supersedes the earlier expired-confirmation blocker: Supabase successfully applied `qa_company_foundations` to **Kebu-qa only** (`skqnxyaeimvbyrmdfzvk`), ledger version `20261117183845`. All 47 manifest tables exist with RLS enabled; anonymous SELECT and authenticated TRUNCATE are denied. Three Cloud integrity constraints are validated, the active-call uniqueness index and four realtime policies exist, and baseline data digests plus the shared timestamp helper are unchanged. Anonymous execution is denied on the checked company/invite RPCs; employer review remains unavailable to ordinary authenticated users.
+
+Evidence: [application receipt](audits/KEBU_QA_APPLIED_2026-11-17.md), [machine-readable checks](audits/evidence/qa-company-applied-2026-11-17.json). Real authenticated/browser/provider acceptance remains open. Production hosting, live money, and May content/animation acceptance are unchanged. Do not resubmit this batch or manufacture individual legacy ledger entries. Follow-up migration-history reconciliation is separate from this successful repair.
+
 ## November 16 — foundation batch and native company races
 
 The exact legacy-QA convergence batch is generated from reviewed source and rehearsed locally. The roster no longer relies on an invented personal-ID column; first callers and last leave serialize on the parent room, with an active-call uniqueness index. Native PostgreSQL 17.11 passes five observed-lock-barrier cases in three runs (15 passes, zero skips), and focused company SQL passes 15 cases. Hosted application remains blocked: both Supabase migration confirmations expired, and no hosted success is claimed. Production, live providers and May acceptance remain open. See [the foundation receipt](audits/KEBU_QA_FOUNDATIONS_2026-11-16.md).
