@@ -20,12 +20,14 @@ If Kebu solves **affordability for African youth**, do **not** anchor on **$20�
 | Plan | Price | Who it's for |
 |------|-------|----------------|
 | **Kebu Free** | **$0** | Students, beginners, trying Kebu |
-| **Kebu Starter** | **$2/mo** | Personal sites, creators, students |
+| **Kebu Starter** | **$2/site/month** | Personal sites, creators, students |
 | **Kebu Shop** | **$5/mo** | Small businesses actually selling — **hero plan** |
 | **Kebu Business** | **$10/mo** | Growing businesses |
 | **Kebu Pro** | **$20/mo** | Serious businesses / teams |
 
 **Kebu Student:** **$1/mo** (verified students) — or potentially **free first year** when verification ships. Strategically: 10-year ecosystem customer, not $1 ARPU optimization.
+
+**Starter is billed per upgraded website.** It does not include unlimited sites, AI, storage, or usage across Kebu products. Existing plan limits and personal-account access still apply.
 
 Yearly billing: modest discount (see `yearlyUsd` in `plans.ts`).
 

@@ -12,14 +12,18 @@ export function KebuOfflineBanner() {
   const [showingBack, setShowingBack] = useState(false);
 
   useEffect(() => {
+    let backTimer: ReturnType<typeof setTimeout> | undefined;
+
     function handleOffline() {
+      clearTimeout(backTimer);
       setOffline(true);
       setShowingBack(false);
     }
     function handleOnline() {
+      clearTimeout(backTimer);
       setShowingBack(true);
       // Show "back online" briefly then hide
-      setTimeout(() => {
+      backTimer = setTimeout(() => {
         setOffline(false);
         setShowingBack(false);
       }, 2400);
@@ -33,6 +37,7 @@ export function KebuOfflineBanner() {
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
     return () => {
+      clearTimeout(backTimer);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
     };

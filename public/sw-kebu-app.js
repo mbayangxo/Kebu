@@ -1,11 +1,4 @@
-/**
- * App shell offline assist (Account · Create · Shop · Dashboard · Business).
- * HTML: network-first — never serve stale auth/sidebar forever.
- * Static: cache-first for /_next/static only.
- * Offline: last successful HTML for that URL, or honest offline page.
- * Scope: register at / — does not replace /sites/ sw-site.js.
- */
-const HTML_CACHE = "kebu-app-html-v1";
+/** Cache immutable app assets only. Signed-in page HTML stays network-only. */
 const STATIC_CACHE = "kebu-app-static-v1";
 
 const APP_PREFIXES = [
@@ -34,7 +27,6 @@ self.addEventListener("activate", (event) => {
             .filter(
               (k) =>
                 (k.startsWith("kebu-app-") || k.startsWith("alkebulan")) &&
-                k !== HTML_CACHE &&
                 k !== STATIC_CACHE,
             )
             .map((k) => caches.delete(k)),
@@ -95,26 +87,11 @@ self.addEventListener("fetch", (event) => {
   if (!isDocument(req) || !isAppDocumentPath(url.pathname)) return;
 
   event.respondWith(
-    (async () => {
-      const cache = await caches.open(HTML_CACHE);
-      try {
-        const res = await fetch(req);
-        if (res.ok) void cache.put(req, res.clone());
-        return res;
-      } catch {
-        const cached = await cache.match(req);
-        return (
-          cached ??
-          new Response(
-            `<!doctype html><title>Offline</title><body style="font-family:system-ui;padding:2rem;max-width:28rem">
-<h1>You are offline</h1>
-<p>This Kebu page is not cached yet. Open it once while online — then Offline / Data Saver can show it again.</p>
-<p>Queued edits and orders wait until Syncing… Never marked saved until the server confirms.</p>
-</body>`,
-            { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
-          )
-        );
-      }
-    })(),
+    fetch(req, { cache: "no-store" }).catch(
+      () => new Response(
+        '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Kebu · Offline</title><body><main><h1>You are offline</h1><p>Reconnect and reload to open this page. If an editor is already open in another tab, keep it open to protect unsynced work.</p></main></body></html>',
+        { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
+      ),
+    ),
   );
 });
