@@ -30,7 +30,7 @@ Do **not** ship one generic chatbot that pretends to do everything.
 | **Yande Marketing** | Campaigns, landing pages | **NOT IMPLEMENTED** (improve copy exists) |
 | **Yande Finance** | Cash / sales analysis | **NOT IMPLEMENTED** (needs real events) |
 | **Yande Research** | Markets, suppliers, grants | Opportunity OS later — sourced only |
-| **Yande Code** | Build apps onto Kebu stack | **NOT IMPLEMENTED** |
+| **Yande Code** | Build apps onto Kebu stack | [Private source-workspace slice](product/KEBU-CODE.md) implemented on development branch; hosted acceptance and store-app runtime remain open |
 
 Dangerous actions (refunds, cancel orders, spend money) require **explicit permission + confirmation**. Never invent product, stock, or shipping facts.
 
