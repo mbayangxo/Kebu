@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   cartWhatsAppMessage,
   shopCartCheckoutSchema,
+  shopCartCheckoutRequestSchema,
   type ResolvedCartLine,
 } from "@/lib/shop/cart-order";
 
@@ -101,19 +102,10 @@ describe("shop cart checkout", () => {
     }
   });
 
-  it("points the shipping-option-columns-missing error at a migration file that actually exists with that name", () => {
-    // Regression: the error string used to cite timestamp 20261103130000, which belonged to
-    // shop_shipping_options.sql until the Nov 3 daily sweep renamed it to 20261103135000 to
-    // resolve a collision with security_events_log.sql — this file's own error string was
-    // never updated, so it pointed at the wrong migration (a different table entirely).
-    const source = readFileSync(join(process.cwd(), "lib/shop/cart-order.ts"), "utf8");
-    const match = source.match(/Shipping option columns missing\. Apply migration (\S+\.sql)\./);
-    expect(match).not.toBeNull();
-    const citedFilename = match![1];
-    expect(citedFilename).not.toContain("20261103130000"); // the stale, now-wrong timestamp
-    const migrationPath = join(process.cwd(), "supabase/migrations", citedFilename);
-    expect(() => readFileSync(migrationPath, "utf8")).not.toThrow();
-    expect(readFileSync(migrationPath, "utf8")).toContain("shop_shipping_options");
+  it("requires a stable attempt ID on checkout requests", () => {
+    const details = {items:[{productId:"11111111-2222-4333-a444-555555555555",quantity:1}],customerName:"Awa",customerPhone:"221770000000"};
+    expect(shopCartCheckoutRequestSchema.safeParse(details).success).toBe(false);
+    expect(shopCartCheckoutRequestSchema.safeParse({...details,attemptId:"00000000-0000-4000-8000-000000000001"}).success).toBe(true);
   });
 
   it("ships migration 046 with order items + cart drafts RLS", () => {

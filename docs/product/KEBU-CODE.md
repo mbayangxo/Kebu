@@ -14,9 +14,11 @@ Select a Store project that you own, attach it to the workspace, and read the cu
 
 A separate Design direction field guides the proposal. Describe the visual style, colors, layout, mobile behavior and what to keep. The app's behavior belongs in the main request. Source review is available before either kind of change is saved. Visual reference uploads and click-to-edit selection are separate future slices.
 
-### Checkout issue found before extending access
+### Cart order integrity checkpoint
 
-The existing multi-item cart checkout at `app/api/public/sites/[subdomain]/cart/checkout/route.ts` decrements stock before saving the order through a separate path. A failed process between those operations can leave stock to reconcile; also this handler lacks the explicit per-attempt reservation used by the single-product orders route. Do not expose it as an app API until the multi-item path has durable request idempotency and transactionally binds order lines to inventory reservations. Prove simultaneous requests and lost-response retries before attaching customer checkout or order-derived rewards.
+The storefront cart now calls one service-only database transaction for the order header, order lines, tracked product stock, discount use, gift-card debit, and any JOKKO fulfillment record. Insufficient stock or a failed item insert rolls back the order and all these effects. An exact replay of a checkout attempt returns the recorded order without repeating effects; a retry that changes the details is rejected. The checkout UI holds that attempt ID in memory while retrying the same cart. A replay does not restart a payment attempt or imply payment succeeded.
+
+Verified with a local PostgreSQL-compatible engine and route/service tests. Hosted schema, signed-in browser/provider acceptance, independent concurrent database sessions, and a durable recovery flow for lost payment links or a refreshed tab are open. Variants with their own stock are refused in this path until both reservation and cancellation can handle that stock consistently. No generated app has checkout or rewards access. Keep this isolated until these gates are verified.
 
 ## Next build for real store apps
 

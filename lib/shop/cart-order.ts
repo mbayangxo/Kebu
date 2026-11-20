@@ -1,18 +1,17 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
-import { applyPercentOff, resolveActiveDiscount, incrementDiscountUse } from "@/lib/shop/discounts";
+import { applyPercentOff, resolveActiveDiscount } from "@/lib/shop/discounts";
 import { resolveAffiliateCodeForAttribution, incrementAffiliateUse } from "@/lib/shop/affiliates";
 import {
   giftCardApplyAmount,
-  redeemGiftCardBalance,
   resolveActiveGiftCard,
 } from "@/lib/shop/gift-cards";
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { SHOP_PAYMENT_PREFERENCES } from "@/lib/create/site-commerce";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
 import { resolveShippingOptionForOrder } from "@/lib/shop/shipping-options";
-import { computeJokoFulfillmentCommissionXof, createJokoFulfillmentCartOrder } from "@/lib/shop/joko-fulfillment";
+import { computeJokoFulfillmentCommissionXof } from "@/lib/shop/joko-fulfillment";
 import {
   giftColumnsForInsert,
   giftWhatsAppSuffix,
@@ -73,6 +72,8 @@ export const shopCartCheckoutSchema = z
     shippingOptionId: z.string().trim().uuid().optional(),
   })
   .and(shopGiftFieldsSchema);
+
+export const shopCartCheckoutRequestSchema = shopCartCheckoutSchema.and(z.object({attemptId:z.string().uuid()}));
 
 export type ShopCartCheckoutInput = z.infer<typeof shopCartCheckoutSchema>;
 
@@ -245,6 +246,8 @@ export function cartWhatsAppMessage(opts: {
 export async function createCartOrder(opts: {
   admin: SupabaseClient;
   projectId: string;
+  attemptId: string;
+  fingerprint: string;
   lines: ResolvedCartLine[];
   customerName: string;
   customerPhone: string;
@@ -263,6 +266,7 @@ export async function createCartOrder(opts: {
   | {
       ok: true;
       orderId: string;
+      replayed: boolean;
       orderNumber: string;
       amountXof: number | null;
       discountPercent: number | null;
@@ -273,7 +277,7 @@ export async function createCartOrder(opts: {
       shippingAmountXof: number | null;
       shippingLabel: string | null;
     }
-  | { ok: false; error: string }
+  | { ok: false; error: string; conflict?: boolean }
 > {
   const discountResult = await resolveActiveDiscount(
     opts.admin,
@@ -401,38 +405,7 @@ export async function createCartOrder(opts: {
     insertOrder.shipping_quote_version = shippingQuote.quoteVersion;
   }
 
-  const { data: order, error } = shippingOption?.fulfillmentType === "joko_fulfillment"
-    ? await createJokoFulfillmentCartOrder(
-        opts.admin,
-        insertOrder,
-        computeJokoFulfillmentCommissionXof(subtotalBeforeShippingXof ?? 0, shippingOption.commissionBps),
-      )
-    : await opts.admin
-        .from("shop_orders")
-        .insert(insertOrder)
-        .select("id, order_number, gift_public_id")
-        .single();
-
-  if (error || !order) {
-    return {
-      ok: false,
-      error: shippingOption?.fulfillmentType === "joko_fulfillment"
-        ? "Pickup and delivery checkout is unavailable. Please try again later."
-        : error?.message?.includes("does not exist")
-        ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql."
-        : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
-          ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
-          : error?.message?.includes("gift_card")
-            ? "Gift card columns missing. Apply migration 066."
-            : error?.message?.includes("shipping_option")
-              ? "Shipping option columns missing. Apply migration 20261103135000_shop_shipping_options.sql."
-              : "Could not save cart order.",
-    };
-  }
-
   const itemRows = opts.lines.map((l, i) => ({
-    order_id: order.id,
-    project_id: opts.projectId,
     product_id: l.productId,
     variant_id: l.variantId,
     variant_name: l.variantName,
@@ -446,32 +419,23 @@ export async function createCartOrder(opts: {
     sort_order: i,
   }));
 
-  const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
-  if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
-    /* order header exists — items optional until migration applied */
+  const commission = shippingOption?.fulfillmentType === "joko_fulfillment"
+    ? computeJokoFulfillmentCommissionXof(subtotalBeforeShippingXof ?? 0, shippingOption.commissionBps) : null;
+  const response = await opts.admin.rpc("create_shop_cart_atomic", {
+    p_attempt:opts.attemptId, p_fingerprint:opts.fingerprint, p_order:insertOrder, p_items:itemRows,
+    p_discount:discount?.id??null, p_gift_card:giftCard?.id??null, p_gift_balance:giftCard?.balance_xof??null,
+    p_commission:commission,
+  }).then(result=>result,()=>({data:null,error:null}));
+  const order=response.data;
+  if(response.error||typeof order?.id!=="string"||typeof order.replayed!=="boolean"){
+    const conflict=["P4001","P4002"].includes(response.error?.code??"");
+    return {ok:false,conflict,error:response.error?.code==="P4001"
+      ? "This checkout attempt is already tied to a different cart."
+      : conflict ? "Stock, a discount, or gift-card credit changed. Review your cart."
+      : "Checkout is unavailable or could not be confirmed. Retry the same cart before placing another order."};
   }
 
-  if (giftCard && giftCardAmount > 0) {
-    const redeemed = await redeemGiftCardBalance(
-      opts.admin,
-      giftCard.id,
-      giftCard.balance_xof,
-      giftCardAmount,
-    );
-    if (!redeemed.ok) {
-      await opts.admin.from("shop_orders").delete().eq("id", order.id);
-      return { ok: false, error: redeemed.error };
-    }
-  }
-
-  if (discount) {
-    try {
-      await incrementDiscountUse(opts.admin, discount.id);
-    } catch {
-      /* best-effort */
-    }
-  }
-  if (affiliateCode) {
+  if (!order.replayed && affiliateCode) {
     try {
       await incrementAffiliateUse(opts.admin, opts.projectId, affiliateCode);
     } catch {
@@ -479,7 +443,7 @@ export async function createCartOrder(opts: {
     }
   }
 
-  try {
+  if (!order.replayed) try {
     const { upsertShopCustomerAfterOrder } = await import("@/lib/shop/customer-profiles");
     await upsertShopCustomerAfterOrder(opts.admin, {
       projectId: opts.projectId,
@@ -493,6 +457,7 @@ export async function createCartOrder(opts: {
   return {
     ok: true,
     orderId: order.id,
+    replayed: order.replayed,
     orderNumber: order.order_number ?? orderNumber,
     amountXof: totalXof,
     discountPercent: discount?.percent_off ?? null,

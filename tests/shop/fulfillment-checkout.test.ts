@@ -12,7 +12,7 @@ import { listOpenFulfillmentOrders, listFulfillmentOrdersForProject } from "@/li
 const rpc = vi.fn();
 const from = vi.fn<(table: string) => { insert: ReturnType<typeof vi.fn> }>(() => ({ insert: vi.fn(async () => ({ error: null })) }));
 const admin = { rpc, from } as unknown as SupabaseClient;
-const opts = { admin, projectId: "project", customerName: "Awa", customerPhone: "221770000000", customerNote: "", customerEmail: null, paymentPreference: "paystack", shippingOptionId: "option", lines: [{ productId: "product", variantId: null, variantName: null, productName: "Book", upc: null, sku: null, priceLabel: "10000 XOF", priceXof: 10000, quantity: 1, lineAmountXof: 10000 }] };
+const opts = { admin, projectId: "project", attemptId:"00000000-0000-4000-8000-000000000001",fingerprint:"a".repeat(64), customerName: "Awa", customerPhone: "221770000000", customerNote: "", customerEmail: null, paymentPreference: "paystack", shippingOptionId: "option", lines: [{ productId: "product", variantId: null, variantName: null, productName: "Book", upc: null, sku: null, priceLabel: "10000 XOF", priceXof: 10000, quantity: 1, lineAmountXof: 10000 }] };
 beforeEach(() => { vi.clearAllMocks(); });
 describe("real cart checkout's fulfillment dependency", () => {
   it("stops checkout on a missing RPC, without a fallback order or item write", async () => {
@@ -29,9 +29,9 @@ describe("real cart checkout's fulfillment dependency", () => {
     expect(from).not.toHaveBeenCalled();
   });
   it("uses the atomic result and excludes the shipping fee from commission", async () => {
-    rpc.mockResolvedValue({ data: { id: "saved", order_number: "ORD-TEST", gift_public_id: null }, error: null });
+    rpc.mockResolvedValue({ data: { id: "saved", order_number: "ORD-TEST", gift_public_id: null, replayed:false }, error: null });
     expect(await createCartOrder(opts)).toMatchObject({ ok: true, orderId: "saved", amountXof: 11000 });
-    expect(rpc).toHaveBeenCalledWith("create_shop_order_with_fulfillment", { p_order: expect.objectContaining({ id: expect.any(String), amount_xof: 11000, shipping_amount_xof: 1000 }), p_commission_xof: 1500 });
+    expect(rpc).toHaveBeenCalledWith("create_shop_cart_atomic", expect.objectContaining({ p_order: expect.objectContaining({ amount_xof: 11000, shipping_amount_xof: 1000 }), p_commission: 1500 }));
     expect(from.mock.calls.map(([table]) => table)).not.toContain("shop_orders");
     expect(from.mock.calls.map(([table]) => table)).not.toContain("shop_fulfillment_orders");
   });

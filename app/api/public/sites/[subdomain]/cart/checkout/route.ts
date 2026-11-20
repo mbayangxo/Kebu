@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { shopOrderRateLimit } from "@/lib/api-guard";
 import { logCreate } from "@/lib/create/auth";
@@ -20,10 +21,9 @@ import {
   createCartOrder,
   markCartDraftConverted,
   resolveCartLines,
-  shopCartCheckoutSchema,
+  shopCartCheckoutRequestSchema,
   upsertCartDraft,
 } from "@/lib/shop/cart-order";
-import { decrementCartStock, restoreProductStock } from "@/lib/shop/stock";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const parsed = shopCartCheckoutSchema.safeParse(body);
+  const parsed = shopCartCheckoutRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid cart.", issues: parsed.error.flatten() }, { status: 400 });
   }
@@ -98,17 +98,21 @@ export async function POST(req: Request, { params }: Params) {
 
   const customerEmail = parsed.data.customerEmail?.trim().toLowerCase() || null;
 
+  const fingerprint=createHash("sha256").update(JSON.stringify([customerUserId,parsed.data])).digest("hex");
+  const replayResponse=(orderNumber:string)=>NextResponse.json({
+    orderNumber, alreadySaved:true,
+    message:`Order ${orderNumber} was already saved. Check your order history or contact the store about payment before placing another order.`,
+  });
+  const prior=await admin.from("shop_cart_order_attempts").select("fingerprint,order_number")
+    .eq("project_id",live.project_id).eq("attempt_id",parsed.data.attemptId).maybeSingle();
+  if(prior.error)return NextResponse.json({error:"Could not verify the checkout attempt. Retry the same cart."},{status:503});
+  if(prior.data)return prior.data.fingerprint===fingerprint
+    ? replayResponse(prior.data.order_number)
+    : NextResponse.json({error:"This checkout attempt is already tied to a different cart."},{status:409});
+
   const resolved = await resolveCartLines(admin, live.project_id, parsed.data.items);
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: 400 });
-  }
-
-  const stock = await decrementCartStock(
-    admin,
-    resolved.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-  );
-  if (!stock.ok) {
-    return NextResponse.json({ error: stock.error }, { status: 409 });
   }
 
   if (parsed.data.sessionKey) {
@@ -129,6 +133,8 @@ export async function POST(req: Request, { params }: Params) {
   const created = await createCartOrder({
     admin,
     projectId: live.project_id,
+    attemptId: parsed.data.attemptId,
+    fingerprint,
     lines: resolved.lines,
     customerName: parsed.data.customerName,
     customerPhone: parsed.data.customerPhone,
@@ -146,11 +152,9 @@ export async function POST(req: Request, { params }: Params) {
   });
 
   if (!created.ok) {
-    for (const l of resolved.lines) {
-      await restoreProductStock(admin, l.productId, l.quantity);
-    }
-    return NextResponse.json({ error: created.error }, { status: 500 });
+    return NextResponse.json({error:created.error},{status:created.conflict?409:503});
   }
+  if(created.replayed)return replayResponse(created.orderNumber);
 
   const { data: bizProject } = await admin
     .from("projects")

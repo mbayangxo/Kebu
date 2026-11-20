@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   commercePaymentOptions,
   defaultPaymentPreference,
-  mergeSiteCommerce,
   type ShopPaymentPreference,
   type SiteCommerce,
 } from "@/lib/create/site-commerce";
@@ -28,6 +27,8 @@ export function PublicShopCart({
   preview?: boolean;
 }) {
   const { mode, reportKb, online } = useDataMode();
+  const checkoutAttempt = useRef<{ body: string; id: string } | null>(null);
+  const checkoutInFlight = useRef(false);
   const [lines, setLines] = useState<ShopCartLine[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -182,17 +183,13 @@ export function PublicShopCart({
       setError("For a gift, add the recipient’s name and phone.");
       return;
     }
+    if(checkoutInFlight.current)return;
+    checkoutInFlight.current=true;
     setBusy(true);
     setError(null);
     trackShopEvent(subdomain, "checkout_start", { itemCount: lines.length });
     try {
-      const res = await fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/cart/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Kebu-Data-Mode": mode,
-        },
-        body: JSON.stringify({
+      const checkoutDetails = {
           items: lines.map((l) => ({
             productId: l.productId,
             variantId: l.variantId ?? undefined,
@@ -213,7 +210,13 @@ export function PublicShopCart({
           recipientPhone: isGift ? recipientPhone : undefined,
           recipientEmail: isGift ? recipientEmail.trim() || undefined : undefined,
           giftMessage: isGift ? giftMessage : undefined,
-        }),
+      };
+      const body=JSON.stringify([subdomain,checkoutDetails]);
+      if(checkoutAttempt.current?.body!==body)checkoutAttempt.current={body,id:crypto.randomUUID()};
+      const res = await fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/cart/checkout`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Kebu-Data-Mode":mode},
+        body:JSON.stringify({...checkoutDetails,attemptId:checkoutAttempt.current.id}),
       });
       const bytes = await measureResponseBytes(res);
       reportKb("place_order", bytes);
@@ -222,10 +225,15 @@ export function PublicShopCart({
         setError(typeof data.error === "string" ? data.error : "Could not check out.");
         return;
       }
+      if(typeof data.orderNumber!=="string"||!data.orderNumber){
+        setError("Could not confirm checkout. Retry this cart before starting a new order.");
+        return;
+      }
+      checkoutAttempt.current=null;
       clearShopCart(subdomain);
       window.dispatchEvent(new Event("kebu-cart-changed"));
       setLines([]);
-      trackShopEvent(subdomain, "purchase", { payment: pay });
+      if(!data.alreadySaved)trackShopEvent(subdomain, "purchase", { payment: pay });
       const giftExtra =
         typeof data.giftPath === "string"
           ? ` Share: ${typeof window !== "undefined" ? window.location.origin : ""}${data.giftPath}`
@@ -239,8 +247,9 @@ export function PublicShopCart({
         window.open(data.whatsappHref, "_blank", "noopener,noreferrer");
       }
     } catch {
-      setError("Network error.");
+      setError("Could not confirm checkout. Retry this cart before starting a new order.");
     } finally {
+      checkoutInFlight.current=false;
       setBusy(false);
     }
   }
