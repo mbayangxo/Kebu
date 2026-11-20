@@ -6,6 +6,9 @@ import { type CodeFile, type CodeFiles, type CodeWorkspace, fileNames, filesSche
 import styles from "./workspace.module.css";
 
 type Project=Pick<CodeWorkspace,"id"|"title"|"revision">;
+type Store={id:string;title:string};
+type Product={id:string;name:string;price_label:string|null;track_stock:boolean|null;stock_qty:number|null;has_variants:boolean|null};
+type Catalog={products:Product[];hasMore:boolean};
 type Proposal={base:number;summary:string;files:CodeFiles};
 async function request(path="",body?:unknown){
   const r=await fetch("/api/code"+path,{cache:"no-store",...(body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{})});
@@ -36,6 +39,10 @@ export default function CodeWorkspaceView(){
   const [title,setTitle]=useState("");
   const [prompt,setPrompt]=useState("");
   const [store,setStore]=useState("");
+  const [design,setDesign]=useState("");
+  const [stores,setStores]=useState<Store[]>([]);
+  const [storeId,setStoreId]=useState("");
+  const [catalog,setCatalog]=useState<Catalog>();
   const [busy,setBusy]=useState(true);
   const [message,setMessage]=useState("");
   const [failure,setFailure]=useState("");
@@ -43,7 +50,7 @@ export default function CodeWorkspaceView(){
   const changed=proposal&&project?fileNames.filter(name=>proposal.files[name]!==project.files[name]):[];
 
   function open(workspace:CodeWorkspace){
-    setProject(workspace);setDraft(workspace.files);setProposal(undefined);setPreview("");
+    setProject(workspace);setDraft(workspace.files);setProposal(undefined);setPreview("");setStoreId(workspace.store_project_id??"");setCatalog(undefined);
     setList(items=>[{id:workspace.id,title:workspace.title,revision:workspace.revision},...items.filter(x=>x.id!==workspace.id)]);
   }
   useEffect(()=>{
@@ -101,12 +108,38 @@ export default function CodeWorkspaceView(){
           {preview&&<iframe className={styles.preview} sandbox="" title="Static layout preview" srcDoc={preview}/>}
           <p>Layout preview runs with scripts off. The ZIP includes your JavaScript for development in a separate environment.</p>
         </section>
+        <section className={styles.card}><h2>Store connection</h2>
+          <p>Connect a Kebu Store project you own to inspect its current catalog and stock. This is read-only.</p>
+          <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={()=>void run(async()=>{setStores((await request("?stores=1")).stores);setMessage("Your stores loaded.");})}>Load my stores</button>
+            {project.store_project_id&&<button className={styles.secondary} disabled={busy} onClick={()=>void run(async()=>{setCatalog(await request("?id="+encodeURIComponent(project.id)+"&catalog=1"));setMessage("Read current store catalog.");})}>Read catalog and stock</button>}</div>
+          <form className={styles.form} onSubmit={e=>submit(e,async()=>{
+            open((await request("",{action:"connectStore",id:project.id,base:project.revision,storeId:storeId||null})).workspace);
+            setMessage(storeId?"Store connected.":"Store disconnected.");
+          })}>
+            <label htmlFor="code-store-connection">Store</label>
+            <select id="code-store-connection" value={storeId} onChange={e=>setStoreId(e.target.value)}>
+              <option value="">No connected store</option>
+              {project.store_project_id&&!stores.some(item=>item.id===project.store_project_id)&&<option value={project.store_project_id}>Current store · load to see name</option>}
+              {stores.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
+            </select>
+            <button disabled={busy||dirty||storeId===(project.store_project_id??"")}>Save store connection</button>
+            {dirty&&<p>Save your source first to change the store connection.</p>}
+          </form>
+          {catalog&&<><h3>Active products</h3>
+            {catalog.products.length===0&&<p>This store has no active products.</p>}
+            <div className={styles.catalog}><table><thead><tr><th>Product</th><th>Price label</th><th>Stock</th></tr></thead><tbody>
+              {catalog.products.map(product=><tr key={product.id}><td>{product.name}</td><td>{product.price_label??"—"}</td><td>{product.has_variants?"Check variants in Shop":product.track_stock?product.stock_qty??"Unavailable":"Not tracked"}</td></tr>)}
+            </tbody></table></div>
+            {catalog.hasMore&&<p>Showing the first 50 active products. For the full catalog, use Kebu Shop.</p>}
+          </>}
+        </section>
         <section className={styles.card}><h2>Ask Yande to change the app</h2><p>{assistant?"Yande proposes source changes from your last saved revision. You decide what to keep.":"AI generation is unavailable here. You can still edit, preview, save, and export code."}</p>
           <form className={styles.form} onSubmit={e=>submit(e,async()=>{
             setProposal(undefined);
-            setProposal(await request("",{action:"propose",id:project.id,base:project.revision,prompt,store}));
+            setProposal(await request("",{action:"propose",id:project.id,base:project.revision,prompt,design,store}));
             setMessage("Proposal ready. Your source is unchanged.");
           })}><label htmlFor="code-prompt">Describe the change</label><textarea id="code-prompt" value={prompt} onChange={e=>setPrompt(e.target.value)} maxLength={1600} required/>
+            <label htmlFor="code-design">Design direction (optional)</label><textarea id="code-design" value={design} onChange={e=>setDesign(e.target.value)} maxLength={1200} placeholder="Example: cream background, red accents, large flavor photos. Keep checkout and navigation unchanged."/>
             <label htmlFor="code-store">Published Kebu store subdomain (optional)</label><input id="code-store" value={store} onChange={e=>setStore(e.target.value)} maxLength={63} pattern="[a-z0-9]+(-[a-z0-9]+)*"/><p>Yande can link to a published storefront. Checkout, loyalty, gift cards and royalty accounting aren’t connected to your code workspace.</p>
             <button disabled={!assistant||busy||dirty}>Propose changes</button>{dirty&&<p>Save your edits before asking Yande for a proposal.</p>}
           </form>

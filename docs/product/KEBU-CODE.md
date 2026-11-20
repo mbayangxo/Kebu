@@ -8,6 +8,16 @@ Open `/code` from a Kebu account. Create a private project, edit HTML/CSS/JavaSc
 
 The server only accepts a proposal for the signed-in owner's existing project, and generation cannot save changes. A store subdomain supplies only a verified public storefront link as context. It does not grant access to the store, a service credential, private catalog data, or customer records. Generated source, store context, and prompt go to the configured AI provider when the owner requests a proposal. Keep secrets and customer data out of source and prompts.
 
+## Store connection and design direction
+
+Select a Store project that you own, attach it to the workspace, and read the current active products, price labels and tracked product stock. Variant counts remain in Shop. The connection is saved, can be removed, and does not grant generated apps or their customers access to the owner's catalog. Store ownership and project type are verified again on every read; database policy also checks attachments. If a store changes owners, disconnect it before saving further source changes.
+
+A separate Design direction field guides the proposal. Describe the visual style, colors, layout, mobile behavior and what to keep. The app's behavior belongs in the main request. Source review is available before either kind of change is saved. Visual reference uploads and click-to-edit selection are separate future slices.
+
+### Checkout issue found before extending access
+
+The existing multi-item cart checkout at `app/api/public/sites/[subdomain]/cart/checkout/route.ts` decrements stock before saving the order through a separate path. A failed process between those operations can leave stock to reconcile; also this handler lacks the explicit per-attempt reservation used by the single-product orders route. Do not expose it as an app API until the multi-item path has durable request idempotency and transactionally binds order lines to inventory reservations. Prove simultaneous requests and lost-response retries before attaching customer checkout or order-derived rewards.
+
 ## Next build for real store apps
 
 1. Add an owner-approved app-to-store attachment with separate development and production scopes, stable Store SDK contracts, public catalog and server-owned stock/price checks. Use Kebu sign-in for the workspace and separately add app-user sign-in and guest checkout.

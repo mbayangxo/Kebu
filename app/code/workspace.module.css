@@ -18,3 +18,4 @@
 .compare pre{max-height:250px;overflow:auto;background:#f2f5f2;border-radius:7px;padding:9px;font-size:12px}
 .notice,.problem{padding:10px 14px;border-radius:7px;margin-bottom:14px;background:#e5f2e5}.problem{background:#fff0e8;color:#842d16}
 @media(max-width:720px){.layout,.compare{grid-template-columns:1fr}.card{padding:16px}}
+.catalog{overflow:auto;margin-top:10px}.catalog table{width:100%;border-collapse:collapse;text-align:left}.catalog th,.catalog td{border-bottom:1px solid var(--line);padding:9px;min-width:84px;font-size:13px}

@@ -12,6 +12,7 @@ const rev = z.number().int().positive().max(2147483646);
 export const snapshotSchema = z.object({revision:rev, files:filesSchema});
 export const workspaceSchema = z.object({
   id:z.string().uuid(), title:z.string(), revision:rev, files:filesSchema,
+  store_project_id:z.string().uuid().nullable().optional(),
   history:z.array(snapshotSchema).max(8), updated_at:z.string(),
 });
 export type CodeWorkspace = z.infer<typeof workspaceSchema>;
@@ -19,7 +20,8 @@ export const actionSchema = z.discriminatedUnion("action", [
   z.strictObject({action:z.literal("create"),title:z.string().trim().min(1).max(80)}),
   z.strictObject({action:z.literal("save"),id:z.string().uuid(),base:rev,files:filesSchema}),
   z.strictObject({action:z.literal("restore"),id:z.string().uuid(),base:rev,target:rev}),
-  z.strictObject({action:z.literal("propose"),id:z.string().uuid(),base:rev,prompt:z.string().trim().min(1).max(1600),store:z.string().trim().max(63).regex(/^$|^[a-z0-9]+(?:-[a-z0-9]+)*$/)}),
+  z.strictObject({action:z.literal("connectStore"),id:z.string().uuid(),base:rev,storeId:z.string().uuid().nullable()}),
+  z.strictObject({action:z.literal("propose"),id:z.string().uuid(),base:rev,prompt:z.string().trim().min(1).max(1600),design:z.string().trim().max(1200).optional(),store:z.string().trim().max(63).regex(/^$|^[a-z0-9]+(?:-[a-z0-9]+)*$/)}),
 ]);
 export const proposalSchema = z.strictObject({
   summary:z.string().min(1).max(800),
