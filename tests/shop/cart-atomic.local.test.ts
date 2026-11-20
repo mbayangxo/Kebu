@@ -1,40 +1,15 @@
-import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {expect,it} from "vitest";
 
 const root=process.env.KEBU_LOCAL_PGLITE_ROOT;
-const project="00000000-0000-4000-8000-000000000001",first="00000000-0000-4000-8000-000000000002",second="00000000-0000-4000-8000-000000000003";
-const attempt="00000000-0000-4000-8000-000000000004";
-const discount="00000000-0000-4000-8000-000000000005",gift="00000000-0000-4000-8000-000000000006";
-const sql=(path:string)=>readFileSync(path,"utf8");
+import { setupCartDatabase, project, first, second, attempt, discount, gift } from "./cart-database-fixture";
 
 it.skipIf(!root)("commits all cart writes together and makes an exact retry inert",async()=>{
   const {PGlite}=await import(pathToFileURL(resolve(root!,"dist/index.js")).href);
   const db=new PGlite();
   try{
-    await db.exec(`
-      CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
-      CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$select null::uuid$$;
-      CREATE FUNCTION public.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN NEW.updated_at:=now(); RETURN NEW; END$$;
-      CREATE TABLE projects(id uuid primary key, owner_id uuid);
-      CREATE TABLE project_products(id uuid primary key, project_id uuid, is_active boolean, track_stock boolean, stock_qty integer, updated_at timestamptz);
-      CREATE TABLE project_product_variants(id uuid primary key, project_id uuid, product_id uuid, is_active boolean, stock_qty integer);
-      CREATE TABLE shop_discount_codes(id uuid primary key, project_id uuid, code text, percent_off integer,is_active boolean,starts_at timestamptz,ends_at timestamptz,max_uses integer,uses_count integer,updated_at timestamptz);
-      CREATE TABLE shop_gift_cards(id uuid primary key,project_id uuid,code text,balance_xof integer,status text,expires_at timestamptz,updated_at timestamptz);
-      INSERT INTO projects VALUES ('${project}',NULL);
-      INSERT INTO project_products VALUES ('${first}','${project}',true,true,5,NULL),('${second}','${project}',true,true,1,NULL);
-      INSERT INTO shop_discount_codes VALUES ('${discount}','${project}','SAVE',10,true,NULL,NULL,1,0,NULL);
-      INSERT INTO shop_gift_cards VALUES ('${gift}','${project}','GIFT',100,'active',NULL,NULL);
-    `);
-    await db.exec(sql("supabase/migrations_archive/legacy/039_shop_orders.sql"));
-    await db.exec(sql("supabase/migrations_archive/legacy/046_shop_cart_order_items.sql"));
-    await db.exec(`ALTER TABLE shop_orders ADD order_number text, ADD gift_public_id text,
-      ADD discount_code text,ADD discount_percent integer,ADD gift_card_code text,ADD gift_card_amount_xof integer;
-      ALTER TABLE shop_order_items ADD variant_id uuid, ADD variant_name text;
-      GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO service_role;`);
-    await db.exec(sql("supabase/migrations/20261106060000_restore_product_stock_atomic_functions.sql"));
-    await db.exec(sql("supabase/migrations/20261120060705_shop_cart_atomic_order.sql"));
+    await setupCartDatabase(db);
     const query="select public.create_shop_cart_atomic($1,$2,$3,$4,$5,$6,$7,null) as result";
     const order={project_id:project,product_id:first,product_name:"Cart",quantity:3,customer_name:"Test Buyer",customer_phone:"00000000",
       status:"pending",order_number:"TEST-1",discount_code:"SAVE",discount_percent:10,gift_card_code:"GIFT",gift_card_amount_xof:50};
@@ -60,5 +35,62 @@ it.skipIf(!root)("commits all cart writes together and makes an exact retry iner
     await expect(db.query(query,[attempt,"b".repeat(64),...args.slice(2)])).rejects.toThrow(/Checkout details changed/);
     expect(await stock()).toEqual([{stock_qty:3},{stock_qty:0}]);
     expect(await counts()).toEqual({orders:1,items:2,uses:1,credit:50});
+    const recover = "select public.recover_shop_cart_attempt($1,$2) as result";
+    expect((await db.query(recover,[project,attempt])).rows[0].result).toEqual({state:"saved",order_number:"TEST-1"});
+    const closed = "00000000-0000-4000-8000-000000000010";
+    expect((await db.query(recover,[project,closed])).rows[0].result).toEqual({state:"closed"});
+    expect((await db.query(recover,[project,closed])).rows[0].result).toEqual({state:"closed"});
+    await expect(db.query(query,[closed,...args.slice(1)])).rejects.toThrow(/Checkout attempt is closed/);
+
+    // Aggregate stock and variant stock are distinct reservations. A failed
+    // variant reservation rolls back an earlier product deduction.
+    const variant = "00000000-0000-4000-8000-000000000011";
+    const variantAttempt = "00000000-0000-4000-8000-000000000012";
+    await db.exec(`UPDATE project_products SET has_variants=true WHERE id='${first}';
+      INSERT INTO project_product_variants VALUES ('${variant}','${project}','${first}',true,1);`);
+    const variantOrder = {...order,quantity:2,order_number:"VARIANT",gift_card_amount_xof:0};
+    const variantLines = [{...lines[0],variant_id:variant}];
+    const variantArgs = [variantAttempt,fingerprint,JSON.stringify(variantOrder),JSON.stringify(variantLines),null,null,null];
+    await expect(db.query(query,variantArgs)).rejects.toThrow(/Insufficient variant stock/);
+    expect(await stock()).toEqual([{stock_qty:3},{stock_qty:0}]);
+    await expect(db.query(query,[...variantArgs.slice(0,3),JSON.stringify([lines[0]]),null,null,null])).rejects.toThrow(/Variant unavailable/);
+    await db.exec(`UPDATE project_product_variants SET stock_qty=4 WHERE id='${variant}'`);
+    const variantPlaced = (await db.query(query,variantArgs)).rows[0].result;
+    expect(await stock()).toEqual([{stock_qty:1},{stock_qty:0}]);
+    expect((await db.query("select stock_qty from project_product_variants")).rows).toEqual([{stock_qty:2}]);
+    // Changing tracking settings after the sale must not change what gets restored.
+    await db.exec(`UPDATE project_products SET track_stock=false WHERE id='${first}'`);
+    const cancel = "select * from public.cancel_shop_order_atomic($1,$2)";
+    expect((await db.query(cancel,[variantPlaced.id,project])).rows[0]).toMatchObject({ok:true,restored:true,already_cancelled:false});
+    expect((await db.query(cancel,[variantPlaced.id,project])).rows[0]).toMatchObject({ok:true,restored:false,already_cancelled:true});
+    expect(await stock()).toEqual([{stock_qty:3},{stock_qty:0}]);
+    expect((await db.query("select stock_qty from project_product_variants")).rows).toEqual([{stock_qty:4}]);
+    // Untracked product quantity is never restored via the legacy fallback.
+    const untracked = (await db.query(query,["00000000-0000-4000-8000-000000000013",...variantArgs.slice(1)])).rows[0].result;
+    await db.exec(`UPDATE project_products SET track_stock=true WHERE id='${first}'`);
+    await db.query(cancel,[untracked.id,project]);
+    expect(await stock()).toEqual([{stock_qty:3},{stock_qty:0}]);
+    // Whole-cart totals can exceed the single-item 20-unit limit.
+    await db.exec("UPDATE project_products SET stock_qty=100,has_variants=false");
+    const large = (await db.query(query,["00000000-0000-4000-8000-000000000014",fingerprint,
+      JSON.stringify({...variantOrder,quantity:30,order_number:"LARGE"}),
+      JSON.stringify(lines.map(l=>({...l,quantity:15}))),null,null,null])).rows[0].result;
+    expect(large).toMatchObject({order_number:"LARGE",replayed:false});
+    expect(await stock()).toEqual([{stock_qty:85},{stock_qty:85}]);
+    await db.query(cancel,[large.id,project]);
+    expect(await stock()).toEqual([{stock_qty:100},{stock_qty:100}]);
+    // A receipt from the previous migration lacks a snapshot and must retain
+    // its legacy cancellation path rather than silently losing restored stock.
+    const legacy = "00000000-0000-4000-8000-000000000015";
+    await db.exec(`insert into shop_orders(id,project_id,product_id,product_name,quantity,customer_name,customer_phone)
+      values('${legacy}','${project}','${first}','Legacy',1,'Fixture','00000000');
+      insert into shop_cart_order_attempts(project_id,attempt_id,fingerprint,order_id,order_number)
+      values('${project}','${legacy}','${fingerprint}','${legacy}','LEGACY');`);
+    await db.query(cancel,[legacy,project]);
+    expect(await stock()).toEqual([{stock_qty:101},{stock_qty:100}]);
+    await db.exec("RESET ROLE; SET ROLE authenticated");
+    await expect(db.query(recover,[project,attempt])).rejects.toThrow(/permission denied/);
+    await expect(db.query("select * from shop_cart_stock_reservations")).rejects.toThrow(/permission denied/);
+    await expect(db.query("select * from shop_cart_closed_attempts")).rejects.toThrow(/permission denied/);
   }finally{await db.close();}
 },20000);

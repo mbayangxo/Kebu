@@ -13,7 +13,8 @@ import { cartSessionKey, clearShopCart, readShopCart, writeShopCart, cartLineKey
 import { PublicShippingQuote } from "@/app/components/create/public-shipping-quote";
 import { trackShopEvent } from "@/lib/shop/shop-analytics-events";
 import { xofToCauris } from "@/lib/shop/cauris";
-import { parseXofFromLabel } from "@/lib/shop/joko-order";
+import { parseXofFromLabel } from "@/lib/shop/price-label";
+import { readPendingCheckout, rememberCheckout, forgetCheckout } from "@/lib/create/shop-checkout-recovery";
 import type { ShippingOptionRow } from "@/lib/shop/shipping-options";
 
 /** Floating cart + checkout for live multi-item orders. */
@@ -27,7 +28,9 @@ export function PublicShopCart({
   preview?: boolean;
 }) {
   const { mode, reportKb, online } = useDataMode();
-  const checkoutAttempt = useRef<{ body: string; id: string } | null>(null);
+  const [pendingAttempt, setPendingAttempt] = useState<string | null>(null);
+  const [recoveredSaved, setRecoveredSaved] = useState(false);
+  const [storageBlocked, setStorageBlocked] = useState(false);
   const checkoutInFlight = useRef(false);
   const [lines, setLines] = useState<ShopCartLine[]>([]);
   const [open, setOpen] = useState(false);
@@ -79,7 +82,17 @@ export function PublicShopCart({
 
   const refresh = useCallback(() => {
     setLines(readShopCart(subdomain));
-  }, [subdomain]);
+    if (preview) return;
+    try {
+      const pending = readPendingCheckout(localStorage, subdomain);
+      setPendingAttempt(pending);
+      if (pending) setOpen(true);
+      setStorageBlocked(false);
+    } catch (err) {
+      setStorageBlocked(true);
+      setError(err instanceof Error ? err.message : "Checkout recovery is unavailable. Contact the store before ordering again.");
+    }
+  }, [subdomain, preview]);
 
   useEffect(() => {
     refresh();
@@ -147,7 +160,7 @@ export function PublicShopCart({
   }, [amountXof, selectedShippingOption]);
 
   const count = lines.reduce((s, l) => s + l.quantity, 0);
-  if (count === 0 && !open && !done) return null;
+  if (count === 0 && !open && !done && !pendingAttempt && !storageBlocked) return null;
 
   function setQty(line: ShopCartLine, quantity: number) {
     const key = cartLineKey(line);
@@ -167,6 +180,49 @@ export function PublicShopCart({
     writeShopCart(subdomain, next);
     window.dispatchEvent(new Event("kebu-cart-changed"));
     setLines(next);
+  }
+
+  async function recoverCheckout() {
+    if (!pendingAttempt || checkoutInFlight.current || !online) return;
+    checkoutInFlight.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/cart/recover`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attemptId: pendingAttempt }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not check checkout. Try again.");
+      if (data.state === "saved" && typeof data.orderNumber === "string") {
+        setDone(data.message);
+        setRecoveredSaved(true);
+        // Keep the marker until the shopper explicitly clears the cart. Items
+        // may have changed in another tab since the lost response.
+      } else if (data.state === "closed") {
+        forgetCheckout(localStorage, subdomain, pendingAttempt);
+        setPendingAttempt(null);
+        setError(data.message);
+      } else throw new Error("Checkout is still uncertain. Check again before ordering.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not check checkout. Try again.");
+    } finally {
+      checkoutInFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  function finishRecoveredCheckout() {
+    if (!pendingAttempt) return;
+    try {
+      clearShopCart(subdomain);
+      if (readShopCart(subdomain).length) throw new Error("Could not clear the cart. Keep this receipt and try again.");
+      forgetCheckout(localStorage, subdomain, pendingAttempt);
+      setPendingAttempt(null);
+      setRecoveredSaved(false);
+      setLines([]);
+      window.dispatchEvent(new Event("kebu-cart-changed"));
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not finish checkout recovery."); }
   }
 
   async function checkout(e: React.FormEvent) {
@@ -211,12 +267,15 @@ export function PublicShopCart({
           recipientEmail: isGift ? recipientEmail.trim() || undefined : undefined,
           giftMessage: isGift ? giftMessage : undefined,
       };
-      const body=JSON.stringify([subdomain,checkoutDetails]);
-      if(checkoutAttempt.current?.body!==body)checkoutAttempt.current={body,id:crypto.randomUUID()};
+      // Persist before sending. A lost response, refresh, or edited form must
+      // never silently replace an uncertain attempt with a new order.
+      const attemptId = crypto.randomUUID();
+      rememberCheckout(localStorage, subdomain, attemptId);
+      setPendingAttempt(attemptId);
       const res = await fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/cart/checkout`, {
         method:"POST",
         headers:{"Content-Type":"application/json","X-Kebu-Data-Mode":mode},
-        body:JSON.stringify({...checkoutDetails,attemptId:checkoutAttempt.current.id}),
+        body:JSON.stringify({...checkoutDetails,attemptId}),
       });
       const bytes = await measureResponseBytes(res);
       reportKb("place_order", bytes);
@@ -229,8 +288,10 @@ export function PublicShopCart({
         setError("Could not confirm checkout. Retry this cart before starting a new order.");
         return;
       }
-      checkoutAttempt.current=null;
       clearShopCart(subdomain);
+      if (readShopCart(subdomain).length) throw new Error("Order saved, but the cart could not be cleared. Use checkout recovery.");
+      forgetCheckout(localStorage, subdomain, attemptId);
+      setPendingAttempt(null);
       window.dispatchEvent(new Event("kebu-cart-changed"));
       setLines([]);
       if(!data.alreadySaved)trackShopEvent(subdomain, "purchase", { payment: pay });
@@ -246,8 +307,8 @@ export function PublicShopCart({
       if (typeof data.whatsappHref === "string" && data.whatsappHref.startsWith("https://")) {
         window.open(data.whatsappHref, "_blank", "noopener,noreferrer");
       }
-    } catch {
-      setError("Could not confirm checkout. Retry this cart before starting a new order.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not confirm checkout. Check your previous checkout before ordering again.");
     } finally {
       checkoutInFlight.current=false;
       setBusy(false);
@@ -275,8 +336,24 @@ export function PublicShopCart({
               </a>{" "}
               — sign in to keep purchase history. Guest checkout still works.
             </p>
+            {error ? <p role="alert" className="mt-3 text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
             {done ? (
-              <p className="mt-3 text-sm opacity-80">{done}</p>
+              <div role="status" className="mt-3 space-y-3 text-sm">
+                <p>{done}</p>
+                {recoveredSaved ? <button type="button" className="kebu-cta rounded-full px-4 py-2 text-xs font-bold" onClick={finishRecoveredCheckout}>
+                  Clear cart and finish
+                </button> : null}
+              </div>
+            ) : pendingAttempt ? (
+              <div className="mt-3 space-y-3 text-sm" role="status">
+                <p>A previous checkout needs checking. Check it before placing another order, even if you changed the cart.</p>
+                <button type="button" disabled={busy || !online} className="kebu-cta rounded-full px-4 py-2 text-xs font-bold disabled:opacity-50" onClick={() => void recoverCheckout()}>
+                  {busy ? "Checking…" : "Check previous checkout"}
+                </button>
+                {!online ? <p>Reconnect to check your order safely.</p> : null}
+              </div>
+            ) : storageBlocked ? (
+              <p className="mt-3 text-sm">Checkout requires working browser storage to recover interrupted orders. Enable storage, then reload.</p>
             ) : lines.length === 0 ? (
               <p className="mt-3 text-sm opacity-60">Cart is empty — add products from the shop.</p>
             ) : (
@@ -481,7 +558,6 @@ export function PublicShopCart({
                     />
                   </div>
                 ) : null}
-                {error ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{error}</p> : null}
                 <button
                   type="submit"
                   disabled={busy || !online}

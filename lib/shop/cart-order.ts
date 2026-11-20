@@ -7,7 +7,7 @@ import {
   giftCardApplyAmount,
   resolveActiveGiftCard,
 } from "@/lib/shop/gift-cards";
-import { parseXofFromLabel } from "@/lib/shop/joko-order";
+import { parseXofFromLabel } from "@/lib/shop/price-label";
 import { SHOP_PAYMENT_PREFERENCES } from "@/lib/create/site-commerce";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
 import { resolveShippingOptionForOrder } from "@/lib/shop/shipping-options";
@@ -113,6 +113,9 @@ export async function resolveCartLines(
   }
   const linesIn = [...merged.values()];
   if (!linesIn.length) return { ok: false, error: "Cart is empty." };
+  if (linesIn.some(item => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20)) {
+    return { ok: false, error: "Choose between 1 and 20 of each product or variant." };
+  }
 
   const ids = [...new Set(linesIn.map((l) => l.productId))];
   let { data: products, error } = await admin
@@ -189,7 +192,7 @@ export async function resolveCartLines(
         : typeof p.price_xof === "number"
           ? p.price_xof
           : parseXofFromLabel(priceLabel || p.price_label);
-    const qty = Math.min(20, item.quantity);
+    const qty = item.quantity;
     const displayName = variantName ? `${p.name} (${variantName})` : p.name;
     lines.push({
       productId: p.id,
@@ -428,9 +431,10 @@ export async function createCartOrder(opts: {
   }).then(result=>result,()=>({data:null,error:null}));
   const order=response.data;
   if(response.error||typeof order?.id!=="string"||typeof order.replayed!=="boolean"){
-    const conflict=["P4001","P4002"].includes(response.error?.code??"");
+    const conflict=["P4001","P4002","P4003"].includes(response.error?.code??"");
     return {ok:false,conflict,error:response.error?.code==="P4001"
       ? "This checkout attempt is already tied to a different cart."
+      : response.error?.code === "P4003" ? "This checkout attempt was closed during recovery. Review your cart and start a new attempt."
       : conflict ? "Stock, a discount, or gift-card credit changed. Review your cart."
       : "Checkout is unavailable or could not be confirmed. Retry the same cart before placing another order."};
   }

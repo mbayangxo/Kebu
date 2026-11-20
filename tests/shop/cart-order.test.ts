@@ -3,12 +3,19 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   cartWhatsAppMessage,
+  resolveCartLines,
   shopCartCheckoutSchema,
   shopCartCheckoutRequestSchema,
   type ResolvedCartLine,
 } from "@/lib/shop/cart-order";
 
 describe("shop cart checkout", () => {
+  it("rejects duplicate lines above the per-variant limit instead of silently reducing the order", async () => {
+    const admin = {} as Parameters<typeof resolveCartLines>[0];
+    const productId = "11111111-2222-4333-a444-555555555555";
+    expect(await resolveCartLines(admin, "store", [{productId, quantity:11},{productId, quantity:10}]))
+      .toEqual({ok:false,error:"Choose between 1 and 20 of each product or variant."});
+  });
   it("rejects empty carts and invalid product ids", () => {
     expect(shopCartCheckoutSchema.safeParse({ items: [], customerName: "Awa", customerPhone: "221770000000" }).success).toBe(
       false,

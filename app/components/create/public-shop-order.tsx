@@ -16,7 +16,7 @@ import { addToShopCart } from "@/lib/create/shop-cart-storage";
 import { PublicShippingQuote } from "@/app/components/create/public-shipping-quote";
 import type { ShippingQuote } from "@/lib/shop/shipping-corridors";
 import { xofToCauris } from "@/lib/shop/cauris";
-import { parseXofFromLabel } from "@/lib/shop/joko-order";
+import { parseXofFromLabel } from "@/lib/shop/price-label";
 import { dispatchCartChanged } from "@/app/components/create/public-shop-cart";
 
 /** Live-site order form. Saves to shop_orders then opens WhatsApp. Never marks paid. */

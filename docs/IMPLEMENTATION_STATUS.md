@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## November 20 — Kebu Code commerce prerequisite: cart recovery and stock
+
+Source candidate with local acceptance: interrupted cart checkout persists a receipt capability, recovery finds a saved order or fences delayed checkout before permitting a new attempt; product/variant reservations and cancellation restore exact stock once. Older receipts retain their prior cancellation behavior. Six Chromium cases and five independent native PostgreSQL races pass, alongside SQL/service/validation checks (37 focused tests total). This is the existing Shop prerequisite for future Code apps, not a generated-app SDK, points/royalties, provider acceptance or a deployment. Repository typecheck/lint/full tests and production build pass; hosted migrations and provider release checks remain gated. See [the audit](audits/KEBU_CODE_CART_RECOVERY_2026-11-20.md).
+
 ## November 17 — hosted QA foundation repair applied
 
 Supersedes the earlier expired-confirmation blocker: Supabase successfully applied `qa_company_foundations` to **Kebu-qa only** (`skqnxyaeimvbyrmdfzvk`), ledger version `20261117183845`. All 47 manifest tables exist with RLS enabled; anonymous SELECT and authenticated TRUNCATE are denied. Three Cloud integrity constraints are validated, the active-call uniqueness index and four realtime policies exist, and baseline data digests plus the shared timestamp helper are unchanged. Anonymous execution is denied on the checked company/invite RPCs; employer review remains unavailable to ordinary authenticated users.
