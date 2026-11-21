@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { sectionPropsSchemas } from "@/lib/create/website-schema";
+import { projectShopOpened } from "@/lib/create/site-shop";
+import { storeSlug, storefrontSchema } from "@/lib/kebu-code/storefront";
 import { aiRateLimit } from "@/lib/api-guard";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 import { yandeConfigured, yandeStructured } from "@/lib/yande/gateway";
@@ -12,7 +15,7 @@ const error=(message:string,status:number)=>json({error:message},status);
 async function auth(){
   const db=await createClient();
   const {data:{user}}=await db.auth.getUser();
-  return {db,user};
+  return {db,user:user?.is_anonymous?null:user};
 }
 export async function GET(req:NextRequest){
   const {db,user}=await auth();
@@ -28,6 +31,49 @@ export async function GET(req:NextRequest){
     const result=workspaceSchema.safeParse(row.data);
     if(row.error)return error("The Code workspace could not be loaded.",503);
     if(!result.success)return error("Workspace not found.",404);
+    if(req.nextUrl.searchParams.get("storefront")==="1"){
+      const store=result.data.store_project_id;
+      if(!store)return error("Connect one of your stores first.",409);
+      const owned=await db.from("projects").select("id,site_password_enabled").eq("id",store)
+        .eq("owner_id",user.id).eq("project_type","store").maybeSingle();
+      if(owned.error)return error("Store ownership could not be verified.",503);
+      if(!owned.data)return error("This store connection is no longer available.",403);
+      if(owned.data.site_password_enabled!==false)return error("A password-protected store cannot be linked here.",422);
+
+      const live=await db.from("deployments").select("subdomain").eq("project_id",store).eq("status","live")
+        .order("published_at",{ascending:false}).limit(1).maybeSingle();
+      if(live.error)return error("Could not check the store’s publication.",503);
+      const slug=storeSlug.safeParse(live.data?.subdomain);
+      if(!slug.success)return error("Publish your store before creating a storefront link.",422);
+      const deployment=await loadPublicDeployment(slug.data);
+      if(!deployment||deployment.projectId!==store||deployment.subdomain!==slug.data||deployment.billingSuspended!==false){
+        return error("No active published storefront is available for this connection.",422);
+      }
+      if(!projectShopOpened(deployment.seo)){
+        return error("Open Shop and publish your changes before linking it.",422);
+      }
+      const pages=deployment.definition.pages;
+      const home=pages.find(page=>page.slug==="home")??pages[0];
+      const targets=pages.flatMap(page=>{
+        if(page!==home&&(!storeSlug.safeParse(page.slug).success||["account","blog"].includes(page.slug)))return [];
+        const ids=page.sections.flatMap(section=>{
+          if(section.type!=="products")return [];
+          const props=sectionPropsSchemas.products.safeParse(section.props);
+          return props.success?props.data.items.flatMap(item=>item.productId?[item.productId]:[]):[];
+        });
+        return ids.length?[{path:page===home?"":"/"+page.slug,ids}]:[];
+      });
+      const ids=[...new Set(targets.flatMap(target=>target.ids))].slice(0,100);
+      if(!ids.length)return error("Publish a page with linked products before creating a storefront link.",422);
+      const products=await db.from("project_products").select("id").eq("project_id",store).eq("is_active",true).in("id",ids);
+      if(products.error)return error("Could not verify the store’s products.",503);
+      const active=new Set((products.data??[]).map(item=>item.id));
+      const page=targets.find(target=>target.ids.some(id=>active.has(id)));
+      if(!page)return error("No active linked products are available on the published store.",422);
+      const path="/sites/"+slug.data+page.path;
+      const verified=storefrontSchema.safeParse({subdomain:slug.data,url:new URL(path,req.nextUrl.origin).href});
+      return verified.success?json({storefront:verified.data}):error("No supported storefront URL is available.",422);
+    }
     if(req.nextUrl.searchParams.get("catalog")==="1"){
       const store=result.data.store_project_id;
       if(!store)return error("Connect one of your stores first.",409);

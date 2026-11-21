@@ -11,7 +11,9 @@ it.skipIf(!executablePath)("creates, drafts from an attachment, reviews, edits, 
     configFile: false, resolve: { alias: { "@": resolve(".") } },
     define: { "process.env.NODE_ENV": '"development"' },
     css: { postcss: { plugins: [] } },
-    server: { host: "127.0.0.1", port: 0 },
+    cacheDir: "node_modules/.vite-documents-acceptance",
+    optimizeDeps: { include: ["react", "react-dom/client", "react/jsx-dev-runtime", "next/link", "zod", "jszip"] },
+    server: { host: "127.0.0.1", port: 0, hmr: false, watch: null },
     plugins: [{ name: "document-acceptance", configureServer(vite) {
       vite.middlewares.use(async (req, res, next) => {
         if (req.url !== "/fixture") return next();
@@ -27,6 +29,7 @@ it.skipIf(!executablePath)("creates, drafts from an attachment, reviews, edits, 
     const browser = await chromium.launch({ executablePath, args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"] });
     try {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
+      page.setDefaultTimeout(8000);
       const id = "11111111-1111-4111-8111-111111111111";
       let stored = { id, title: "Wholesale", content: "", revision: 1, history: [] as { revision: number; content: string }[], updated_at: "2026-11-21" };
       let exists = false;

@@ -94,3 +94,54 @@ it("reads catalog through the saved binding and fails closed after ownership cha
   expect((await request()).status).toBe(403);
   expect(reads).not.toHaveBeenCalledWith("project_products");
 });
+
+describe("owner-verified storefront handoff",()=>{
+  const storeId="33333333-3333-4333-8333-333333333333";
+  const productId="44444444-4444-4444-8444-444444444444";
+  const get=()=>GET(new NextRequest("https://kebu.test/api/code?id="+id+"&storefront=1"));
+  function setup(options:{owned?:boolean;locked?:boolean;active?:boolean;published?:boolean}={}){
+    const query=(data:unknown)=>{
+      const chain={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),order:vi.fn().mockReturnThis(),
+        limit:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data,error:null}),
+        in:vi.fn().mockResolvedValue({data,error:null})};
+      return chain;
+    };
+    const projects=query(options.owned===false?null:{id:storeId,site_password_enabled:options.locked===true});
+    const deployments=query(options.published===false?null:{subdomain:"test-store"});
+    const products=query(options.active===false?[]:[{id:productId}]);
+    const workspaces=query({...current,store_project_id:storeId});
+    const tables={projects,deployments,project_products:products,kebu_code_workspaces:workspaces};
+    mocks.client.mockResolvedValue({auth:{getUser:async()=>({data:{user:{id:owner}}})},from:(name:keyof typeof tables)=>tables[name]});
+    mocks.store.mockResolvedValue({
+      subdomain:"test-store",projectId:storeId,billingSuspended:false,
+      publicPath:"//elsewhere.test",
+      seo:{commerce:{shopOpened:true}},
+      definition:{pages:[{slug:"home",sections:[]},{slug:"catalog",sections:[{type:"products",props:{items:[{productId,name:"Test product"}]}}]}]},
+    });
+    return {projects,deployments,products};
+  }
+  it("only returns the canonical products URL and checks live ownership and catalog",async()=>{
+    const {projects,deployments,products}=setup();
+    const response=await get();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({storefront:{subdomain:"test-store",url:"https://kebu.test/sites/test-store/catalog"}});
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(projects.eq).toHaveBeenCalledWith("owner_id",owner);
+    expect(deployments.eq).toHaveBeenCalledWith("status","live");
+    expect(products.eq).toHaveBeenCalledWith("project_id",storeId);
+    expect(products.in).toHaveBeenCalledWith("id",[productId]);
+  });
+  it("fails closed for transferred, protected, unpublished, or empty stores",async()=>{
+    setup({owned:false}); expect((await get()).status).toBe(403);
+    expect(mocks.store).not.toHaveBeenCalled();
+    setup({locked:true}); expect((await get()).status).toBe(422);
+    setup({published:false}); expect((await get()).status).toBe(422);
+    setup({active:false}); expect((await get()).status).toBe(422);
+  });
+  it("rejects stale or suspended publication results",async()=>{
+    setup();mocks.store.mockResolvedValueOnce({projectId:"another-store",subdomain:"test-store",billingSuspended:false});
+    expect((await get()).status).toBe(422);
+    setup();mocks.store.mockResolvedValueOnce({projectId:storeId,subdomain:"test-store",billingSuspended:true});
+    expect((await get()).status).toBe(422);
+  });
+});

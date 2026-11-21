@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { type CodeFile, type CodeFiles, type CodeWorkspace, fileNames, filesSchema } from "@/lib/kebu-code/workspace";
+import { storefrontLink, storefrontSchema, type Storefront } from "@/lib/kebu-code/storefront";
 import styles from "./workspace.module.css";
 
 type Project=Pick<CodeWorkspace,"id"|"title"|"revision">;
@@ -42,6 +43,7 @@ export default function CodeWorkspaceView(){
   const [design,setDesign]=useState("");
   const [stores,setStores]=useState<Store[]>([]);
   const [storeId,setStoreId]=useState("");
+  const [storefront,setStorefront]=useState<Storefront>();
   const [catalog,setCatalog]=useState<Catalog>();
   const [busy,setBusy]=useState(true);
   const [message,setMessage]=useState("");
@@ -50,7 +52,7 @@ export default function CodeWorkspaceView(){
   const changed=proposal&&project?fileNames.filter(name=>proposal.files[name]!==project.files[name]):[];
 
   function open(workspace:CodeWorkspace){
-    setProject(workspace);setDraft(workspace.files);setProposal(undefined);setPreview("");setStoreId(workspace.store_project_id??"");setCatalog(undefined);
+    setProject(workspace);setDraft(workspace.files);setProposal(undefined);setPreview("");setStoreId(workspace.store_project_id??"");setCatalog(undefined);setStorefront(undefined);
     setList(items=>[{id:workspace.id,title:workspace.title,revision:workspace.revision},...items.filter(x=>x.id!==workspace.id)]);
   }
   useEffect(()=>{
@@ -73,15 +75,19 @@ export default function CodeWorkspaceView(){
     open((await request("",{action:"save",id:project.id,base:project.revision,files:validated.data})).workspace);
     setMessage("Revision saved.");
   }
-  async function download(){
+  async function loadStorefront(){
+    if(!project)throw new Error("Open a project first.");
+    const data=await request("?id="+encodeURIComponent(project.id)+"&storefront=1");
+    return storefrontSchema.parse(data.storefront);
+  }
+  async function download(withStorefront=false){
     if(!draft)return;
-    const {default:JSZip}=await import("jszip");
-    const zip=new JSZip();
-    for(const name of fileNames)zip.file(name,draft[name]);
-    const objectURL=URL.createObjectURL(await zip.generateAsync({type:"blob"}));
+    const verified=withStorefront?await loadStorefront():null;
+    const { sourceExport }=await import("@/lib/kebu-code/source-export");
+    const objectURL=URL.createObjectURL(new Blob([await sourceExport(draft,verified??undefined)],{type:"application/zip"}));
     const anchor=document.createElement("a");anchor.href=objectURL;anchor.download="kebu-app-source.zip";anchor.click();
     window.setTimeout(()=>URL.revokeObjectURL(objectURL),30000);
-    setMessage("Source exported.");
+    setMessage(verified?"Source and storefront page exported.":"Source exported.");
   }
   const loading=busy&&!project;
   return <main className={styles.shell}>
@@ -109,7 +115,7 @@ export default function CodeWorkspaceView(){
           <p>Layout preview runs with scripts off. The ZIP includes your JavaScript for development in a separate environment.</p>
         </section>
         <section className={styles.card}><h2>Store connection</h2>
-          <p>Connect a Kebu Store project you own to inspect its current catalog and stock. This is read-only.</p>
+          <p>Connect a Kebu Store project you own to inspect its current catalog and stock. The catalog is read-only. Export a storefront link to send customers to Shop for orders and payments.</p>
           <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={()=>void run(async()=>{setStores((await request("?stores=1")).stores);setMessage("Your stores loaded.");})}>Load my stores</button>
             {project.store_project_id&&<button className={styles.secondary} disabled={busy} onClick={()=>void run(async()=>{setCatalog(await request("?id="+encodeURIComponent(project.id)+"&catalog=1"));setMessage("Read current store catalog.");})}>Read catalog and stock</button>}</div>
           <form className={styles.form} onSubmit={e=>submit(e,async()=>{
@@ -125,6 +131,20 @@ export default function CodeWorkspaceView(){
             <button disabled={busy||dirty||storeId===(project.store_project_id??"")}>Save store connection</button>
             {dirty&&<p>Save your source first to change the store connection.</p>}
           </form>
+          {project.store_project_id&&<div className={styles.form}>
+            <div className={styles.toolbar}>
+              <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void run(async()=>{
+                setStorefront(undefined);setStorefront(await loadStorefront());setMessage("Published storefront verified.");
+              })}>Get storefront link</button>
+              <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void run(()=>download(true))}>Export with storefront page</button>
+            </div>
+            {storefront&&<>
+              <a href={storefront.url} target="_blank" rel="noopener noreferrer">Open published storefront ↗</a>
+              <label htmlFor="storefront-html">Link to paste inside index.html</label>
+              <input id="storefront-html" readOnly value={storefrontLink(storefront)} onFocus={event=>event.currentTarget.select()}/>
+              <p>The link opens Shop. Your exported files do not collect payment details. If you move or close the store, update any exported links.</p>
+            </>}
+          </div>}
           {catalog&&<><h3>Active products</h3>
             {catalog.products.length===0&&<p>This store has no active products.</p>}
             <div className={styles.catalog}><table><thead><tr><th>Product</th><th>Price label</th><th>Stock</th></tr></thead><tbody>

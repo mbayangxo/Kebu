@@ -20,6 +20,8 @@ The server only accepts a proposal for the signed-in owner's existing project, a
 
 Select a Store project that you own, attach it to the workspace, and read the current active products, price labels and tracked product stock. Variant counts remain in Shop. The connection is saved, can be removed, and does not grant generated apps or their customers access to the owner's catalog. Store ownership and project type are verified again on every read; database policy also checks attachments. If a store changes owners, disconnect it before saving further source changes.
 
+An owner can select **Get storefront link** to verify that the attached Store is still theirs, is public and published, has Shop open, and displays an active linked product. Kebu constructs its own products-page URL rather than using an arbitrary deployment path. Paste the provided anchor inside `index.html`, or choose **Export with storefront page** to include a ready-to-open `shop.html` and instructions alongside the untouched app files. Export rechecks eligibility. An exported URL is public and static, so refresh it if the store moves or closes. This is a storefront handoff: Kebu Shop handles the customer interaction and any payment. No API key or direct checkout permission is granted by exporting.
+
 A separate Design direction field guides the proposal. Describe the visual style, colors, layout, mobile behavior and what to keep. The app's behavior belongs in the main request. Source review is available before either kind of change is saved. Visual reference uploads and click-to-edit selection are separate future slices.
 
 ### Cart order integrity checkpoint
