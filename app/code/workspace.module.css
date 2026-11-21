@@ -19,3 +19,7 @@
 .notice,.problem{padding:10px 14px;border-radius:7px;margin-bottom:14px;background:#e5f2e5}.problem{background:#fff0e8;color:#842d16}
 @media(max-width:720px){.layout,.compare{grid-template-columns:1fr}.card{padding:16px}}
 .catalog{overflow:auto;margin-top:10px}.catalog table{width:100%;border-collapse:collapse;text-align:left}.catalog th,.catalog td{border-bottom:1px solid var(--line);padding:9px;min-width:84px;font-size:13px}
+
+.card textarea.documentEditor{display:block;min-height:320px;margin:10px 0 14px;font:15px/1.65 system-ui,sans-serif;resize:vertical}
+.documentReview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto;padding:14px;border-radius:8px;background:#f2f5f2;font:14px/1.6 system-ui,sans-serif}
+.card .danger{margin-top:16px;background:#fff0e8;color:#842d16}

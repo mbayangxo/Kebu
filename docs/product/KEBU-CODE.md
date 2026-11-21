@@ -1,6 +1,14 @@
 # Kebu Code
 
-Kebu Code is a signed-in source workspace for building browser apps. It is separate from Kebu Builder's visual editor. It uses the existing Yande model gateway. The product goal is to support ordinary browser apps and apps attached to a Kebu store, including the future use case of a creamery with pickup, a kiosk, and rewards.
+Kebu Code is a signed-in general work workspace, separate from Kebu Builder's visual editor. Its purpose is to turn a request and relevant context into work an owner can review, revise, keep and export. Documents and browser projects are the first artifact types. Store commerce is an optional capability for ordinary Kebu owners and never a requirement for using the workspace. Both surfaces use the existing Yande model gateway.
+
+## Documents
+
+Open **Documents** from `/code`. Create a private document for a proposal, brief, handover, or another writing task. Write directly or ask Yande to draft from the saved text, a brief, and up to two UTF-8 text, Markdown, or CSV references. Reference files are request context only, sent to the model provider when drafting and not retained with the saved document. Model drafts are proposals; review missing facts, move the text into the editor, edit it, and save explicitly. Save and restore use revision checks. You can reopen stale documents after copying or exporting your draft. Deleting removes the document and its saved revision history from the application.
+
+Word and Markdown downloads export the current editor text. Word renders headings and basic list markers and leaves other Markdown as text; it does not embed active links, scripts, or uploaded files. No model is needed for manual edits, saves, or exports. This slice does not add arbitrary file execution, a general attachment store, or hosted store checkout for generated apps.
+
+Local verification covers signed-in route behavior with controlled provider responses, the actual migration and account isolation on local SQL, and a mobile Chromium interaction test with a fixture API. Hosted migration, signed-in hosted acceptance and real Yande requests are pending. No specific merchant app is commissioned as part of Kebu Code.
 
 ## First implemented slice
 
@@ -33,7 +41,7 @@ Hosted migrations, ordinary signed-in full-app/provider acceptance, payment-link
 3. Add separate audited ledgers for customer loyalty, gift card credit, and creator earnings, including refund offsets and payout states. A creator's rate is captured at sale time. These are reusable commerce features, not part of the generated source's authority.
 4. Add isolated interactive execution/preview, browser and integration checks, and an explicit release gate. No general shell, live credentials or backend code execution is enabled in this slice.
 
-Use a generic store fixture to verify the flow before building YANMAY itself. A signed-in shop owner should be able to create a mobile ordering app, preview a test order through pickup, inspect exactly one points award and creator earning after a retry, and see both reverse correctly on a test refund.
+Use a generic store fixture to verify the flow before giving owners a production checkout connection. A signed-in shop owner should be able to create a mobile ordering app, preview a test order through pickup, inspect exactly one points award and creator earning after a retry, and see both reverse correctly on a test refund.
 
 ## Verification and rollout
 

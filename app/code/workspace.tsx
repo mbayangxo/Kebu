@@ -85,8 +85,8 @@ export default function CodeWorkspaceView(){
   }
   const loading=busy&&!project;
   return <main className={styles.shell}>
-    <header className={styles.top}><Link href="/account">← Kebu account</Link><span>PRIVATE WORKSPACE</span></header>
-    <div className={styles.hero}><p>KEBU / DEVELOPER TOOLS</p><h1>Kebu Code</h1><p>Describe an app. Review the source. Save a revision.</p></div>
+    <header className={styles.top}><Link href="/account">← Kebu account</Link><Link href="/code/documents" onClick={event=>{if((dirty||proposal)&&!window.confirm("Leave without saving your work?"))event.preventDefault();}}>Documents →</Link></header>
+    <div className={styles.hero}><p>KEBU / WORKSPACE</p><h1>Kebu Code</h1><p>Create a document or build a web project. Review your work, save revisions, and export when ready.</p></div>
     {failure&&<p className={styles.problem} role="alert">{failure}</p>}{message&&<p className={styles.notice} role="status">{message}</p>}
     <div className={styles.layout}>
       <aside className={styles.card}><h2>Projects</h2>
