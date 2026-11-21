@@ -124,7 +124,7 @@ describe("owner-verified storefront handoff",()=>{
     const {projects,deployments,products}=setup();
     const response=await get();
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({storefront:{subdomain:"test-store",url:"https://kebu.test/sites/test-store/catalog"}});
+    expect(await response.json()).toEqual({storefront:{subdomain:"test-store",url:"https://kebu.test/sites/test-store/catalog",products:[{id:productId,name:"Test product"}]}});
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(projects.eq).toHaveBeenCalledWith("owner_id",owner);
     expect(deployments.eq).toHaveBeenCalledWith("status","live");

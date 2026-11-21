@@ -56,22 +56,23 @@ export async function GET(req:NextRequest){
       const home=pages.find(page=>page.slug==="home")??pages[0];
       const targets=pages.flatMap(page=>{
         if(page!==home&&(!storeSlug.safeParse(page.slug).success||["account","blog"].includes(page.slug)))return [];
-        const ids=page.sections.flatMap(section=>{
+        const items=page.sections.flatMap(section=>{
           if(section.type!=="products")return [];
           const props=sectionPropsSchemas.products.safeParse(section.props);
-          return props.success?props.data.items.flatMap(item=>item.productId?[item.productId]:[]):[];
+          return props.success?props.data.items.flatMap(item=>item.productId?[{id:item.productId,name:item.name}]:[]):[];
         });
-        return ids.length?[{path:page===home?"":"/"+page.slug,ids}]:[];
+        return items.length?[{path:page===home?"":"/"+page.slug,items}]:[];
       });
-      const ids=[...new Set(targets.flatMap(target=>target.ids))].slice(0,100);
+      const ids=[...new Set(targets.flatMap(target=>target.items.map(item=>item.id)))].slice(0,100);
       if(!ids.length)return error("Publish a page with linked products before creating a storefront link.",422);
       const products=await db.from("project_products").select("id").eq("project_id",store).eq("is_active",true).in("id",ids);
       if(products.error)return error("Could not verify the store’s products.",503);
       const active=new Set((products.data??[]).map(item=>item.id));
-      const page=targets.find(target=>target.ids.some(id=>active.has(id)));
+      const page=targets.find(target=>target.items.some(item=>active.has(item.id)));
       if(!page)return error("No active linked products are available on the published store.",422);
       const path="/sites/"+slug.data+page.path;
-      const verified=storefrontSchema.safeParse({subdomain:slug.data,url:new URL(path,req.nextUrl.origin).href});
+      const linked=[...new Map(page.items.filter(item=>active.has(item.id)).map(item=>[item.id,item])).values()];
+      const verified=storefrontSchema.safeParse({subdomain:slug.data,url:new URL(path,req.nextUrl.origin).href,products:linked});
       return verified.success?json({storefront:verified.data}):error("No supported storefront URL is available.",422);
     }
     if(req.nextUrl.searchParams.get("catalog")==="1"){

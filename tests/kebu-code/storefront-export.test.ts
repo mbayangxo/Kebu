@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import { expect, it } from "vitest";
 import { sourceExport } from "@/lib/kebu-code/source-export";
-import { storefrontLink } from "@/lib/kebu-code/storefront";
+import { storefrontLink, storefrontProductUrl } from "@/lib/kebu-code/storefront";
 import { fileNames, starterFiles } from "@/lib/kebu-code/workspace";
 
 it("exports a usable storefront page without modifying the owner's source",async()=>{
@@ -17,4 +17,15 @@ it("never formats credential-bearing, mismatched or active scheme URLs",()=>{
   for(const url of ["javascript:alert(1)","https://user:secret@store.test/sites/test-store","https://store.test/sites/other","https://store.test/sites/test-store?token=private"]){
     expect(()=>storefrontLink({subdomain:"test-store",url})).toThrow();
   }
+});
+
+it("links to verified product cards and escapes published product names",async()=>{
+  const id="44444444-4444-4444-8444-444444444444";
+  const store={subdomain:"test-store",url:"https://kebu.test/sites/test-store/catalog",products:[{id,name:"Tea & <Ginger>"}]};
+  expect(storefrontProductUrl(store,id)).toBe(store.url+"#product-"+id);
+  expect(()=>storefrontProductUrl(store,"55555555-5555-4555-8555-555555555555")).toThrow();
+  const zip=await JSZip.loadAsync(await sourceExport(starterFiles,store));
+  const html=await zip.file("shop.html")!.async("string");
+  expect(html).toContain("Shop Tea &amp; &lt;Ginger&gt;");
+  expect(html).toContain('href="'+store.url+'#product-'+id+'"');
 });

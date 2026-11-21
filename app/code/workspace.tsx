@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { type CodeFile, type CodeFiles, type CodeWorkspace, fileNames, filesSchema } from "@/lib/kebu-code/workspace";
-import { storefrontLink, storefrontSchema, type Storefront } from "@/lib/kebu-code/storefront";
+import { storefrontLink, storefrontProductLink, storefrontSchema, type Storefront } from "@/lib/kebu-code/storefront";
 import styles from "./workspace.module.css";
 
 type Project=Pick<CodeWorkspace,"id"|"title"|"revision">;
@@ -43,6 +43,7 @@ export default function CodeWorkspaceView(){
   const [design,setDesign]=useState("");
   const [stores,setStores]=useState<Store[]>([]);
   const [storeId,setStoreId]=useState("");
+  const [featuredProduct,setFeaturedProduct]=useState("");
   const [storefront,setStorefront]=useState<Storefront>();
   const [catalog,setCatalog]=useState<Catalog>();
   const [busy,setBusy]=useState(true);
@@ -134,14 +135,21 @@ export default function CodeWorkspaceView(){
           {project.store_project_id&&<div className={styles.form}>
             <div className={styles.toolbar}>
               <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void run(async()=>{
-                setStorefront(undefined);setStorefront(await loadStorefront());setMessage("Published storefront verified.");
+                setFeaturedProduct("");setStorefront(undefined);setStorefront(await loadStorefront());setMessage("Published storefront verified.");
               })}>Get storefront link</button>
               <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void run(()=>download(true))}>Export with storefront page</button>
             </div>
             {storefront&&<>
               <a href={storefront.url} target="_blank" rel="noopener noreferrer">Open published storefront ↗</a>
+              {Boolean(storefront.products?.length)&&<>
+                <label htmlFor="storefront-product">Link destination</label>
+                <select id="storefront-product" value={featuredProduct} onChange={event=>setFeaturedProduct(event.target.value)}>
+                  <option value="">Storefront</option>
+                  {storefront.products?.map(product=><option key={product.id} value={product.id}>{product.name}</option>)}
+                </select>
+              </>}
               <label htmlFor="storefront-html">Link to paste inside index.html</label>
-              <input id="storefront-html" readOnly value={storefrontLink(storefront)} onFocus={event=>event.currentTarget.select()}/>
+              <input id="storefront-html" readOnly value={featuredProduct?storefrontProductLink(storefront,featuredProduct):storefrontLink(storefront)} onFocus={event=>event.currentTarget.select()}/>
               <p>The link opens Shop. Your exported files do not collect payment details. If you move or close the store, update any exported links.</p>
             </>}
           </div>}

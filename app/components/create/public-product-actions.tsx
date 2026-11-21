@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { shopProductAnchor } from "@/lib/create/shop-product-anchor";
 import { PublicShopOrder } from "@/app/components/create/public-shop-order";
 import { PublicShopSubscribe } from "@/app/components/create/public-shop-subscribe";
 import { PublicShopWishlistButton } from "@/app/components/create/public-shop-wishlist-button";
@@ -52,9 +53,12 @@ export function PublicProductActions({
     selection.variantName ? `${productName} (${selection.variantName})` : productName;
   const displayPrice = selection.priceLabel || priceLabel;
 
+  const anchor = <span id={shopProductAnchor(productId)} className="absolute scroll-mt-32" aria-hidden="true" />;
+
   if (isSubscription) {
     return (
       <>
+        {anchor}
         <PublicShopSubscribe
           subdomain={subdomain}
           productId={productId}
@@ -69,6 +73,7 @@ export function PublicProductActions({
 
   return (
     <>
+      {anchor}
       {hasVariants && variants ? (
         <PublicProductVariantPicker
           variants={variants}

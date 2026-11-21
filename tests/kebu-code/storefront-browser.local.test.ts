@@ -32,7 +32,8 @@ it.skipIf(!executablePath)("rechecks the storefront at export and follows the do
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
       page.setDefaultTimeout(8000);
       const id = "11111111-1111-4111-8111-111111111111";
-      const storefront = {subdomain:"test-store",url:"https://shop.test/sites/test-store/catalog"};
+      const productId = "44444444-4444-4444-8444-444444444444";
+      const storefront = {subdomain:"test-store",url:"https://shop.test/sites/test-store/catalog",products:[{id:productId,name:"Ginger tea"}]};
       const project = {id,title:"Store project",revision:1,files:starterFiles,history:[],updated_at:"2026-11-21",
         store_project_id:"22222222-2222-4222-8222-222222222222"};
       let verified = 0;
@@ -48,16 +49,19 @@ it.skipIf(!executablePath)("rechecks the storefront at export and follows the do
       await page.getByRole("button",{name:"Get storefront link"}).click();
       const anchor=page.getByRole("link",{name:/Open published storefront/});
       expect(await anchor.getAttribute("href")).toBe(storefront.url);
+      await page.getByLabel("Link destination").selectOption(productId);
+      expect(await page.getByLabel("Link to paste inside index.html").inputValue()).toContain("#product-"+productId);
       const download=page.waitForEvent("download");
       await page.getByRole("button",{name:"Export with storefront page"}).click();
       const zip=await JSZip.loadAsync(await readFile((await (await download).path())!));
       const shop=await zip.file("shop.html")!.async("string");
       expect(await zip.file("index.html")!.async("string")).toBe(starterFiles["index.html"]);
       expect(verified).toBe(2);
-      await page.route("https://shop.test/sites/test-store/catalog",target=>target.fulfill({contentType:"text/html",body:"<h1>Test storefront</h1>"}));
+      await page.route("https://shop.test/sites/test-store/catalog",target=>target.fulfill({contentType:"text/html",body:`<h1>Test storefront</h1><article id="product-${productId}"><h2>Ginger tea</h2></article>`}));
       await page.setContent(shop);
-      await page.getByRole("link",{name:"Shop on Kebu"}).click();
-      await page.getByRole("heading",{name:"Test storefront"}).waitFor();
+      await page.getByRole("link",{name:"Shop Ginger tea"}).click();
+      await page.getByRole("heading",{name:"Ginger tea"}).waitFor();
+      expect(new URL(page.url()).hash).toBe("#product-"+productId);
     } finally { await browser.close(); }
   } finally { await server.close(); }
 }, 30000);
