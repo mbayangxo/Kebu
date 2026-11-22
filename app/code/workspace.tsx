@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { type CodeFile, type CodeFiles, type CodeWorkspace, fileNames, filesSchema } from "@/lib/kebu-code/workspace";
-import { storefrontLink, storefrontProductLink, storefrontSchema, type Storefront } from "@/lib/kebu-code/storefront";
+import { storefrontLink, storefrontProductLink, storefrontSelectionUrl, storefrontSchema, type Storefront } from "@/lib/kebu-code/storefront";
 import styles from "./workspace.module.css";
 
 type Project=Pick<CodeWorkspace,"id"|"title"|"revision">;
@@ -43,6 +43,7 @@ export default function CodeWorkspaceView(){
   const [design,setDesign]=useState("");
   const [stores,setStores]=useState<Store[]>([]);
   const [storeId,setStoreId]=useState("");
+  const [storefrontQuantity,setStorefrontQuantity]=useState("1");
   const [featuredProduct,setFeaturedProduct]=useState("");
   const [storefront,setStorefront]=useState<Storefront>();
   const [catalog,setCatalog]=useState<Catalog>();
@@ -147,6 +148,15 @@ export default function CodeWorkspaceView(){
                   <option value="">Storefront</option>
                   {storefront.products?.map(product=><option key={product.id} value={product.id}>{product.name}</option>)}
                 </select>
+              </>}
+              {featuredProduct&&<>
+                <label htmlFor="storefront-quantity">Suggested quantity</label>
+                <input id="storefront-quantity" type="number" min={1} max={20} step={1} value={storefrontQuantity} onChange={event=>setStorefrontQuantity(event.target.value)}/>
+                {Number.isInteger(Number(storefrontQuantity))&&Number(storefrontQuantity)>=1&&Number(storefrontQuantity)<=20&&<>
+                  <label htmlFor="storefront-selection-url">Product and quantity link</label>
+                  <input id="storefront-selection-url" readOnly value={storefrontSelectionUrl(storefront,featuredProduct,Number(storefrontQuantity))} onFocus={event=>event.currentTarget.select()}/>
+                  <p>Shoppers confirm the quantity and any product options in Kebu Shop before it enters their cart.</p>
+                </>}
               </>}
               <label htmlFor="storefront-html">Link to paste inside index.html</label>
               <input id="storefront-html" readOnly value={featuredProduct?storefrontProductLink(storefront,featuredProduct):storefrontLink(storefront)} onFocus={event=>event.currentTarget.select()}/>

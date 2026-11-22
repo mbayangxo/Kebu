@@ -29,3 +29,18 @@ it("links to verified product cards and escapes published product names",async()
   expect(html).toContain("Shop Tea &amp; &lt;Ginger&gt;");
   expect(html).toContain('href="'+store.url+'#product-'+id+'"');
 });
+
+it("binds a suggested quantity to exactly the verified product and rejects ambiguous quantities", async () => {
+  const { storefrontSelectionUrl } = await import("@/lib/kebu-code/storefront");
+  const { readShopSelection } = await import("@/lib/create/shop-selection");
+  const id = "44444444-4444-4444-8444-444444444444";
+  const store = { subdomain: "test-store", url: "https://kebu.test/sites/test-store", products: [{ id, name: "Tea" }] };
+  const url = new URL(storefrontSelectionUrl(store, id, 3));
+  expect(readShopSelection(url, id)).toBe(3);
+  expect(readShopSelection(url, "55555555-5555-4555-8555-555555555555")).toBeNull();
+  url.searchParams.append("kebu_qty", "2");
+  expect(readShopSelection(url, id)).toBeNull();
+  url.searchParams.set("kebu_qty", "0");
+  expect(readShopSelection(url, id)).toBeNull();
+  expect(() => storefrontSelectionUrl(store, id, 21)).toThrow();
+});

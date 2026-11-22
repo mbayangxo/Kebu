@@ -1,4 +1,5 @@
 import { shopProductAnchor } from "@/lib/create/shop-product-anchor";
+import { shopSelectionMax, shopSelectionQuantity } from "@/lib/create/shop-selection";
 import { z } from "zod";
 
 export const storeSlug = z.string().min(1).max(63).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -41,4 +42,14 @@ export function storefrontProductLink(store: Storefront, productId: string): str
   const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   return `<a href="${escape(url)}">Shop ${escape(name)}</a>`;
+}
+
+/** Publish a plain browser handoff; no credentials, amount, or order data in the URL. */
+export function storefrontSelectionUrl(store: Storefront, productId: string, quantity: number): string {
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > shopSelectionMax) {
+    throw new Error("Quantity must be between 1 and 20.");
+  }
+  const url = new URL(storefrontProductUrl(store, productId));
+  url.searchParams.set(shopSelectionQuantity, String(quantity));
+  return url.href;
 }
