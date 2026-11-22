@@ -145,3 +145,40 @@ describe("owner-verified storefront handoff",()=>{
     expect((await get()).status).toBe(422);
   });
 });
+
+it("only issues checkout links for the app owner's connected store and revokes by revision", async () => {
+  const key="local-test-only-approval-key-at-least-32-bytes";
+  vi.stubEnv("KEBU_CODE_CHECKOUT_SIGNING_KEY", key);
+  try {
+    const storeId="33333333-3333-4333-8333-333333333333";
+    const payload={action:"checkoutApproval",id,base:2,mode:"issue"};
+    db({found:false});
+    expect((await action(payload)).status).toBe(404);
+
+    const setup=(allowed:boolean)=>{
+      const workspaces=db();
+      workspaces.maybeSingle.mockReset().mockResolvedValueOnce({data:{...current,store_project_id:storeId}})
+        .mockResolvedValueOnce({data:{...current,revision:3,store_project_id:storeId}});
+      const stores={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({
+        data:allowed?{id:storeId,site_password_enabled:false}:null,
+      })};
+      mocks.client.mockResolvedValue({auth:{getUser:async()=>({data:{user:{id:owner}}})},from:(name:string)=>name==="projects"?stores:workspaces});
+      return {workspaces,stores};
+    };
+    setup(false);
+    expect((await action(payload)).status).toBe(403);
+    const {stores}=setup(true);
+    const response=await action(payload);
+    expect(response.status).toBe(200);
+    const url=new URL((await response.json()).checkoutUrl);
+    expect(url.pathname).toBe("/code/shop-checkout");
+    const { verifyCheckoutApproval }=await import("@/lib/kebu-code/checkout-approval");
+    expect(verifyCheckoutApproval(url.searchParams.get("approval")!,key)).toMatchObject({app:id,store:storeId,revision:2});
+    expect(stores.eq).toHaveBeenCalledWith("owner_id",owner);
+
+    const {workspaces}=setup(true);
+    expect((await action({...payload,mode:"revoke"})).status).toBe(200);
+    expect(workspaces.update).toHaveBeenCalledWith(expect.objectContaining({revision:3}));
+    expect(workspaces.eq).toHaveBeenCalledWith("revision",2);
+  } finally {vi.unstubAllEnvs();}
+});

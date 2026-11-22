@@ -20,6 +20,7 @@ export const actionSchema = z.discriminatedUnion("action", [
   z.strictObject({action:z.literal("create"),title:z.string().trim().min(1).max(80)}),
   z.strictObject({action:z.literal("save"),id:z.string().uuid(),base:rev,files:filesSchema}),
   z.strictObject({action:z.literal("restore"),id:z.string().uuid(),base:rev,target:rev}),
+  z.strictObject({action:z.literal("checkoutApproval"),id:z.string().uuid(),base:rev,mode:z.enum(["issue","revoke"])}),
   z.strictObject({action:z.literal("connectStore"),id:z.string().uuid(),base:rev,storeId:z.string().uuid().nullable()}),
   z.strictObject({action:z.literal("propose"),id:z.string().uuid(),base:rev,prompt:z.string().trim().min(1).max(1600),design:z.string().trim().max(1200).optional(),store:z.string().trim().max(63).regex(/^$|^[a-z0-9]+(?:-[a-z0-9]+)*$/)}),
 ]);

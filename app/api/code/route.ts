@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sectionPropsSchemas } from "@/lib/create/website-schema";
 import { projectShopOpened } from "@/lib/create/site-shop";
 import { storeSlug, storefrontSchema } from "@/lib/kebu-code/storefront";
+import { checkoutApprovalKey, issueCheckoutApproval } from "@/lib/kebu-code/checkout-approval";
 import { aiRateLimit } from "@/lib/api-guard";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 import { yandeConfigured, yandeStructured } from "@/lib/yande/gateway";
@@ -125,6 +126,25 @@ export async function POST(req:NextRequest){
   if(!parsed.success)return error("Workspace not found.",404);
   const current=parsed.data;
   if(action.base!==current.revision)return error("This project changed in another tab. Reopen it before trying again.",409);
+  if(action.action==="checkoutApproval"){
+    if(action.mode==="revoke"){
+      const row=await db.from("kebu_code_workspaces").update({revision:current.revision+1,updated_at:new Date().toISOString()})
+        .eq("id",current.id).eq("owner_id",user.id).eq("revision",action.base).select(columns).maybeSingle();
+      if(row.error)return error("Could not revoke checkout links.",503);
+      return row.data?json({workspace:row.data}):error("Reopen this workspace before revoking links.",409);
+    }
+    const key=checkoutApprovalKey();
+    if(!key)return error("Hosted checkout links are not configured here.",503);
+    if(!current.store_project_id)return error("Connect a store first.",409);
+    const store=await db.from("projects").select("id,site_password_enabled").eq("id",current.store_project_id)
+      .eq("owner_id",user.id).eq("project_type","store").maybeSingle();
+    if(store.error)return error("Could not verify the connected store.",503);
+    if(!store.data || store.data.site_password_enabled!==false)return error("Connect a public store that you own.",403);
+    const token=issueCheckoutApproval({app:current.id,store:store.data.id,revision:current.revision},key);
+    const url=new URL("/code/shop-checkout",req.nextUrl.origin);
+    url.searchParams.set("approval",token);
+    return json({checkoutUrl:url.href});
+  }
   if(action.action==="connectStore"){
     if(action.storeId){
       const allowed=await db.from("projects").select("id").eq("id",action.storeId).eq("owner_id",user.id).eq("project_type","store").maybeSingle();

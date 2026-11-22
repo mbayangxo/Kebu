@@ -75,6 +75,13 @@ it.skipIf(!executablePath)("rechecks the storefront at export and follows the do
       await page.reload();
       expect(await page.getByRole("button", { name: "Add requested quantity to cart" }).count()).toBe(0);
       expect(await cart()).toMatchObject([{ quantity: 3 }]);
+      await page.goto(`http://127.0.0.1:${address.port}/fixture?review=1`);
+      await page.getByRole("heading", { name: "Review items from Test Shop" }).waitFor();
+      expect(await cart()).toMatchObject([{ quantity: 3 }]);
+      await page.getByRole("button", { name: "Add these items to my cart" }).click();
+      await page.getByRole("status").filter({ hasText: "Items added" }).waitFor();
+      expect(await cart()).toMatchObject([{ quantity: 5 }]);
+      expect(await page.getByRole("button", { name: "Add these items to my cart" }).isDisabled()).toBe(true);
     } finally { await browser.close(); }
   } finally { await server.close(); }
 }, 30000);

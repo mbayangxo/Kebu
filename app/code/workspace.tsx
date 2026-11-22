@@ -43,6 +43,7 @@ export default function CodeWorkspaceView(){
   const [design,setDesign]=useState("");
   const [stores,setStores]=useState<Store[]>([]);
   const [storeId,setStoreId]=useState("");
+  const [checkoutUrl,setCheckoutUrl]=useState("");
   const [storefrontQuantity,setStorefrontQuantity]=useState("1");
   const [featuredProduct,setFeaturedProduct]=useState("");
   const [storefront,setStorefront]=useState<Storefront>();
@@ -54,7 +55,7 @@ export default function CodeWorkspaceView(){
   const changed=proposal&&project?fileNames.filter(name=>proposal.files[name]!==project.files[name]):[];
 
   function open(workspace:CodeWorkspace){
-    setProject(workspace);setDraft(workspace.files);setProposal(undefined);setPreview("");setStoreId(workspace.store_project_id??"");setCatalog(undefined);setStorefront(undefined);
+    setProject(workspace);setDraft(workspace.files);setProposal(undefined);setPreview("");setStoreId(workspace.store_project_id??"");setCatalog(undefined);setStorefront(undefined);setCheckoutUrl("");
     setList(items=>[{id:workspace.id,title:workspace.title,revision:workspace.revision},...items.filter(x=>x.id!==workspace.id)]);
   }
   useEffect(()=>{
@@ -161,6 +162,32 @@ export default function CodeWorkspaceView(){
               <label htmlFor="storefront-html">Link to paste inside index.html</label>
               <input id="storefront-html" readOnly value={featuredProduct?storefrontProductLink(storefront,featuredProduct):storefrontLink(storefront)} onFocus={event=>event.currentTarget.select()}/>
               <p>The link opens Shop. Your exported files do not collect payment details. If you move or close the store, update any exported links.</p>
+            </>}
+          </div>}
+          {project.store_project_id&&<div className={styles.form}>
+            <h3>Hosted checkout for this app</h3>
+            <p>Approve a seven-day link for this app revision. Saving a new revision, changing stores, or revoking links invalidates it. Shoppers review and pay on Kebu.</p>
+            <div className={styles.toolbar}>
+              <button type="button" className={styles.secondary} disabled={busy||dirty} onClick={()=>void run(async()=>{
+                const data=await request("",{action:"checkoutApproval",id:project.id,base:project.revision,mode:"issue"});
+                setCheckoutUrl(data.checkoutUrl);setMessage("Hosted checkout link approved.");
+              })}>Approve checkout link</button>
+              <button type="button" className={styles.secondary} disabled={busy||dirty} onClick={()=>{
+                if(!window.confirm("Revoke all checkout links for this app revision?"))return;
+                void run(async()=>{
+                  open((await request("",{action:"checkoutApproval",id:project.id,base:project.revision,mode:"revoke"})).workspace);
+                  setMessage("Previous checkout links revoked.");
+                });
+              }}>Revoke checkout links</button>
+            </div>
+            {checkoutUrl&&<>
+              <label htmlFor="app-checkout-url">Approved checkout endpoint</label>
+              <input id="app-checkout-url" readOnly value={checkoutUrl} onFocus={event=>event.currentTarget.select()}/>
+              <p>In your app, add the selected items and navigate the shopper to the resulting URL:</p>
+              <pre className={styles.documentReview}>{`const checkout = new URL(${JSON.stringify(checkoutUrl)});
+checkout.searchParams.set("items", JSON.stringify([{ productId, quantity: 1 }]));
+location.assign(checkout.href);`}</pre>
+              <p>Include variantId when the product has options. Send up to 12 items, with a quantity from 1 to 20 each.</p>
             </>}
           </div>}
           {catalog&&<><h3>Active products</h3>
