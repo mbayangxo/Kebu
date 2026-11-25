@@ -13,7 +13,7 @@ type CommunityPost = {
   isHidden: boolean;
   isMine: boolean;
   createdAt: string;
-  replies: CommunityPost[];
+  replies?: CommunityPost[];
 };
 
 function timeAgo(iso: string): string {
@@ -204,9 +204,9 @@ export function PublicSiteCommunity({
     }
   }
 
-  function PostRow({ post, isReply }: { post: CommunityPost; isReply?: boolean }) {
+  function renderPostRow(post: CommunityPost, isReply = false) {
     return (
-      <li className={`rounded-xl border border-black/10 bg-white px-3 py-3 text-sm ${isReply ? "ml-6" : ""}`}>
+      <li key={post.id} className={`rounded-xl border border-black/10 bg-white px-3 py-3 text-sm ${isReply ? "ml-6" : ""}`}>
         <div className="flex items-center gap-2">
           <p className="font-semibold">{post.displayName}</p>
           {post.role === "creator" ? (
@@ -255,11 +255,9 @@ export function PublicSiteCommunity({
             </button>
           </form>
         ) : null}
-        {post.replies.length > 0 ? (
+        {post.replies?.length ? (
           <ul className="mt-3 space-y-2">
-            {post.replies.map((r) => (
-              <PostRow key={r.id} post={r} isReply />
-            ))}
+            {post.replies.map((reply) => renderPostRow(reply, true))}
           </ul>
         ) : null}
       </li>
@@ -367,9 +365,7 @@ export function PublicSiteCommunity({
             <p className="text-sm opacity-60">No posts yet — be the first to say something.</p>
           ) : (
             <ul className="space-y-3">
-              {posts.map((p) => (
-                <PostRow key={p.id} post={p} />
-              ))}
+              {posts.map((post) => renderPostRow(post))}
             </ul>
           )}
         </div>
