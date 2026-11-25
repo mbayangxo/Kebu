@@ -220,7 +220,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Draft business + public ID | **IMPLEMENTED** | Migrations 005–006 |
 | Founder RBAC + audit | **IMPLEMENTED** |
 | Business dashboard | **IMPLEMENTED** |
-| YANMAY retail locations | **IN PROGRESS** | Tenant-scoped registry and status changes. Kebu-qa migration and SQL authorization checks passed. Browser acceptance pending. [Issue #24](https://github.com/mbayangxo/Kebu/issues/24) |
+| YANMAY retail locations | **TESTED** | Tenant-scoped registry. Chromium against Kebu-qa verified creation, reload, deactivation, reactivation and denial for employees and unrelated businesses. SQL checks independently verified tenant isolation. [Issue #24](https://github.com/mbayangxo/Kebu/issues/24) |
 | Seller registration form (AfriID bind · informal · delivery · years · supply) | **PARTIAL** | Spec: `docs/product/KEBU-AFRIID-KEBU-ID-REGISTRATION.md`. **Seller trust sell-path:** Kebu ID + AfriID for Joko / product soft-cap **IMPLEMENTED**. `informal_unregistered` SN structure **IMPLEMENTED**. Delivery / years / supply fields still **NOT STARTED**. |
 | Business credit file (ops → lending inputs) | **PARTIAL** | Shop/order data exists; dedicated credit-file product **NOT STARTED** |
 | Verification levels 2–4 | **NOT STARTED** |
