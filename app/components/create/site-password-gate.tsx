@@ -1,12 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-/**
- * Password gate overlay for password-protected shops.
- * Checks for a non-httpOnly indicator cookie; if absent, shows a blocking form.
- * On success the auth API sets both a session cookie and this indicator cookie.
- */
 export function SitePasswordGate({
   subdomain,
   shopName,
@@ -14,21 +9,9 @@ export function SitePasswordGate({
   subdomain: string;
   shopName: string;
 }) {
-  const indicatorKey = `kebu_site_pw_ok_${subdomain}`;
-  const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const hasIndicator = document.cookie
-      .split(";")
-      .some((c) => c.trim().startsWith(`${indicatorKey}=1`));
-    setUnlocked(hasIndicator);
-  }, [indicatorKey]);
-
-  // While checking cookie (server-render → hydration gap), render nothing over the site.
-  if (unlocked === null || unlocked) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,10 +25,7 @@ export function SitePasswordGate({
         body: JSON.stringify({ password: password.trim() }),
       });
       if (res.ok) {
-        // The API sets the httpOnly session cookie. Set the indicator here.
-        const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
-        document.cookie = `${indicatorKey}=1; path=/; expires=${expires}; SameSite=Lax`;
-        setUnlocked(true);
+        window.location.reload();
       } else {
         const data = (await res.json()) as { error?: string };
         setError(data.error ?? "Incorrect password.");
@@ -81,7 +61,7 @@ export function SitePasswordGate({
             {shopName}
           </h1>
           <p className="text-center text-[13px]" style={{ color: "#8A8578" }}>
-            This shop is password protected.
+            Enter the password to preview this site.
           </p>
         </div>
 

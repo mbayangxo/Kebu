@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPublicSite } from "@/lib/create/site-visibility-access";
 import { publicSiteRateLimit } from "@/lib/api-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -54,7 +55,10 @@ export async function GET(req: Request, { params }: Params) {
     }
 
     const project = (product as unknown as { projects: { status: string; subdomain: string | null } }).projects;
-    const siteUrl = project?.subdomain ? `https://${project.subdomain}.thekebu.com` : null;
+    if (!project?.subdomain || !(await isPublicSite(project.subdomain))) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+    const siteUrl = project.subdomain ? `https://${project.subdomain}.thekebu.com` : null;
 
     return NextResponse.json({
       product: {

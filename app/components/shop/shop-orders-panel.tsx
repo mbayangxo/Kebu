@@ -522,18 +522,9 @@ export function ShopOrdersPanel({
                       >
                         Mark fulfilled
                       </button>
-                      <button
-                        type="button"
-                        disabled={busyId === order.id || order.payment_status === "refunded"}
-                        onClick={() => {
-                          if (!window.confirm("Mark this order as refunded?")) return;
-                          void patchOrder(order.id, { action: "refund" });
-                        }}
-                        className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-600 disabled:opacity-40"
-                        style={{ border: "1px solid #FECACA", background: "#fff" }}
-                      >
-                        Refund
-                      </button>
+                      {order.payment_status === "paid" && (
+                        <span className="text-xs">Refund through the payment provider, then contact Kebu support to update this order.</span>
+                      )}
                       <button
                         type="button"
                         disabled={busyId === order.id}

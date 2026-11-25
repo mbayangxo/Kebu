@@ -389,7 +389,7 @@ export function BuilderStudioChrome({
         </button>
         <Link
           href={`/create/${projectId}/preview`}
-          className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:inline"
+          className="rounded-full px-3.5 py-2 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
           style={{ color: palette.ink, border: `1px solid ${palette.border}`, background: palette.surface }}
         >
           Preview
@@ -398,6 +398,7 @@ export function BuilderStudioChrome({
           <button
             type="button"
             onClick={onSaveDraft}
+            title="Save your draft without changing the live site"
             disabled={savingDraft || publishing}
             className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"
             style={{ border: `1px solid ${palette.border}`, color: palette.ink, background: palette.surface }}
@@ -408,6 +409,7 @@ export function BuilderStudioChrome({
         <button
           type="button"
           onClick={onPublish}
+          title="Publish this version; site visibility controls who can see it"
           disabled={publishing}
           aria-label={publishing ? "Publishing…" : publishLabel}
           className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-50"

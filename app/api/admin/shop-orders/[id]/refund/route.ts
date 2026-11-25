@@ -6,6 +6,7 @@ import { assertAdminCookie, assertSameOriginMutation } from "@/lib/admin/assert-
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
+  providerRefundReference: z.string().trim().min(3).max(128),
   reason: z.string().trim().max(500).optional(),
 });
 
@@ -28,11 +29,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const { id } = await params;
-  let body: unknown = {};
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
-    /* empty body is fine — reason is optional */
+    return NextResponse.json({ error: "A provider refund reference is required." }, { status: 400 });
   }
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
@@ -41,9 +42,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data, error } = await admin.rpc("record_shop_refund", {
     p_order_id: id,
-    p_reason: parsed.data.reason ?? null,
+    p_reason: `Provider refund ${parsed.data.providerRefundReference}${parsed.data.reason ? ` · ${parsed.data.reason}` : ""}`,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Could not reconcile the refund." }, { status: 500 });
 
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.ok) {

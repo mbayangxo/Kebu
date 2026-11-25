@@ -5,6 +5,7 @@ import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import { siteSeoSchema, validateCustomCss } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
+import { SITE_VISIBILITY_MODES } from "@/lib/create/site-visibility";
 import { builderRateLimit } from "@/lib/api-guard";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 import { hashSitePassword, sitePasswordSecret } from "@/lib/create/site-password";
@@ -32,6 +33,11 @@ const settingsSchema = z.object({
   sitePassword: z.string().max(128).optional(),
   /** Toggle password gate on/off without changing the stored hash. */
   sitePasswordEnabled: z.boolean().optional(),
+  visibility: z.object({
+    mode: z.enum(SITE_VISIBILITY_MODES),
+    launchAt: z.iso.datetime().nullable(),
+    message: z.string().trim().max(240).nullable(),
+  }).optional(),
 });
 
 /** Update publish subdomain + SEO/favicon settings for an owned project. */
@@ -77,7 +83,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const { data: project } = await db
     .from("projects")
-    .select("id, owner_id, title, subdomain, seo, theme, site_password_enabled, site_password_hash")
+    .select("id, owner_id, title, subdomain, seo, theme, site_password_enabled, site_password_hash, site_visibility, published_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -86,8 +92,8 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   // Subdomain and site-password changes are owner-only (affect published URL and access control).
-  if (!isOwner && (parsed.data.subdomain || parsed.data.sitePassword !== undefined || parsed.data.sitePasswordEnabled !== undefined)) {
-    return NextResponse.json({ error: "Only the project owner can change subdomain or site password." }, { status: 403 });
+  if (!isOwner && (parsed.data.subdomain || parsed.data.sitePassword !== undefined || parsed.data.sitePasswordEnabled !== undefined || parsed.data.visibility)) {
+    return NextResponse.json({ error: "Only the project owner can change the site address or visibility." }, { status: 403 });
   }
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -115,6 +121,9 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Subdomain is live on another project." }, { status: 409 });
     }
 
+    if (project.site_password_hash && project.subdomain !== parsed.data.subdomain && !parsed.data.sitePassword) {
+      return NextResponse.json({ error: "Set a new password when changing the address of a password-protected site." }, { status: 409 });
+    }
     patch.subdomain = parsed.data.subdomain;
   }
 
@@ -184,6 +193,8 @@ export async function PATCH(req: Request, { params }: Params) {
       }
       patch.site_password_hash = hashSitePassword(effectiveSubdomain, parsed.data.sitePassword, secret);
       patch.site_password_enabled = true;
+    } else {
+      return NextResponse.json({ error: "Choose a site address before setting a password." }, { status: 400 });
     }
   }
 
@@ -191,11 +202,29 @@ export async function PATCH(req: Request, { params }: Params) {
     patch.site_password_enabled = parsed.data.sitePasswordEnabled;
   }
 
+  const visibility = parsed.data.visibility;
+  if (visibility) {
+    if (visibility.launchAt && (visibility.mode !== "coming_soon" || Date.parse(visibility.launchAt) <= Date.now() || !project.published_at)) {
+      return NextResponse.json({ error: "Publish an approved version first, then choose a future launch time for Coming soon." }, { status: 400 });
+    }
+    const hash = Object.hasOwn(patch, "site_password_hash") ? patch.site_password_hash : project.site_password_hash;
+    if (visibility.mode === "private" && (!hash || !sitePasswordSecret())) {
+      return NextResponse.json({ error: "An active site password is required for private preview." }, { status: 400 });
+    }
+    patch.site_visibility = visibility.mode;
+    patch.site_launch_at = visibility.launchAt;
+    patch.site_visibility_message = visibility.message;
+    patch.site_password_enabled = visibility.mode === "private";
+  } else if (project.site_visibility === "private" &&
+      (parsed.data.sitePassword === "" || parsed.data.sitePasswordEnabled === false)) {
+    return NextResponse.json({ error: "Choose a different visibility mode before disabling the password." }, { status: 409 });
+  }
+
   const { data: updated, error } = await db
     .from("projects")
     .update(patch)
     .eq("id", id)
-    .select("id, subdomain, seo, theme, updated_at, site_password_enabled, site_password_hash")
+    .select("id, subdomain, seo, theme, updated_at, site_password_enabled, site_password_hash, site_visibility, site_launch_at, site_visibility_message")
     .single();
 
   if (error || !updated) {
@@ -227,6 +256,6 @@ export async function PATCH(req: Request, { params }: Params) {
     publicPath,
     sitePasswordEnabled: Boolean(updated.site_password_enabled),
     sitePasswordSet: Boolean(updated.site_password_hash),
-    message: "Settings saved. Publish again to update your live site.",
+    message: visibility ? "Visibility updated. No draft changes were published." : "Settings saved. Publish again to update your live site.",
   });
 }

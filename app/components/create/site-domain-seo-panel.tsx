@@ -6,6 +6,7 @@ import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { KEBU } from "@/lib/kebu-brand";
 import { customDomainDnsTarget } from "@/lib/create/dns-target";
 import { defaultSiteSeo, type SiteSeo } from "@/lib/create/site-seo";
+import { effectiveSiteVisibility, SITE_VISIBILITY_MODES, type SiteVisibilityMode } from "@/lib/create/site-visibility";
 import { liveSiteUrl, kebuSitePreviewPath } from "@/lib/create/site-urls";
 
 type DomainRow = {
@@ -31,7 +32,10 @@ export function SiteDomainSeoPanel({ projectId, embedded = false }: { projectId:
   const [httpsLiveUrl, setHttpsLiveUrl] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Password protection
-  const [passwordEnabled, setPasswordEnabled] = useState(false);
+  const [visibilityMode, setVisibilityMode] = useState<SiteVisibilityMode>("public");
+  const [launchAt, setLaunchAt] = useState("");
+  const [visibilityMessage, setVisibilityMessage] = useState("");
+  const [published, setPublished] = useState(false);
   const [passwordSet, setPasswordSet] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [pwState, setPwState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -65,8 +69,14 @@ export function SiteDomainSeoPanel({ projectId, embedded = false }: { projectId:
       if (proj.project?.seo && typeof proj.project.seo === "object") {
         setSeo((prev) => ({ ...prev, ...(proj.project.seo as SiteSeo) }));
       }
-      setPasswordEnabled(Boolean(proj.project?.site_password_enabled));
-      setPasswordSet(Boolean(proj.project?.site_password_hash));
+      const project = proj.project;
+      const mode = project ? effectiveSiteVisibility(project) : "public";
+      setVisibilityMode(mode);
+      const scheduled = mode === "coming_soon" && project?.site_launch_at ? new Date(project.site_launch_at) : null;
+      setLaunchAt(scheduled ? new Date(scheduled.getTime() - scheduled.getTimezoneOffset() * 60_000).toISOString().slice(0, 16) : "");
+      setVisibilityMessage(project?.site_visibility_message ?? "");
+      setPublished(Boolean(project?.published_at));
+      setPasswordSet(Boolean(project?.site_password_set));
 
       if (domRes.ok) {
         const list = Array.isArray(dom.domains) ? dom.domains : [];
@@ -128,8 +138,7 @@ export function SiteDomainSeoPanel({ projectId, embedded = false }: { projectId:
     }, 600);
   }
 
-  async function savePassword() {
-    if (!newPassword.trim() && passwordEnabled) return;
+  async function saveVisibility() {
     setPwState("saving");
     setPwNote(null);
     try {
@@ -137,45 +146,24 @@ export function SiteDomainSeoPanel({ projectId, embedded = false }: { projectId:
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sitePassword: newPassword.trim() }),
+        body: JSON.stringify({
+          visibility: {
+            mode: visibilityMode,
+            launchAt: visibilityMode === "coming_soon" && launchAt ? new Date(launchAt).toISOString() : null,
+            message: visibilityMode === "coming_soon" || visibilityMode === "paused" ? visibilityMessage.trim() || null : null,
+          },
+          ...(visibilityMode === "private" && newPassword.trim() ? { sitePassword: newPassword.trim() } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setPwState("error");
-        setPwNote(typeof data.error === "string" ? data.error : "Could not save password.");
-        return;
-      }
-      setPasswordEnabled(Boolean((data as { sitePasswordEnabled?: boolean }).sitePasswordEnabled));
-      setPasswordSet(Boolean((data as { sitePasswordSet?: boolean }).sitePasswordSet));
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not save visibility.");
+      setPasswordSet(Boolean(data.sitePasswordSet));
       setNewPassword("");
       setPwState("saved");
-      setPwNote(newPassword.trim() ? "Password set. Visitors will need to enter it." : "Password removed.");
-    } catch {
+      setPwNote(data.message ?? "Visibility saved. Draft changes were not published.");
+    } catch (error) {
       setPwState("error");
-      setPwNote("Network error.");
-    }
-  }
-
-  async function togglePasswordEnabled(enabled: boolean) {
-    setPwState("saving");
-    try {
-      const res = await fetch(`/api/projects/${projectId}/settings`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sitePasswordEnabled: enabled }),
-      });
-      if (res.ok) {
-        setPasswordEnabled(enabled);
-        setPwState("saved");
-        setPwNote(enabled ? "Password gate enabled." : "Password gate disabled — site is public.");
-      } else {
-        setPwState("error");
-        setPwNote("Could not update password gate.");
-      }
-    } catch {
-      setPwState("error");
-      setPwNote("Network error.");
+      setPwNote(error instanceof Error ? error.message : "Could not save visibility.");
     }
   }
 
@@ -535,90 +523,50 @@ export function SiteDomainSeoPanel({ projectId, embedded = false }: { projectId:
       </section>
 
       <section className="rounded-2xl p-5 space-y-4 bg-white border" style={{ borderColor: KEBU.border }}>
-        <h3 className="text-sm font-bold uppercase tracking-wider">Password protection</h3>
-        <p className="text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
-          Add a password to your shop so only people with the code can view it. Useful for VIP launches or private catalogues.
+        <h3 className="text-sm font-bold uppercase tracking-wider">Site visibility</h3>
+        <p className="text-xs" style={{ color: KEBU.muted }}>
+          Choose what visitors see. Saving your draft in Builder never changes the published version.
         </p>
-
-        {passwordSet && (
-          <label className="flex items-center gap-2 text-[13px]">
-            <input
-              type="checkbox"
-              checked={passwordEnabled}
-              onChange={(e) => void togglePasswordEnabled(e.target.checked)}
-            />
-            <span style={{ color: KEBU.black }}>
-              {passwordEnabled ? "Password gate is ON" : "Password gate is OFF (site is public)"}
-            </span>
+        <label className="block space-y-1 text-sm">
+          <span>Visitor access</span>
+          <select className="w-full rounded-lg border p-2" value={visibilityMode} disabled={pwState === "saving"}
+            onChange={(e) => setVisibilityMode(e.target.value as SiteVisibilityMode)}>
+            {SITE_VISIBILITY_MODES.map((mode) => <option key={mode} value={mode}>
+              {{ public: "Public site", private: "Private preview · password", coming_soon: "Coming soon", paused: "Temporarily unavailable" }[mode]}
+            </option>)}
+          </select>
+        </label>
+        {visibilityMode === "public" && !published && <p className="text-xs">Publish your first version when it’s ready. Until then, the public site stays unpublished.</p>}
+        {visibilityMode === "private" && (
+          <label className="block space-y-1 text-sm">
+            <span>{passwordSet ? "New password (optional)" : "Visitor password"}</span>
+            <input type="password" autoComplete="new-password" maxLength={128} className="w-full rounded-lg border p-2"
+              value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <span className="block text-xs">Guests can view the published version after entering the password. Checkout stays closed.</span>
           </label>
         )}
-
-        <div className="space-y-2">
-          <label className="block text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-            {passwordSet ? "Change password" : "Set a password"}
+        {(visibilityMode === "coming_soon" || visibilityMode === "paused") && (
+          <label className="block space-y-1 text-sm">
+            <span>Message to visitors (optional)</span>
+            <textarea className="w-full rounded-lg border p-2" maxLength={240} value={visibilityMessage}
+              onChange={(e) => setVisibilityMessage(e.target.value)} />
           </label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder={passwordSet ? "Enter new password" : "Enter password for visitors"}
-            className="w-full rounded-lg px-3 py-2 text-sm"
-            style={{ border: `1px solid ${KEBU.border}` }}
-            autoComplete="new-password"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={!newPassword.trim() || pwState === "saving"}
-              onClick={() => void savePassword()}
-              className="rounded-lg px-4 py-2 text-[12px] font-bold text-white disabled:opacity-50"
-              style={{ background: KEBU.orange }}
-            >
-              {pwState === "saving" ? "Saving…" : passwordSet ? "Update password" : "Set password"}
-            </button>
-            {passwordSet && (
-              <button
-                type="button"
-                disabled={pwState === "saving"}
-                onClick={async () => {
-                  setNewPassword("");
-                  setPwState("saving");
-                  setPwNote(null);
-                  try {
-                    const res = await fetch(`/api/projects/${projectId}/settings`, {
-                      method: "PATCH",
-                      credentials: "include",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ sitePassword: "" }),
-                    });
-                    if (res.ok) {
-                      setPasswordEnabled(false);
-                      setPasswordSet(false);
-                      setPwState("saved");
-                      setPwNote("Password removed. Site is now public.");
-                    } else {
-                      setPwState("error");
-                      setPwNote("Could not remove password.");
-                    }
-                  } catch {
-                    setPwState("error");
-                    setPwNote("Network error.");
-                  }
-                }}
-                className="rounded-lg px-4 py-2 text-[12px] font-semibold disabled:opacity-50"
-                style={{ border: `1px solid ${KEBU.border}`, color: KEBU.muted }}
-              >
-                Remove password
-              </button>
-            )}
-          </div>
+        )}
+        {visibilityMode === "coming_soon" && (
+          <label className="block space-y-1 text-sm">
+            <span>Launch time in your device’s time zone (optional)</span>
+            <input type="datetime-local" disabled={!published} className="block rounded-lg border p-2" value={launchAt}
+              onChange={(e) => setLaunchAt(e.target.value)} />
+            <span className="block text-xs">{published ? "The countdown reveals the last version you published. Saved drafts stay private." : "Publish an approved version while Coming soon is active to schedule when it opens."}</span>
+          </label>
+        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: KEBU.orange }} disabled={pwState === "saving" || (visibilityMode === "private" && !passwordSet && !newPassword.trim())}
+            onClick={() => void saveVisibility()}>{pwState === "saving" ? "Saving…" : "Save visibility"}</button>
+          {subdomain && <a href={`/sites/${subdomain}`} target="_blank" rel="noreferrer" className="text-sm underline">Open visitor view</a>}
         </div>
-
-        {pwNote ? (
-          <p className="text-[11px] font-medium" style={{ color: pwState === "error" ? "#B91C1C" : "#166534" }}>
-            {pwNote}
-          </p>
-        ) : null}
+        {pwNote && <p role={pwState === "error" ? "alert" : "status"} className="text-sm">{pwNote}</p>}
       </section>
     </div>
   );

@@ -25,6 +25,9 @@ function ProjectPreviewInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const embed = searchParams.get("embed") === "1";
+  const viewport = searchParams.get("viewport") === "1";
+  const targetPage = searchParams.get("page");
+  const viewDevice = searchParams.get("device");
   const [definition, setDefinition] = useState<WebsiteDefinition | null>(null);
   const [nativeDocument, setNativeDocument] = useState<KcdDocument | null>(null);
   const [selectedElement, setSelectedElement] = useState<BuilderElementSelection | null>(null);
@@ -35,7 +38,7 @@ function ProjectPreviewInner() {
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [subdomain, setSubdomain] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">(viewDevice === "tablet" || viewDevice === "mobile" ? viewDevice : "desktop");
   // When embedded in the Builder's device preview iframe, track whether we're using the parent's
   // live definition (via postMessage) or the fetched saved one.
   const parentDefinitionRef = useRef<WebsiteDefinition | null>(null);
@@ -70,14 +73,16 @@ function ProjectPreviewInner() {
             setDefinition(buildDefinitionFromProjectParts(data.project, pageRows, sections));
           }
         }
-        if (!parentDefinitionRef.current && pageRows[0]?.slug) setPreviewPageSlug(pageRows[0].slug);
+        if (!parentDefinitionRef.current && pageRows[0]?.slug) {
+          setPreviewPageSlug(targetPage && pageRows.some((page: { slug: string }) => page.slug === targetPage) ? targetPage : pageRows[0].slug);
+        }
       }
     }
     void load();
     return () => {
       cancelled = true;
     };
-  }, [id, router]);
+  }, [id, router, targetPage]);
 
   // In embed mode: receive the Builder's live definition via postMessage so the iframe always
   // shows the current editing state (not just the last saved/autosaved state).
@@ -120,6 +125,22 @@ function ProjectPreviewInner() {
     const requests = geometryRequests.current;
     return () => { window.removeEventListener("message", onMessage); for (const pending of requests.values()) { clearTimeout(pending.timer); pending.reject(new Error("The preview closed before the layout edit was confirmed.")); } requests.clear(); };
   }, [embed]);
+
+  if (viewport) {
+    return (
+      <div className="min-h-screen bg-white">
+        {error && <p role="alert" className="p-6 text-sm">{error}</p>}
+        {definition && <SiteRenderer
+          definition={definition}
+          nativeDocument={nativeDocument ?? undefined}
+          editor={{ editDevice: device, onNavigatePage: setPreviewPageSlug }}
+          mode="preview"
+          pageSlug={previewPageSlug}
+          siteBase={subdomain ? `/sites/${subdomain}` : undefined}
+        />}
+      </div>
+    );
+  }
 
   if (embed) {
     return (
@@ -177,14 +198,14 @@ function ProjectPreviewInner() {
                     {p.title}
                   </button>
                 ))}
-            <button
-              type="button"
-              className="rounded-full px-3 py-1 text-[10px] uppercase"
-              style={{ background: "#1C1A45", color: "#fff" }}
-              onClick={() => setDevice(device === "desktop" ? "mobile" : "desktop")}
-            >
-              {device}
-            </button>
+            <div role="group" aria-label="Preview device" className="flex gap-1">
+              {([["desktop", "Desktop"], ["tablet", "Tablet"], ["mobile", "Phone"]] as const).map(([value, label]) => (
+                <button key={value} type="button" aria-pressed={device === value}
+                  className="rounded-full px-3 py-1 text-xs"
+                  style={{ background: device === value ? "#00C851" : "#1C1A45", color: device === value ? "#0F0D33" : "#fff" }}
+                  onClick={() => setDevice(value)}>{label}</button>
+              ))}
+            </div>
             <Link
               href={`/create/${id}`}
               className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
@@ -197,7 +218,7 @@ function ProjectPreviewInner() {
       />
 
       <p className="text-center text-[10px] py-2 px-4 text-white/60">
-        Draft preview — what you are editing now. Visitors only see changes after you publish.
+        Saved draft preview — save in Builder to preview your latest edits. Visitors only see changes after you publish.
         {subdomain ? (
           <>
             {" "}
@@ -208,18 +229,15 @@ function ProjectPreviewInner() {
 
       {error && <p className="p-6 text-sm text-white/70">{error}</p>}
 
-      <div className="mx-auto py-6 px-2" style={{ maxWidth: device === "mobile" ? 390 : 960 }}>
-        {definition && (
-          <SiteRenderer
-            definition={definition}
-            nativeDocument={nativeDocument ?? undefined}
-            editor={{ editDevice: device }}
-            mode="preview"
-            pageSlug={previewPageSlug}
-            siteBase={subdomain ? `/sites/${subdomain}` : undefined}
+      {definition && (
+        <div className="overflow-x-auto px-2 py-6">
+          <iframe title={`Saved draft · ${device === "mobile" ? "Phone" : device === "tablet" ? "Tablet" : "Desktop"}`}
+            src={`/create/${id}/preview?viewport=1&device=${device}&page=${encodeURIComponent(previewPageSlug)}`}
+            className="mx-auto block border-0 bg-white"
+            style={{ width: { desktop: 1440, tablet: 768, mobile: 390 }[device], height: "75vh" }}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

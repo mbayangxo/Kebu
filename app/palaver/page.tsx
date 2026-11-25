@@ -1,3 +1,4 @@
+import { isPublicSite } from "@/lib/create/site-visibility-access";
 import { notFound } from "next/navigation";
 import { PublicSiteCommunity } from "@/app/components/create/public-site-community";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
@@ -9,7 +10,7 @@ export const metadata = { title: "Palaver · Kebu", robots: { index: false, foll
 
 export default async function PalaverPage() {
   const slug = storeSlug.safeParse(process.env.KEBU_PALAVER_PILOT_SITE);
-  if (!slug.success) notFound();
+  if (!slug.success || !(await isPublicSite(slug.data))) notFound();
   const live = await loadPublicDeployment(slug.data);
   const service = createServiceClient();
   if (!service || !live || live.billingSuspended !== false) notFound();

@@ -46,9 +46,9 @@ export function verifySitePassword(opts: {
   return { ok, needsUpgrade: ok };
 }
 
-export function signSitePasswordSession(subdomain: string, expiresAt: number, secret: string): string {
+export function signSitePasswordSession(subdomain: string, expiresAt: number, secret: string, storedHash?: string): string {
   const payload = `${subdomain}:${expiresAt}`;
-  const signature = createHmac("sha256", secret).update(payload).digest("hex");
+  const signature = createHmac("sha256", secret).update(storedHash ? `${payload}:${storedHash}` : payload).digest("hex");
   return `${payload}:${signature}`;
 }
 

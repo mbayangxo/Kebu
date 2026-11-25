@@ -124,14 +124,15 @@ export default function JokoFulfillmentQueuePage() {
   }
 
   async function refundOrder(item: FulfillmentItem) {
-    if (!window.confirm("Record a refund for this order? Only do this after you've actually issued the refund through the payment provider.")) return;
+    const providerRefundReference = window.prompt("After the provider confirms the refund, enter its refund reference to record it in Kebu.")?.trim();
+    if (!providerRefundReference) return;
     setBusyId(item.id);
     try {
       const res = await fetch(`/api/admin/shop-orders/${item.order_id}/refund`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Fulfillment outcome refund" }),
+        body: JSON.stringify({ providerRefundReference, reason: "Fulfillment outcome refund" }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {

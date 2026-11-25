@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { createServiceClient } from "@/lib/opportunity/admin";
@@ -219,6 +220,11 @@ export async function GET(_req: Request, { params }: Params) {
  * Update order: status · fulfill (tracking + carrier + notify) · archive · email customer.
  */
 export async function PATCH(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+  if (req.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() !== "application/json") {
+    return NextResponse.json({ error: "JSON body required." }, { status: 415 });
+  }
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -275,32 +281,9 @@ export async function PATCH(req: Request, { params }: Params) {
             : "status";
 
   if (action === "refund") {
-    const refundNote = typeof rec.refundNote === "string" ? rec.refundNote.slice(0, 500) : null;
-    const { data: refunded, error: refundErr } = await db
-      .from("shop_orders")
-      .update({
-        payment_status: "refunded",
-        refunded_at: new Date().toISOString(),
-        refund_note: refundNote,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId)
-      .eq("project_id", projectId)
-      .select("*")
-      .single();
-
-    if (refundErr || !refunded) {
-      return NextResponse.json(
-        {
-          error: refundErr?.message?.includes("refunded")
-            ? "Apply migration 066_remaining_slices.sql."
-            : "Could not refund order.",
-        },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({ order: refunded, carriers: SHOP_CARRIERS });
+    return NextResponse.json({
+      error: "This action cannot issue a refund. Refund through the payment provider, then contact Kebu support to reconcile the order.",
+    }, { status: 409 });
   }
 
   if (action === "status" && !SHOP_ORDER_FULFILL_STATUSES.includes(status as ShopFulfillStatus)) {

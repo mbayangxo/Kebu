@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { authRateLimit } from "@/lib/api-guard";
 import {
   hashSitePassword,
   signSitePasswordSession,
   sitePasswordSecret,
   verifySitePassword,
-  verifySitePasswordSession,
 } from "@/lib/create/site-password";
 
 export const dynamic = "force-dynamic";
@@ -19,12 +19,9 @@ function getServiceClient() {
   return createServiceClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export function verifySessionToken(subdomain: string, token: string): boolean {
-  const secret = sitePasswordSecret();
-  return secret ? verifySitePasswordSession(subdomain, token, secret) : false;
-}
-
 export async function POST(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
   const limited = authRateLimit(req);
   if (limited) return limited;
 
@@ -42,7 +39,7 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  if (!password) {
+  if (!password || password.length > 128) {
     return NextResponse.json({ error: "Password required." }, { status: 400 });
   }
 
@@ -68,15 +65,18 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
+  let sessionHash = project.site_password_hash;
   if (verification.needsUpgrade) {
-    await supabase
+    const upgraded = hashSitePassword(subdomain, password, secret);
+    const { data } = await supabase
       .from("projects")
-      .update({ site_password_hash: hashSitePassword(subdomain, password, secret) })
-      .eq("id", project.id);
+      .update({ site_password_hash: upgraded })
+      .eq("id", project.id).eq("site_password_hash", sessionHash).select("id").maybeSingle();
+    if (data) sessionHash = upgraded;
   }
 
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 h
-  const token = signSitePasswordSession(subdomain, expiresAt, secret);
+  const token = signSitePasswordSession(subdomain, expiresAt, secret, sessionHash);
   const cookieName = `kebu_site_pw_${subdomain}`;
 
   const response = NextResponse.json({ ok: true });

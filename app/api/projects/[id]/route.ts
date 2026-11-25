@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: Params) {
     email: user.email,
     projectId: id,
     select:
-      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome, site_password_enabled, site_password_hash, document_schema_version",
+      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome, site_password_enabled, site_password_hash, site_visibility, site_launch_at, site_visibility_message, document_schema_version",
     action: "get",
   });
 
