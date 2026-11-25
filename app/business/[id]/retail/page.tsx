@@ -60,10 +60,10 @@ export default async function RetailLocationsPage({ params, searchParams }: {
 
   return (
     <AppShell title="Retail locations">
-      <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
+      <section aria-labelledby="retail-locations-title" className="mx-auto max-w-4xl space-y-8 px-4 py-8">
         <header className="space-y-2">
           <Link href={`/business/${id}`} className="text-sm underline">Business dashboard</Link>
-          <h1 className="text-3xl font-semibold tracking-tight">Retail locations</h1>
+          <h2 id="retail-locations-title" className="text-3xl font-semibold tracking-tight">Retail locations</h2>
         </header>
         {message && <p role="status">{message}</p>}
         {error && <p role="alert">Could not load stores. <Link className="underline" href={`/business/${id}/retail`}>Retry</Link></p>}
@@ -103,7 +103,7 @@ export default async function RetailLocationsPage({ params, searchParams }: {
             <button className="justify-self-start rounded-lg bg-stone-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-stone-950">Add store</button>
           </form>
         )}
-      </main>
+      </section>
     </AppShell>
   );
 }

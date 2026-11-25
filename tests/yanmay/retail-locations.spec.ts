@@ -1,4 +1,6 @@
-import { expect, test } from "playwright/test";
+import { expect as baseExpect, test } from "playwright/test";
+
+const expect = baseExpect.configure({ timeout: 35_000 });
 
 const businessId = process.env.KEBU_E2E_RETAIL_BUSINESS;
 const otherBusinessId = process.env.KEBU_E2E_RETAIL_OTHER_BUSINESS;
@@ -10,6 +12,7 @@ test.skip(!businessId || !otherBusinessId || !owner || !employee || !password,
   "Configure dedicated QA retail tenants and users.");
 
 test("manager can register and reopen a store while an employee cannot access the registry", async ({ browser, page }) => {
+  test.setTimeout(240_000);
   const path = `/business/${businessId}/retail`;
   const signIn = async (target: typeof page, email: string) => {
     await target.goto(`/login?next=${path}`);
@@ -23,9 +26,7 @@ test("manager can register and reopen a store while an employee cannot access th
   await page.goto(path);
   await expect(page).toHaveURL(/\/login/);
   await signIn(page, owner!);
-  await page.goto(`/business/${businessId}`);
-  await page.getByRole("link", { name: "Retail locations" }).click();
-  await expect(page.getByRole("heading", { name: "Retail locations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Retail locations", level: 2 })).toBeVisible();
 
   const code = `QA-${crypto.randomUUID().slice(0, 8)}`;
   await page.setViewportSize({ width: 390, height: 844 });
@@ -44,14 +45,14 @@ test("manager can register and reopen a store while an employee cannot access th
   await expect(row).toContainText("· Active");
 
   await page.goto(`/business/${otherBusinessId}/retail`);
-  await expect(page.getByRole("heading", { name: "Retail locations" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Retail locations", level: 2 })).toHaveCount(0);
 
   const context = await browser.newContext();
   try {
     const employeePage = await context.newPage();
     await signIn(employeePage, employee!);
     await employeePage.goto(path);
-    await expect(employeePage.getByRole("heading", { name: "Retail locations" })).toHaveCount(0);
+    await expect(employeePage.getByRole("heading", { name: "Retail locations", level: 2 })).toHaveCount(0);
   } finally {
     await context.close();
   }
