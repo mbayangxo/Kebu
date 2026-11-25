@@ -1034,6 +1034,8 @@ export default function BusinessDashboardPage() {
                         border: `1px solid ${KEBU.border}`,
                       }}
                     >
+                      <Link className="mb-3 inline-block rounded-lg border px-4 py-2 text-sm font-semibold"
+                        href={`/business/${business.id}/recipe-lab`}>Open Recipe Lab</Link>
                       <BusinessOpsPanel businessId={business.id} />
                     </section>
                     <section
