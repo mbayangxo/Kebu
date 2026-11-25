@@ -1,5 +1,6 @@
 import { isPublicSite } from "@/lib/create/site-visibility-access";
-import { notFound } from "next/navigation";
+import { builtinAccess, palaverEnabled } from "@/lib/live/app-access";
+import { notFound, redirect } from "next/navigation";
 import { PublicSiteCommunity } from "@/app/components/create/public-site-community";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 import { createServiceClient } from "@/lib/opportunity/admin";
@@ -9,6 +10,12 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Palaver · Kebu", robots: { index: false, follow: false } };
 
 export default async function PalaverPage() {
+  if (!palaverEnabled()) notFound();
+  const { user, installed, error } = await builtinAccess("palaver");
+  if (error) return <p role="alert">Could not verify your Palaver installation. Refresh and try again.</p>;
+  if (!user) redirect("/login?next=/palaver");
+  if (!installed) redirect("/app-store");
+
   const slug = storeSlug.safeParse(process.env.KEBU_PALAVER_PILOT_SITE);
   if (!slug.success || !(await isPublicSite(slug.data))) notFound();
   const live = await loadPublicDeployment(slug.data);

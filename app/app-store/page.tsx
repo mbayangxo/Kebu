@@ -7,6 +7,8 @@ import { AppShell } from "@/app/components/app-shell";
 import {
   appKeys,
   builtinAccount,
+  builtinAppEnabled,
+  palaverEnabled,
   builtinsEnabled,
   ligueyEnabled,
   type AppKey,
@@ -31,6 +33,12 @@ const apps = [
     title: "Friends",
     url: "/friends",
     info: "Create your own Friends profile, find people, and manage friend requests.",
+  },
+  {
+    key: "palaver",
+    title: "Palaver",
+    url: "/palaver",
+    info: "Join local conversations, share firsthand stories, and reply in the language you’re comfortable with.",
   },
 ] as const;
 
@@ -68,7 +76,7 @@ async function change(form: FormData) {
   "use server";
   const key = form.get("key") as AppKey;
   const action = form.get("action");
-  if (!(key === "liguey" ? ligueyEnabled() : builtinsEnabled())) notFound();
+  if (!builtinAppEnabled(key)) notFound();
   if (!appKeys.includes(key) || (action !== "add" && action !== "remove"))
     return;
   const { db, user } = await builtinAccount();
@@ -91,11 +99,11 @@ export default async function AppStore({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  if (!builtinsEnabled() && !ligueyEnabled() && !marketplaceEnabled())
+  if (!builtinsEnabled() && !ligueyEnabled() && !palaverEnabled() && !marketplaceEnabled())
     notFound();
   const { db, user } = await builtinAccount();
   const result =
-    user && (builtinsEnabled() || ligueyEnabled())
+    user && (builtinsEnabled() || ligueyEnabled() || palaverEnabled())
       ? await db
           .from("kebu_builtin_app_installs")
           .select("app_key")
@@ -126,7 +134,7 @@ export default async function AppStore({
             Could not load or save your apps. Please try again.
           </p>
         )}
-        {(builtinsEnabled() || ligueyEnabled()) && (
+        {(builtinsEnabled() || ligueyEnabled() || palaverEnabled()) && (
           <>
             <section aria-labelledby="my-apps" className="space-y-3">
               <h2 id="my-apps" className="text-xl font-bold">
@@ -137,9 +145,7 @@ export default async function AppStore({
                   .filter(
                     (app) =>
                       added.has(app.key) &&
-                      (app.key === "liguey"
-                        ? ligueyEnabled()
-                        : builtinsEnabled()),
+                      builtinAppEnabled(app.key),
                   )
                   .map((app) => (
                     <Link
@@ -162,7 +168,7 @@ export default async function AppStore({
               <div className="grid gap-4 sm:grid-cols-2">
                 {apps
                   .filter((app) =>
-                    app.key === "liguey" ? ligueyEnabled() : builtinsEnabled(),
+                    builtinAppEnabled(app.key),
                   )
                   .map((app) => (
                     <article

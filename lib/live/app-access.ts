@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-export const appKeys = ["live-rooms", "friends", "liguey"] as const;
+export const appKeys = ["live-rooms", "friends", "liguey", "palaver"] as const;
 export type AppKey = (typeof appKeys)[number];
 export const qaOrigin = "https://skqnxyaeimvbyrmdfzvk.supabase.co";
 
@@ -41,4 +41,17 @@ export function ligueyEnabled() {
     (origin === qaOrigin ||
       /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(origin))
   );
+}
+
+/** Palaver can be added independently of Live Rooms and Friends. */
+export function palaverEnabled() {
+  return Boolean(
+    process.env.VERCEL_ENV !== "production" &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") === qaOrigin &&
+    process.env.KEBU_PALAVER_PILOT_SITE?.trim()
+  );
+}
+
+export function builtinAppEnabled(key: AppKey) {
+  return key === "palaver" ? palaverEnabled() : key === "liguey" ? ligueyEnabled() : builtinsEnabled();
 }
