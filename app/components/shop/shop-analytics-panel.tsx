@@ -33,6 +33,9 @@ function downloadEarningsCsv(summary: CommerceAnalyticsSummary, title: string | 
     ["Total orders", String(summary.orders.total)],
     ["Paid orders", String(summary.orders.paid)],
     ["Paid revenue (XOF)", String(summary.orders.revenuePaidXof)],
+    ["B2B paid revenue (XOF)", String(summary.orders.paidBySegmentXof.b2b)],
+    ["B2C paid revenue (XOF)", String(summary.orders.paidBySegmentXof.b2c)],
+    ["Unclassified paid revenue (XOF)", String(summary.orders.paidBySegmentXof.unclassified)],
     ["Revenue at risk (XOF)", String(summary.orders.revenueAtRiskXof)],
     ["Period (days)", String(days)],
     ["Generated", summary.generatedAt],
@@ -191,6 +194,16 @@ export function ShopAnalyticsPanel({
               </div>
             ))}
           </div>
+
+          <section className="rounded-2xl border p-4">
+            <h3 className="font-semibold">Paid revenue by buyer type</h3>
+            <p className="text-xs">Orders without a buyer type stay unclassified.</p>
+            <dl className="mt-2 grid gap-3 sm:grid-cols-3">
+              {([["b2b", "Wholesale / B2B"], ["b2c", "Retail / B2C"], ["unclassified", "Unclassified"]] as const).map(([key,label]) =>
+                <div key={key}><dt>{label}</dt><dd className="font-semibold">{formatXof(summary.orders.paidBySegmentXof[key])}</dd></div>
+              )}
+            </dl>
+          </section>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section>

@@ -64,6 +64,20 @@ describe("commerce insights pattern engine", () => {
     expect(formatXof(4000)).toContain("4");
   });
 
+  it("splits paid revenue by buyer type without guessing old orders or counting refunds", () => {
+    const common = { product_name: "Cream", quantity: 1, payment_status: "paid", payment_preference: null,
+      status: "completed", customer_phone: null, customer_email: null, customer_user_id: null, discount_code: null,
+      created_at: "2026-09-01T10:00:00.000Z" };
+    const result = buildCommerceAnalytics({ ...base, drafts: [], orders: [
+      { ...common, id: "a", amount_xof: 900, sales_segment: "b2b" },
+      { ...common, id: "b", amount_xof: 400, sales_segment: "b2c" },
+      { ...common, id: "c", amount_xof: 300 },
+      { ...common, id: "d", amount_xof: 500, sales_segment: "b2b", payment_status: "refunded" },
+    ] });
+    expect(result.orders.paidBySegmentXof).toEqual({ b2b: 900, b2c: 400, unclassified: 300 });
+    expect(result.orders.revenuePaidXof).toBe(1600);
+  });
+
   it("detects abandonment and repeat customers", () => {
     const summary = buildCommerceAnalytics({
       ...base,

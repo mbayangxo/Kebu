@@ -17,6 +17,7 @@ export type CommerceOrderInput = {
   customer_user_id: string | null;
   discount_code: string | null;
   channel?: string | null;
+  sales_segment?: "b2b" | "b2c" | null;
   created_at: string;
 };
 
@@ -49,6 +50,7 @@ export type CommerceAnalyticsSummary = {
     pendingFulfillment: number;
     contactedOrDone: number;
     revenuePaidXof: number;
+    paidBySegmentXof: { b2b: number; b2c: number; unclassified: number };
     revenueAtRiskXof: number;
     withDiscount: number;
   };
@@ -137,6 +139,7 @@ export function buildCommerceAnalytics(opts: {
   let pending = 0;
   let contacted = 0;
   let revenuePaid = 0;
+  const paidBySegmentXof = { b2b: 0, b2c: 0, unclassified: 0 };
   let revenueRisk = 0;
   let withDiscount = 0;
 
@@ -148,6 +151,10 @@ export function buildCommerceAnalytics(opts: {
 
   for (const o of orders) {
     const ps = o.payment_status || "unpaid";
+    if (ps === "paid") {
+      const segment = o.sales_segment === "b2b" || o.sales_segment === "b2c" ? o.sales_segment : "unclassified";
+      paidBySegmentXof[segment] += Math.max(0, Number(o.amount_xof) || 0);
+    }
     if (ps === "paid") {
       paid += 1;
       revenuePaid += Math.max(0, o.amount_xof ?? 0);
@@ -287,6 +294,7 @@ export function buildCommerceAnalytics(opts: {
       pendingFulfillment: pending,
       contactedOrDone: contacted,
       revenuePaidXof: revenuePaid,
+      paidBySegmentXof,
       revenueAtRiskXof: revenueRisk,
       withDiscount,
     },

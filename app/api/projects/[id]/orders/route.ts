@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: Params) {
   const withFulfill = await db
     .from("shop_orders")
     .select(
-      "id, order_number, product_id, product_name, product_upc, product_sku, price_label, quantity, customer_name, customer_phone, customer_email, customer_note, payment_preference, payment_status, amount_xof, status, channel, tracking_number, carrier, tracking_url, fulfilled_at, archived_at, customer_notified_at, customer_notify_via, is_gift, recipient_name, recipient_phone, recipient_email, gift_message, gift_public_id, created_at, updated_at",
+      "id, order_number, product_id, product_name, product_upc, product_sku, price_label, quantity, customer_name, customer_phone, customer_email, customer_note, payment_preference, payment_status, amount_xof, status, channel, sales_segment, tracking_number, carrier, tracking_url, fulfilled_at, archived_at, customer_notified_at, customer_notify_via, is_gift, recipient_name, recipient_phone, recipient_email, gift_message, gift_public_id, created_at, updated_at",
     )
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
@@ -258,6 +258,17 @@ export async function PATCH(req: Request, { params }: Params) {
   }
   const db = access.db;
   const project = access.project;
+
+  if (rec.action === "sales_segment") {
+    if (rec.segment !== "b2b" && rec.segment !== "b2c" && rec.segment !== null) {
+      return NextResponse.json({ error: "Choose B2B, B2C, or Unclassified." }, { status: 400 });
+    }
+    const { data, error } = await db.from("shop_orders").update({ sales_segment: rec.segment })
+      .eq("id", orderId).eq("project_id", projectId).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not classify the order." }, { status: 503 });
+    if (!data) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  }
 
   const actionRaw = typeof rec.action === "string" ? rec.action : "status";
   const status = typeof rec.status === "string" ? rec.status : "";

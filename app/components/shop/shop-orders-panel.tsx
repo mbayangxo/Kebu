@@ -8,6 +8,7 @@ import { OrderCelebration } from "@/app/components/shop/order-celebration";
 
 type ShopOrder = {
   id: string;
+  sales_segment?: "b2b" | "b2c" | null;
   order_number?: string | null;
   product_name: string;
   product_upc?: string | null;
@@ -355,6 +356,15 @@ export function ShopOrdersPanel({
                   {order.price_label ? <span className="opacity-70">· {order.price_label}</span> : null}
                   <StatusChip status={order.status} />
                 </p>
+                <label className="mt-2 block text-xs">
+                  Buyer type
+                  <select className="ml-2 rounded border p-1" disabled={busyId === order.id} value={order.sales_segment ?? ""}
+                    onChange={(e) => void patchOrder(order.id, { action: "sales_segment", segment: e.target.value || null })}>
+                    <option value="">Unclassified</option>
+                    <option value="b2b">Wholesale / B2B</option>
+                    <option value="b2c">Retail / B2C</option>
+                  </select>
+                </label>
                 {order.items && order.items.length > 1 ? (
                   <ul className="mt-1 space-y-0.5 text-[11px] opacity-80">
                     {order.items.map((it, i) => (

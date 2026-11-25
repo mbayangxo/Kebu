@@ -39,7 +39,7 @@ export async function GET(req: Request, { params }: Params) {
   const { data: orderRows, error: orderErr } = await db
     .from("shop_orders")
     .select(
-      "id, product_name, quantity, payment_status, payment_preference, status, amount_xof, customer_phone, customer_email, customer_user_id, discount_code, channel, created_at",
+      "id, product_name, quantity, payment_status, payment_preference, status, amount_xof, customer_phone, customer_email, customer_user_id, discount_code, channel, sales_segment, created_at",
     )
     .eq("project_id", projectId)
     .gte("created_at", since)
