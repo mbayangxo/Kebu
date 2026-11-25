@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "playwright/test";
 
 /**
  * C3 — Checkout smoke (WhatsApp path — no PSP keys required).

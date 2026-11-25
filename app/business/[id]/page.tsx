@@ -19,6 +19,7 @@ import { BusinessArtistCampaignsPanel } from "@/app/components/business/business
 import { BusinessArtistMediaPanel } from "@/app/components/business/business-artist-media-panel";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
+import { canManageRetailLocations } from "@/lib/yanmay/retail-locations";
 import { portalModulesForCategory } from "@/lib/business/portal-modules";
 
 type Business = {
@@ -228,6 +229,15 @@ export default function BusinessDashboardPage() {
               <p className="font-mono text-xs mt-2" style={{ color: KEBU.orange }}>{business.public_kebu_id}</p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
+              {canManageRetailLocations(role) && (
+                <Link
+                  href={`/business/${business.id}/retail`}
+                  className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
+                  style={{ border: `1px solid ${KEBU.border}` }}
+                >
+                  Retail locations
+                </Link>
+              )}
               <Link
                 href={`/create/new?businessId=${business.id}`}
                 className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
