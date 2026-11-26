@@ -91,9 +91,11 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
         setNote(data.error ?? "Could not save collection.");
         return;
       }
+      const saved = data.collection as CollectionWithProducts;
+      setCollections((current) => [...current.filter((collection) => collection.id !== saved.id), saved]
+        .sort((left, right) => left.sort_order - right.sort_order || left.created_at.localeCompare(right.created_at)));
       resetForm();
       setNote(editingId ? "Collection updated." : "Collection created.");
-      await load();
     } catch {
       setNote("Network error. Try again.");
     } finally {
@@ -112,8 +114,9 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
         setNote("Could not remove collection.");
         return;
       }
+      setCollections((current) => current.filter((collection) => collection.id !== id));
+      if (editingId === id) resetForm();
       setNote("Collection removed.");
-      await load();
     } catch {
       setNote("Network error. Try again.");
     } finally {

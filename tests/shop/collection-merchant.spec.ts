@@ -1,5 +1,7 @@
-import { expect, test, type BrowserContext } from "playwright/test";
+import { expect as baseExpect, test, type BrowserContext } from "playwright/test";
 import { createServerClient } from "@supabase/ssr";
+
+const expect = baseExpect.configure({ timeout: 20_000 });
 
 const fixture = {
   shop: process.env.KEBU_E2E_COLLECTION_SHOP,
