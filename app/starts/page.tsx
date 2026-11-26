@@ -11,16 +11,12 @@ import {
 } from "@/lib/data/local-starts";
 import { createClient } from "@/lib/supabase/browser";
 import Link from "next/link";
+import { WEALTH_PATHS, wealthPathByLocalStartLabel } from "@/lib/wealth-paths";
 
-const WEALTH_PATH_ICONS: Record<string, string> = {
-  "Farmer / Producer": "🌾",
-  "Creator / Freelancer": "💻",
-  "Tech Founder": "📱",
-  "Manufacturer": "🏭",
-  "Exporter": "📦",
-  "Fashion Brand": "👗",
-  "Beauty Founder": "✨",
-};
+/** Single source of truth: the 7 personas and their emoji come from lib/wealth-paths.ts. */
+const WEALTH_PATH_ICONS: Record<string, string> = Object.fromEntries(
+  WEALTH_PATHS.map((p) => [p.localStartLabel, p.emoji]),
+);
 
 function StartCard({ start }: { start: LocalStart }) {
   const icon = WEALTH_PATH_ICONS[start.wealth_path] ?? "🌱";
@@ -349,6 +345,54 @@ export default function StartsPage() {
             </button>
           ))}
         </div>
+
+        {/* About this path — real milestone/program depth from lib/wealth-paths.ts */}
+        {filterPath && (() => {
+          const path = wealthPathByLocalStartLabel(filterPath);
+          if (!path) return null;
+          return (
+            <div className="bg-white border border-deep-green/20 rounded-2xl p-5 mb-6">
+              <div className="flex items-start gap-3 mb-3">
+                <span className="text-2xl">{path.emoji}</span>
+                <div>
+                  <p className="font-display text-lg font-bold text-ink">{path.persona}</p>
+                  <p className="text-xs text-gold-dark font-semibold">{path.tagline}</p>
+                </div>
+              </div>
+              <p className="text-sm text-ink/80 leading-relaxed mb-4">{path.description}</p>
+              <div className="flex flex-wrap gap-3 mb-4 text-xs">
+                <span className="px-2.5 py-1 rounded-full bg-deep-green/10 text-deep-green font-semibold">
+                  Starting capital: {path.startingCapital}
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-deep-green/10 text-deep-green font-semibold">
+                  ~{path.timelineMonths} months
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-deep-green/10 text-deep-green font-semibold">
+                  {path.potentialRevenue}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Milestones</p>
+              <div className="space-y-2 mb-4">
+                {path.milestones.map((m) => (
+                  <div key={m.label} className="flex items-start gap-2 text-xs">
+                    <div className="w-4 h-4 rounded-full bg-deep-green text-ivory text-[9px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">→</div>
+                    <div>
+                      <span className="font-semibold text-ink">{m.label}</span>
+                      <span className="text-muted"> — {m.detail} ({m.unlock})</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {path.programs.map((prog) => (
+                  <span key={prog} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark">
+                    {prog}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Add your start */}
         <AddStartForm onSuccess={start => setStarts(prev => [start, ...prev])} />

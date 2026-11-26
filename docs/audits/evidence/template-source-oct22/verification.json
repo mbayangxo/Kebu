@@ -1,0 +1,112 @@
+{
+  "runtimeCommit": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+  "tree": "733286542f05ca47053a9a934de84f076cdceb67",
+  "integrated": true,
+  "baseCommit": "6150ee463b4d467f84ac5290e4bc6c75577fc771",
+  "scope": "Developer marketplace template source confidentiality; development verification only",
+  "date": "2026-10-22",
+  "original": {
+    "failed": 8,
+    "passed": 6,
+    "sourceLeakFailures": 7,
+    "leastPrivilegeMetadataFailure": 1
+  },
+  "checks": {
+    "sql": 14,
+    "actualRest": 10,
+    "skipped": 0,
+    "fixtureDatabaseCleaned": true,
+    "syntheticJwt": true,
+    "managedHostedAuth": false,
+    "realMerchantRequests": false,
+    "ci": {
+      "passed": 6526,
+      "skipped": 338,
+      "lintErrors": 0,
+      "existingWarnings": 347,
+      "typeScript": true,
+      "build": true
+    },
+    "builder": {
+      "passed": 77,
+      "skipped": 0,
+      "flaky": 0
+    },
+    "platform": {
+      "sqlSuites": 20,
+      "browser": 21
+    },
+    "wave": {
+      "httpAdapter": 64,
+      "sql": 13,
+      "native": 6
+    },
+    "originalNative": 30,
+    "publicPreview": {
+      "passed": 533,
+      "skipped": 35
+    }
+  },
+  "runs": [
+    {
+      "id": 39689077280,
+      "name": "Preview E2E",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    },
+    {
+      "id": 39688960514,
+      "name": "Native PostgreSQL races",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    },
+    {
+      "id": 39688960571,
+      "name": "Template source boundary",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    },
+    {
+      "id": 39688960533,
+      "name": "CI",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    },
+    {
+      "id": 39688960551,
+      "name": "Platform SQL and browser",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    },
+    {
+      "id": 39688960529,
+      "name": "Verified Wave settlement",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    },
+    {
+      "id": 39688960538,
+      "name": "Builder SQL and browser",
+      "sha": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "conclusion": "success"
+    }
+  ],
+  "preview": {
+    "id": "dpl_HRA8FrCoU28rWmTpXevU1ZGsz5HL",
+    "state": "READY",
+    "url": "https://kebu-i3t9tffb3-mbayangxos-projects.vercel.app"
+  },
+  "migration": {
+    "path": "supabase/migrations/20261021223430_marketplace_template_source_boundary.sql",
+    "cliCreationRun": 39687442302,
+    "cliCreationJob": 119524985778,
+    "version": "2.121.0",
+    "productionApplied": false
+  },
+  "boundaries": [
+    "Real PostgREST16.5 and PostgreSQL17.6; synthetic signed CI JWTs, not managed Supabase Auth.",
+    "Minimal explicit Shop prerequisite fixtures; not a full fresh-install chain.",
+    "Other provider settlement, actual merchant payments, asset private file delivery, refunds and managed hosted Auth acceptance remain open.",
+    "No production schema, DNS, paid setup, credential decryption or promotion."
+  ]
+}

@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const createClient = vi.fn();
 const requireUser = vi.fn();
 const builderRateLimit = vi.fn();
-
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: (...args: unknown[]) => createClient(...args),
-}));
+const loadAfricanOpportunityEntitlement = vi.fn();
+const hasVerifiedAfricanOpportunityAccess = vi.fn();
 
 vi.mock("@/lib/create/auth", () => ({
   requireUser: (...args: unknown[]) => requireUser(...args),
+}));
+
+vi.mock("@/lib/entitlements/african-opportunity-access", () => ({
+  loadAfricanOpportunityEntitlement: (...args: unknown[]) => loadAfricanOpportunityEntitlement(...args),
+  hasVerifiedAfricanOpportunityAccess: (...args: unknown[]) => hasVerifiedAfricanOpportunityAccess(...args),
 }));
 
 vi.mock("@/lib/api-guard", () => ({
@@ -57,10 +59,17 @@ describe("opportunity listings API", () => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    loadAfricanOpportunityEntitlement.mockResolvedValue({
+      key: "african_opportunity_access",
+      status: "verified",
+      grantedAt: "2026-06-18T00:00:00Z",
+      source: "afrique_id",
+    });
+    hasVerifiedAfricanOpportunityAccess.mockReturnValue(true);
   });
 
   it("GET /api/opportunity/listings returns db rows", async () => {
-    createClient.mockResolvedValue({
+    const supabase = {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockReturnValue({
@@ -68,7 +77,8 @@ describe("opportunity listings API", () => {
           }),
         }),
       }),
-    });
+    };
+    requireUser.mockResolvedValue({ user: { id: "user-1" }, supabase });
 
     const res = await getListings(new NextRequest("http://localhost/api/opportunity/listings"));
     expect(res.status).toBe(200);
@@ -79,7 +89,7 @@ describe("opportunity listings API", () => {
   });
 
   it("GET /api/opportunity/listings/[id] returns 404 when missing", async () => {
-    createClient.mockResolvedValue({
+    const supabase = {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
@@ -87,11 +97,37 @@ describe("opportunity listings API", () => {
           }),
         }),
       }),
-    });
+    };
+    requireUser.mockResolvedValue({ user: { id: "user-1" }, supabase });
 
     const res = await getListingById(new Request("http://localhost"), {
       params: Promise.resolve({ id: "missing" }),
     });
     expect(res.status).toBe(404);
+  });
+
+  it("requires authentication", async () => {
+    requireUser.mockResolvedValue({
+      error: Response.json({ error: "Sign in required." }, { status: 401 }),
+    });
+
+    const res = await getListings(new NextRequest("http://localhost/api/opportunity/listings"));
+    expect(res.status).toBe(401);
+    expect(loadAfricanOpportunityEntitlement).not.toHaveBeenCalled();
+  });
+
+  it("rejects users without verified indigenous Afrique ID access", async () => {
+    requireUser.mockResolvedValue({ user: { id: "user-1" }, supabase: {} });
+    loadAfricanOpportunityEntitlement.mockResolvedValue({
+      key: "african_opportunity_access",
+      status: "pending",
+      grantedAt: null,
+      source: "afrique_id",
+    });
+    hasVerifiedAfricanOpportunityAccess.mockReturnValue(false);
+
+    const res = await getListings(new NextRequest("http://localhost/api/opportunity/listings"));
+    expect(res.status).toBe(403);
+    expect((await res.json()).needsEntitlement).toBe(true);
   });
 });

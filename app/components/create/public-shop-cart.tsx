@@ -15,6 +15,7 @@ import { PublicShippingQuote } from "@/app/components/create/public-shipping-quo
 import { trackShopEvent } from "@/lib/shop/shop-analytics-events";
 import { xofToCauris } from "@/lib/shop/cauris";
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
+import type { ShippingOptionRow } from "@/lib/shop/shipping-options";
 
 /** Floating cart + checkout for live multi-item orders. */
 export function PublicShopCart({
@@ -42,6 +43,8 @@ export function PublicShopCart({
   const [giftMessage, setGiftMessage] = useState("");
   const [pay, setPay] = useState<ShopPaymentPreference>(() => defaultPaymentPreference(commerce));
   const [buyerCountry, setBuyerCountry] = useState("SN");
+  const [shippingOptions, setShippingOptions] = useState<ShippingOptionRow[]>([]);
+  const [shippingOptionId, setShippingOptionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -111,6 +114,37 @@ export function PublicShopCart({
     return () => window.clearTimeout(t);
   }, [lines, subdomain, email, name, phone, discountCode, preview, online]);
 
+  useEffect(() => {
+    if (preview) return;
+    let cancelled = false;
+    void fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/shipping-options`, {
+      headers: { Accept: "application/json" },
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        const opts: ShippingOptionRow[] = Array.isArray(data.options) ? data.options : [];
+        setShippingOptions(opts);
+        setShippingOptionId((prev) => (prev && opts.some((o) => o.id === prev) ? prev : opts[0]?.id ?? null));
+      })
+      .catch(() => {
+        if (!cancelled) setShippingOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [subdomain, preview]);
+
+  const selectedShippingOption = useMemo(
+    () => shippingOptions.find((o) => o.id === shippingOptionId) ?? null,
+    [shippingOptions, shippingOptionId],
+  );
+
+  const displayTotalXof = useMemo(() => {
+    if (amountXof == null) return null;
+    return amountXof + (selectedShippingOption?.amount_xof ?? 0);
+  }, [amountXof, selectedShippingOption]);
+
   const count = lines.reduce((s, l) => s + l.quantity, 0);
   if (count === 0 && !open && !done) return null;
 
@@ -173,6 +207,7 @@ export function PublicShopCart({
           giftCardCode: giftCardCode.trim() || undefined,
           sessionKey: cartSessionKey(subdomain),
           buyerCountry,
+          shippingOptionId: shippingOptionId ?? undefined,
           isGift,
           recipientName: isGift ? recipientName : undefined,
           recipientPhone: isGift ? recipientPhone : undefined,
@@ -336,11 +371,59 @@ export function PublicShopCart({
                     ))}
                   </fieldset>
                 ) : null}
-                <PublicShippingQuote
-                  subdomain={subdomain}
-                  sellerCountry="SN"
-                  onChange={({ buyerCountry: c }) => setBuyerCountry(c)}
-                />
+                {shippingOptions.length > 0 ? (
+                  <fieldset className="space-y-1.5">
+                    <legend className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                      Shipping
+                    </legend>
+                    {shippingOptions.map((o) => (
+                      <label
+                        key={o.id}
+                        className={`flex cursor-pointer items-start justify-between gap-2 rounded-lg border px-2 py-1.5 text-xs ${
+                          shippingOptionId === o.id ? "border-black/40 bg-black/[0.03]" : "border-black/10"
+                        }`}
+                      >
+                        <span className="flex items-start gap-2">
+                          <input
+                            type="radio"
+                            name="kebu-cart-shipping"
+                            className="mt-0.5"
+                            checked={shippingOptionId === o.id}
+                            onChange={() => setShippingOptionId(o.id)}
+                          />
+                          <span className="min-w-0 font-semibold">
+                            {o.label}
+                            {o.eta_min_days != null ? (
+                              <span className="ml-1 font-normal opacity-60">
+                                ({o.eta_min_days}
+                                {o.eta_max_days != null && o.eta_max_days !== o.eta_min_days ? `–${o.eta_max_days}` : ""} j)
+                              </span>
+                            ) : null}
+                          </span>
+                        </span>
+                        <span className="shrink-0 opacity-70">
+                          {o.amount_xof > 0 ? `${o.amount_xof.toLocaleString("fr-FR")} XOF` : "Gratuit"}
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  <PublicShippingQuote
+                    subdomain={subdomain}
+                    sellerCountry="SN"
+                    onChange={({ buyerCountry: c }) => setBuyerCountry(c)}
+                  />
+                )}
+                {displayTotalXof != null ? (
+                  <p className="text-xs font-bold">
+                    Total: {displayTotalXof.toLocaleString("fr-FR")} XOF
+                    {selectedShippingOption ? (
+                      <span className="ml-1 font-normal opacity-60">
+                        (incl. {selectedShippingOption.amount_xof.toLocaleString("fr-FR")} XOF shipping)
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
                 <textarea
                   maxLength={400}
                   placeholder="Note (optional)"

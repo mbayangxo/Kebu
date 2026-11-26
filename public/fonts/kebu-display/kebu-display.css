@@ -1,0 +1,54 @@
+/* Kebu Display — original geometric display typeface, self-hosted.
+   Built by scripts/fonts/kebu_display/ — see that directory for the source
+   skeleton and build pipeline. Six static instances declared here so the
+   browser picks the right file for font-weight/font-style automatically. */
+
+@font-face {
+  font-family: "Kebu Display";
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-Light.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kebu Display";
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-LightItalic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kebu Display";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kebu Display";
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-RegularItalic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kebu Display";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kebu Display";
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-BoldItalic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kebu Display Variable";
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/kebu-display/KebuDisplay-Variable.woff2") format("woff2-variations");
+}

@@ -60,11 +60,10 @@ export function MySitesWithPortfolio({
       }
 
       if (getData.allowed !== true) {
+        // Not the portfolio-owner account — this is the normal case for every regular
+        // user, so stay silent rather than surface an internal deployment-config note.
         setPortfolioAllowed(false);
         setPortfolioSites([]);
-        setNote(
-          "Flagship brand sites (May Lecor, K-Direction, DkLNS, Ndaoan House, RECT, Mayjor Good) only appear for the portfolio owner account. On Vercel, set KEBU_PORTFOLIO_OWNER_EMAILS to your login email (comma-separated), redeploy, then refresh this page.",
-        );
         return;
       }
 
@@ -144,7 +143,7 @@ export function MySitesWithPortfolio({
           </div>
         ) : null}
 
-        {note && portfolioAllowed === false ? (
+        {note && portfolioAllowed ? (
           <div
             className="rounded-xl px-3 py-2 text-xs"
             style={{ background: "#FFF8E8", color: KEBU.black, border: `1px solid ${KEBU.border}` }}

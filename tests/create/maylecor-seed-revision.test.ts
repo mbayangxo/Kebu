@@ -19,4 +19,26 @@ describe("May Lecor draft seed sync", () => {
     expect(extras.some((e) => e.id === "may-city-skyline")).toBe(true);
     expect(extras.some((e) => e.id === "may-logo-stacked")).toBe(false);
   });
+
+  it("keeps custom collage layers and layer scales when a seed revision changes", () => {
+    const layer = {
+      id: "artist-photo",
+      src: "/api/projects/project-id/assets/photo.png",
+      topPct: 32,
+      leftPct: 17,
+      widthPct: 24,
+      parallaxRole: "figure",
+    };
+    const next = normalizeMaylecorRussianHeroProps({
+      seedRevision: "old",
+      extraCutouts: [layer],
+      layerScales: { cutoutLeft: 0.72 },
+    });
+
+    expect(next.extraCutouts).toContainEqual(layer);
+    expect(next.layerScales).toMatchObject({ cutoutLeft: 0.72 });
+    expect(next.extraCutouts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "may-city-skyline" }),
+    ]));
+  });
 });

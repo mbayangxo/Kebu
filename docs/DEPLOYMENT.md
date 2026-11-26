@@ -41,6 +41,12 @@ Post-deploy: Bug Sentinel checks (when live)
 
 ---
 
+## Read-only hosted preflight
+
+Run `scripts/hosted-release-preflight.sql` through an authorized database connection before staging a release. It reads system catalogs only and returns explicit table/RLS, column and RPC/grant failures. It never applies migrations, invokes application RPCs or reads user content. `schemaChecksPassed` is a prerequisite, not an authenticated acceptance or promotion certificate.
+
+Compare canonical migration identities with hosted history before any schema rollout. Production has same-name migrations recorded under different timestamps, so blindly running the canonical chain or repairing history from names alone is unsafe. Review the exact SQL and resulting objects in an isolated compatible staging database first; preserve current rows, grants and scheduled workers. Latest inventory and release blockers: `audits/KEBU_HOSTED_RELEASE_2026-10-21.md`.
+
 ## Migrations
 
 1. Add migration to `supabase/migrations/` (and `docs/migrations-to-apply/` when used)  

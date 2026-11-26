@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import { createHash, createHmac } from "crypto";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { authRateLimit } from "@/lib/api-guard";
+import {
+  hashSitePassword,
+  signSitePasswordSession,
+  sitePasswordSecret,
+  verifySitePassword,
+  verifySitePasswordSession,
+} from "@/lib/create/site-password";
 
 export const dynamic = "force-dynamic";
 
@@ -12,38 +19,20 @@ function getServiceClient() {
   return createServiceClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-function sitePasswordHash(subdomain: string, password: string): string {
-  const salt = createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "kebu-site-pw-salt")
-    .update(subdomain)
-    .digest("hex")
-    .slice(0, 32);
-  return createHash("sha256").update(`${salt}:${password}`).digest("hex");
-}
-
-/** Signs a session token for `{subdomain}:{expiresAt}` using HMAC-SHA256. */
-function signSessionToken(subdomain: string, expiresAt: number): string {
-  const payload = `${subdomain}:${expiresAt}`;
-  const sig = createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "kebu-site-pw-salt")
-    .update(payload)
-    .digest("hex");
-  return `${payload}:${sig}`;
-}
-
 export function verifySessionToken(subdomain: string, token: string): boolean {
-  const parts = token.split(":");
-  if (parts.length !== 3) return false;
-  const [sub, expiresStr, sig] = parts;
-  if (sub !== subdomain) return false;
-  const expiresAt = Number(expiresStr);
-  if (isNaN(expiresAt) || Date.now() > expiresAt) return false;
-  const expected = createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "kebu-site-pw-salt")
-    .update(`${sub}:${expiresStr}`)
-    .digest("hex");
-  return sig === expected;
+  const secret = sitePasswordSecret();
+  return secret ? verifySitePasswordSession(subdomain, token, secret) : false;
 }
 
 export async function POST(req: Request, { params }: Params) {
+  const limited = authRateLimit(req);
+  if (limited) return limited;
+
   const { subdomain } = await params;
+  const secret = sitePasswordSecret();
+  if (!secret) {
+    return NextResponse.json({ error: "Site password authentication is not configured." }, { status: 503 });
+  }
 
   let password: string;
   try {
@@ -69,13 +58,25 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "No password set for this site." }, { status: 404 });
   }
 
-  const hash = sitePasswordHash(subdomain, password);
-  if (hash !== project.site_password_hash) {
+  const verification = verifySitePassword({
+    subdomain,
+    password,
+    storedHash: project.site_password_hash,
+    secret,
+  });
+  if (!verification.ok) {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
+  if (verification.needsUpgrade) {
+    await supabase
+      .from("projects")
+      .update({ site_password_hash: hashSitePassword(subdomain, password, secret) })
+      .eq("id", project.id);
+  }
+
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 h
-  const token = signSessionToken(subdomain, expiresAt);
+  const token = signSitePasswordSession(subdomain, expiresAt, secret);
   const cookieName = `kebu_site_pw_${subdomain}`;
 
   const response = NextResponse.json({ ok: true });

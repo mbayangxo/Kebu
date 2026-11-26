@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Code's own per-session git worktrees (.claude/worktrees/, see
+    // .gitignore) are full duplicate repo checkouts, not product code; a
+    // bare `eslint` run would otherwise recurse into every one of them.
+    ".claude/**",
   ]),
   // React Compiler diagnostics: downgrade to warnings so CI is not blocked.
   // The compiler simply skips components it cannot optimize; these are not runtime bugs.

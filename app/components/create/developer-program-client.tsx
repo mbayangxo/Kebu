@@ -169,7 +169,7 @@ export function DeveloperProgramClient() {
                 className="w-32 rounded-xl border px-3 py-2 text-sm"
                 style={{ borderColor: KEBU.border }}
               />
-              <p className="text-[10px] mt-1" style={{ color: KEBU.muted }}>$0 = free. You keep 70% of paid sales.</p>
+              <p className="text-[10px] mt-1" style={{ color: KEBU.muted }}>$0 = free. You keep 85% of paid sales.</p>
             </div>
             <button
               type="button"

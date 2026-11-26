@@ -34,12 +34,24 @@ async function paypalAccessToken(): Promise<string | null> {
   return data.access_token ?? null;
 }
 
-/** Amount in major units string for PayPal (e.g. "12.50"). Input amountMinor = cents. */
-function majorFromMinor(amountMinor: number, currency: string): string {
-  const c = currency.toUpperCase();
-  // XOF/XAF have no minor units in PayPal — send integer string
-  if (c === "XOF" || c === "XAF") return String(Math.max(1, Math.round(amountMinor)));
-  return (Math.max(1, amountMinor) / 100).toFixed(2);
+// PayPal's supported currency/precision contract:
+// https://developer.paypal.com/api/codes/currency/
+const supportedCurrencies = new Set([
+  "AUD", "BRL", "CAD", "CNY", "CZK", "DKK", "EUR", "HKD", "HUF", "ILS",
+  "JPY", "MYR", "MXN", "TWD", "NZD", "NOK", "PHP", "PLN", "GBP", "RUB",
+  "SGD", "SEK", "CHF", "THB", "USD",
+]);
+
+/** Input uses ISO minor units; PayPal additionally forbids HUF/TWD fractions. */
+function majorFromMinor(amountMinor: number, currency: string): string | null {
+  if (currency === "JPY") return String(amountMinor);
+  const minor = BigInt(amountMinor);
+  const unit = BigInt(100);
+  if (currency === "HUF" || currency === "TWD") {
+    return minor % unit === BigInt(0) ? String(minor / unit) : null;
+  }
+  // Preserve cents exactly even near Number.MAX_SAFE_INTEGER.
+  return `${minor / unit}.${String(minor % unit).padStart(2, "0")}`;
 }
 
 export const paypalAdapter: PaymentAdapter = {
@@ -49,19 +61,35 @@ export const paypalAdapter: PaymentAdapter = {
     if (!paypalConfigured()) {
       return { ok: false, configured: false, error: "PayPal not configured (PAYPAL_CLIENT_ID + SECRET)." };
     }
+    if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor <= 0) {
+      return { ok: false, configured: true, error: "PayPal amount must be positive, safe integer minor units." };
+    }
+    const currencyIn = typeof input.currency === "string" ? input.currency.trim().toUpperCase() : "";
+    let currency = currencyIn;
+    let chargedMinor = input.amountMinor;
+    if (currencyIn === "XOF" || currencyIn === "XAF") {
+      // Never invent FX or reuse a different source currency's quote.
+      const key = `PAYPAL_${currencyIn}_PER_USD`;
+      const rate = Number(process.env[key] ?? process.env[`JOKO_${currencyIn}_PER_USD`]);
+      if (!Number.isFinite(rate) || rate <= 0) {
+        return { ok: false, configured: true, error: `Set a positive ${key} before converting ${currencyIn} to USD.` };
+      }
+      chargedMinor = Math.round(input.amountMinor / rate * 100);
+      if (!Number.isSafeInteger(chargedMinor) || chargedMinor <= 0) {
+        return { ok: false, configured: true, error: "PayPal converted amount cannot be represented safely in USD cents." };
+      }
+      currency = "USD";
+    } else if (!supportedCurrencies.has(currencyIn)) {
+      return { ok: false, configured: true, error: `PayPal does not support the declared currency ${currencyIn || "(empty)"}.` };
+    }
+    const value = majorFromMinor(chargedMinor, currency);
+    if (value === null) {
+      return { ok: false, configured: true, error: `PayPal requires whole ${currency} units; this price cannot be charged exactly.` };
+    }
+    // Validate the complete charge before requesting even an OAuth token.
     const token = await paypalAccessToken();
     if (!token) {
       return { ok: false, configured: true, error: "PayPal auth failed." };
-    }
-    const currencyIn = (input.currency || "USD").toUpperCase();
-    // PayPal rarely supports XOF — convert to USD like JOKO when needed
-    let currency = currencyIn;
-    let value = majorFromMinor(input.amountMinor, currencyIn);
-    if (currencyIn === "XOF" || currencyIn === "XAF") {
-      const rate = Number(process.env.PAYPAL_XOF_PER_USD ?? process.env.JOKO_XOF_PER_USD ?? "600");
-      const per = Number.isFinite(rate) && rate > 0 ? rate : 600;
-      currency = "USD";
-      value = Math.max(0.01, input.amountMinor / per).toFixed(2);
     }
     const res = await fetch(`${paypalBase()}/v2/checkout/orders`, {
       method: "POST",

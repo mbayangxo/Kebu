@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-interface BugReport {
-  page: string;
-  type: string;
-  description: string;
-  timestamp: string;
-}
+import { createClient } from "@/lib/supabase/browser";
 
 const ISSUE_TYPES = [
   { id: "broken_button", label: "Button doesn't work" },
@@ -22,31 +16,69 @@ export function ReportBug() {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("");
   const [description, setDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [needsEmail, setNeedsEmail] = useState(false);
+  const [checkedSession, setCheckedSession] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  function submit() {
-    if (!type || !description.trim()) return;
+  async function ensureSessionChecked() {
+    if (checkedSession) return;
+    setCheckedSession(true);
+    try {
+      const { data } = await createClient().auth.getUser();
+      if (!data.user?.email) setNeedsEmail(true);
+    } catch {
+      setNeedsEmail(true);
+    }
+  }
 
-    const report: BugReport = {
-      page: typeof window !== "undefined" ? window.location.pathname : "",
-      type,
-      description: description.trim(),
-      timestamp: new Date().toISOString(),
-    };
+  async function submit() {
+    if (!type || !description.trim() || submitting) return;
+    if (needsEmail && !email.trim().includes("@")) return;
+
+    setSubmitting(true);
+    setErr(null);
+    const page = typeof window !== "undefined" ? window.location.pathname : "";
+    const issueLabel = ISSUE_TYPES.find((t) => t.id === type)?.label ?? type;
 
     try {
-      const existing = JSON.parse(localStorage.getItem("alkebulan_bug_reports") || "[]");
-      existing.push(report);
-      localStorage.setItem("alkebulan_bug_reports", JSON.stringify(existing));
-    } catch {}
+      const { data } = await createClient().auth.getUser();
+      const userEmail = data.user?.email ?? email.trim();
+      const name = (data.user?.user_metadata?.full_name as string | undefined)?.trim() || userEmail.split("@")[0] || "Kebu user";
 
-    setSubmitted(true);
-    setTimeout(() => {
-      setOpen(false);
-      setSubmitted(false);
-      setType("");
-      setDescription("");
-    }, 2500);
+      const res = await fetch("/api/help/request", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email: userEmail,
+          subject: `Bug report: ${issueLabel}`,
+          body: `${description.trim()}\n\nPage: ${page}`,
+          source: "in_app",
+        }),
+      });
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(typeof resData.error === "string" ? resData.error : "Could not send report.");
+        setSubmitting(false);
+        return;
+      }
+      setSubmitted(true);
+      setSubmitting(false);
+      setTimeout(() => {
+        setOpen(false);
+        setSubmitted(false);
+        setType("");
+        setDescription("");
+        setEmail("");
+      }, 2500);
+    } catch {
+      setErr("Network error while sending the report.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -54,7 +86,10 @@ export function ReportBug() {
       {/* Floating trigger */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          void ensureSessionChecked();
+        }}
         className="bg-white border border-border text-muted text-[10px] font-semibold px-3 py-2 rounded-full shadow-md hover:border-orange hover:text-ink transition-colors flex items-center gap-1.5 whitespace-nowrap"
         aria-label="Report a problem"
       >
@@ -114,12 +149,27 @@ export function ReportBug() {
                   </p>
                 </div>
 
+                {needsEmail ? (
+                  <div>
+                    <label className="block text-xs font-bold text-ink mb-2">Your email (so we can follow up)</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full border border-border rounded-xl px-3 py-2.5 text-xs text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold"
+                    />
+                  </div>
+                ) : null}
+
+                {err ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{err}</p> : null}
+
                 <button
-                  onClick={submit}
-                  disabled={!type || !description.trim()}
+                  onClick={() => void submit()}
+                  disabled={!type || !description.trim() || submitting || (needsEmail && !email.trim().includes("@"))}
                   className="w-full bg-deep-green text-ivory text-sm font-bold py-3 rounded-xl hover:bg-mid-green transition-colors disabled:opacity-40"
                 >
-                  Send report →
+                  {submitting ? "Sending…" : "Send report →"}
                 </button>
               </div>
             )}

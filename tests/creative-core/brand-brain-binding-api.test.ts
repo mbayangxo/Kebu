@@ -1,0 +1,21 @@
+import {beforeEach,describe,expect,it,vi} from "vitest";
+import {brandBrainStoredFields,newBrandBrain} from "@/lib/create/brand-brain";
+const state=vi.hoisted(()=>({auth:vi.fn(),rpc:vi.fn(),project:{data:null as unknown,error:null as unknown},binding:{data:null as unknown,error:null as unknown},profile:{data:null as unknown,error:null as unknown},eq:vi.fn()}));
+vi.mock("@/lib/create/auth",()=>({requireUser:state.auth}));vi.mock("@/lib/api-guard",()=>({builderRateLimit:()=>null}));
+import {GET,PUT} from "@/app/api/projects/[id]/brand-brain/route";
+const site="11111111-1111-4111-8111-111111111111",profile="22222222-2222-4222-8222-222222222222",context={params:Promise.resolve({id:site})};
+const req=(patch:Record<string,unknown>={})=>new Request("https://test/api/projects/site/brand-brain",{method:"PUT",body:JSON.stringify({profileId:profile,expectedRevision:0,...patch})});
+describe("Private permanent Brand Brain attachment API",()=>{
+ beforeEach(()=>{
+  vi.resetAllMocks();state.project={data:{id:site},error:null};state.binding={data:null,error:null};state.profile={data:{...brandBrainStoredFields(newBrandBrain()),id:profile,brain_revision:1},error:null};
+  state.auth.mockResolvedValue({user:{id:site},supabase:{rpc:state.rpc,from:(table:string)=>{const query={select:()=>query,eq:(...args:unknown[])=>{state.eq(...args);return query;},maybeSingle:()=>Promise.resolve(table==="projects"?state.project:table==="project_brand_brains"?state.binding:state.profile)};return query;}}});
+ });
+ it("denies signed-out reads/writes without RPC",async()=>{state.auth.mockResolvedValue({error:new Response("Sign in",{status:401})});expect((await GET(req(),context)).status).toBe(401);expect((await PUT(req(),context)).status).toBe(401);expect(state.rpc).not.toHaveBeenCalled();});
+ it("requires an owner project before disclosing attachment",async()=>{state.project.data=null;expect((await GET(req(),context)).status).toBe(404);expect(state.eq).toHaveBeenCalledWith("owner_id",site);});
+ it("returns explicit unattached state and compiled saved direction",async()=>{expect(await(await GET(req(),context)).json()).toMatchObject({binding:{projectId:site,profileId:null,revision:0},record:null,direction:null});state.binding.data={profile_id:profile,revision:2};const body=await(await GET(req(),context)).json();expect(body.record.id).toBe(profile);expect(body.direction.source).toBe("owner-authored");});
+ it("does not misrepresent storage failure as no attachment",async()=>{state.binding.error={message:"secret"};const response=await GET(req(),context);expect(response.status).toBe(503);expect(await response.json()).not.toHaveProperty("binding");});
+ it("incompatible attached profile stays visible and can be detached",async()=>{state.binding.data={profile_id:profile,revision:2};state.profile.data={id:profile};expect(await(await GET(req(),context)).json()).toMatchObject({unavailable:true,record:null});expect((await PUT(req(),context)).status).toBe(422);state.rpc.mockResolvedValue({data:{project_id:site,profile_id:null,revision:3},error:null});expect((await PUT(req({profileId:null,expectedRevision:2}),context)).status).toBe(200);});
+ it("rejects unknown input and foreign profile before RPC",async()=>{expect((await PUT(req({ownerId:site}),context)).status).toBe(400);state.profile.data=null;expect((await PUT(req(),context)).status).toBe(404);expect(state.rpc).not.toHaveBeenCalled();});
+ it("accepts only matching canonical acknowledgements",async()=>{state.rpc.mockResolvedValue({data:{project_id:site,profile_id:profile,revision:1},error:null});expect((await PUT(req(),context)).status).toBe(200);expect(state.rpc).toHaveBeenCalledWith("save_project_brand_brain",{p_project:site,p_profile:profile,p_expected:0});state.rpc.mockResolvedValue({data:{project_id:site,profile_id:null,revision:1},error:null});expect((await PUT(req(),context)).status).toBe(503);});
+ it("maps conflicts, foreign ownership and uncertainty without private details",async()=>{for(const [code,status]of [["40001",409],["P0002",404],["42501",404],["XX000",503]]as const){state.rpc.mockResolvedValue({error:{code,message:"private"}});const response=await PUT(req(),context);expect(response.status).toBe(status);expect(JSON.stringify(await response.json())).not.toContain("private");}});
+});

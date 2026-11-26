@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
+import { Z_LAYERS } from "./kebu-z-layers";
 import {
   MAYLECOR_LOCALES,
   MAYLECOR_LOCALE_STORAGE_KEY,
@@ -44,7 +45,14 @@ export function MaylecorMotionChrome({
   navLayout = "top",
   navDisplay = "text",
   showChromeLogo = true,
+  chromeLogoScale = 1,
+  headerHeightScale = 1,
+  headerBgColor,
+  navFontFamily,
+  navFontSizePx,
+  navFontWeight = 700,
   onNavigate,
+  onEditNavigation,
 }: {
   siteBase: string;
   brandLabel: string;
@@ -61,13 +69,23 @@ export function MaylecorMotionChrome({
   /** text = words · icons = built-in SVGs · photos = prefer custom iconUrl on each link */
   navDisplay?: "text" | "icons" | "photos";
   showChromeLogo?: boolean;
+  chromeLogoScale?: number;
+  headerHeightScale?: number;
+  headerBgColor?: string;
+  navFontFamily?: string;
+  navFontSizePx?: number;
+  navFontWeight?: number;
   onNavigate?: (slug: string) => void;
+  onEditNavigation?: () => void;
 }) {
   const [locale, setLocale] = useState<MaylecorLocale>("en");
   const [open, setOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const m = navChromeMetrics({ scale: navScale, size: navSize });
   const layout = parseNavLayout(navLayout);
+  const resolvedNavFontPx = Math.min(48, Math.max(8, Number(navFontSizePx ?? m.fontPx)));
+  const resolvedLogoH = Math.round(m.logoH * Math.min(4, Math.max(0.35, Number(chromeLogoScale) || 1)));
+  const resolvedPadY = Math.round(m.padY * Math.min(4, Math.max(0.5, Number(headerHeightScale) || 1)));
 
   useEffect(() => {
     const stored = parseMaylecorLocale(localStorage.getItem(MAYLECOR_LOCALE_STORAGE_KEY));
@@ -149,7 +167,7 @@ export function MaylecorMotionChrome({
           {showLabel !== false ? (
             <span
               className="font-bold uppercase leading-none"
-              style={{ fontSize: Math.max(9, m.fontPx - 2), letterSpacing: m.tracking }}
+              style={{ fontSize: Math.max(9, resolvedNavFontPx - 2), letterSpacing: m.tracking, fontFamily: navFontFamily || undefined, fontWeight: navFontWeight }}
             >
               {label}
             </span>
@@ -162,7 +180,7 @@ export function MaylecorMotionChrome({
 
     if (!path) {
       return (
-        <span className={navClass(active)} style={{ fontSize: m.fontPx, letterSpacing: m.tracking }}>
+        <span className={navClass(active)} style={{ fontSize: resolvedNavFontPx, letterSpacing: m.tracking, fontFamily: navFontFamily || undefined, fontWeight: navFontWeight }}>
           {label}
         </span>
       );
@@ -189,7 +207,7 @@ export function MaylecorMotionChrome({
         {showLabel !== false ? (
           <span
             className="font-bold uppercase leading-none"
-            style={{ fontSize: Math.max(9, m.fontPx - 2), letterSpacing: m.tracking }}
+            style={{ fontSize: Math.max(9, resolvedNavFontPx - 2), letterSpacing: m.tracking, fontFamily: navFontFamily || undefined, fontWeight: navFontWeight }}
           >
             {label}
           </span>
@@ -243,7 +261,15 @@ export function MaylecorMotionChrome({
   }));
 
   function goTo(e: MouseEvent, slug: string) {
-    if (!onNavigate) return;
+    if (onEditNavigation) {
+      e.preventDefault();
+      e.stopPropagation();
+      onEditNavigation();
+      setOpen(false);
+      setOpenMenu(null);
+      return;
+    }
+    if (!onNavigate || !slug || slug.includes(":")) return;
     e.preventDefault();
     onNavigate(slug || "home");
     setOpen(false);
@@ -420,7 +446,7 @@ export function MaylecorMotionChrome({
           src={titleLogo}
           alt={brandLabel}
           className="w-auto object-contain"
-          style={{ height: m.logoH, maxWidth: Math.round(m.logoH * 4) }}
+          style={{ height: resolvedLogoH, maxWidth: Math.round(resolvedLogoH * 4) }}
         />
       ) : (
         <span
@@ -470,7 +496,7 @@ export function MaylecorMotionChrome({
           className={`flex items-center justify-between border-b border-black/10 bg-white/92 backdrop-blur-md md:hidden ${
             contained ? "relative z-20" : "sticky top-0 z-30"
           }`}
-          style={{ padding: `${m.padY}px ${m.padX}px` }}
+          style={{ padding: `${resolvedPadY}px ${m.padX}px` }}
         >
           {brand}
           <button
@@ -506,8 +532,8 @@ export function MaylecorMotionChrome({
           }`}
           style={{
             width: m.sideWidth,
-            paddingTop: m.padY + 8,
-            paddingBottom: m.padY + 8,
+            paddingTop: resolvedPadY + 8,
+            paddingBottom: resolvedPadY + 8,
             paddingLeft: m.padX,
             paddingRight: m.padX,
             color: "#111",
@@ -531,16 +557,19 @@ export function MaylecorMotionChrome({
 
   return (
     <header
-      className={`${
+      className={`@container ${
         overlay
-          ? "pointer-events-none absolute inset-x-0 top-0 z-[120] bg-gradient-to-b from-black/55 via-black/20 to-transparent"
+          ? `pointer-events-none absolute inset-x-0 top-0 ${headerBgColor ? "" : "bg-gradient-to-b from-black/55 via-black/20 to-transparent"}`
           : `border-b border-black/10 bg-white/92 backdrop-blur-md ${
               contained ? "relative z-20" : "sticky top-0 z-30"
             }`
       }`}
-      style={{ color: overlay ? "#fff" : "#111" }}
+      style={{ color: overlay ? "#fff" : "#111", background: headerBgColor || undefined, zIndex: overlay ? Z_LAYERS.siteNavigation : undefined }}
       data-kebu-site-nav="1"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onEditNavigation && e.target === e.currentTarget) onEditNavigation();
+      }}
     >
       <div
         className={`pointer-events-auto mx-auto flex items-center justify-between ${
@@ -548,8 +577,8 @@ export function MaylecorMotionChrome({
         } ${m.size === "fullscreen" ? "w-full max-w-none" : ""}`}
         style={{
           maxWidth: m.maxWidth,
-          paddingTop: Math.max(10, m.padY),
-          paddingBottom: Math.max(10, m.padY),
+          paddingTop: Math.max(6, resolvedPadY),
+          paddingBottom: Math.max(6, resolvedPadY),
           paddingLeft: m.padX,
           paddingRight: m.padX,
           gap: Math.max(8, m.gap / 2),
@@ -559,7 +588,7 @@ export function MaylecorMotionChrome({
         {brand}
 
         <nav
-          className="hidden min-w-0 flex-1 items-center justify-center gap-x-4 md:flex md:gap-x-6 lg:gap-x-8"
+          className="hidden min-w-0 flex-1 items-center justify-center gap-x-4 @[768px]:flex @[768px]:gap-x-6 @[1024px]:gap-x-8"
           aria-label="Site"
           style={{ flexWrap: "nowrap" }}
         >
@@ -568,12 +597,12 @@ export function MaylecorMotionChrome({
 
         <div className="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-3">
           <MaylecorSocialBar links={socialLinks} accentColor={accentColor} variant="pill" />
-          <div className="hidden sm:block">{localeRow}</div>
+          <div className="hidden @[640px]:block">{localeRow}</div>
         </div>
       </div>
       {/* Second row only on small screens — one professional bar on desktop */}
       <nav
-        className="pointer-events-auto flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-white/10 px-4 py-2 md:hidden"
+        className="pointer-events-auto flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-white/10 px-4 py-2 @[768px]:hidden"
         aria-label="Site pages"
         style={{
           paddingLeft: m.padX,

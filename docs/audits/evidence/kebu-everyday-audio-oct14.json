@@ -1,0 +1,71 @@
+{
+  "branch": "work/kebu-completion-audit-oct13",
+  "parentCommit": "1332132d56f23278b7fe138de485a8faea8bd7d9",
+  "sourceSha256": "24aea0e193fb734f58a85828550c73bb4805b66a73972edeba83cbee67c81f52",
+  "sourceFileCount": 1880,
+  "ci": {
+    "exitCode": 0,
+    "durationMs": 167982,
+    "buildId": "cnYp45v7VAM7B4FlK7RAs",
+    "testsPassed": 5917,
+    "testsSkipped": 168,
+    "testFilesPassed": 356,
+    "testFilesSkipped": 22,
+    "lintErrors": 0,
+    "lintWarnings": 348,
+    "generatedPages": 220
+  },
+  "workBrowser": {
+    "startTime": "2026-10-14T05:04:42.864Z",
+    "duration": 35147.534,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "sqlQueries": 54,
+    "sqlAssertions": 8,
+    "reproducedOwnershipEscalationBeforeGuard": true
+  },
+  "studioBrowser": {
+    "startTime": "2026-10-14T05:01:12.874Z",
+    "duration": 47652.259,
+    "expected": 20,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "visualFixtures": [
+    "library-mobile.png",
+    "calendar-mobile.png",
+    "tasks-desktop.png"
+  ],
+  "newMigration": "20261014043916_workspace_item_identity_guard.sql",
+  "hostedMigrationsApplied": [],
+  "hostedReadOnlySchemaTables": [
+    "workspace_items",
+    "library_nodes",
+    "mailboxes",
+    "rooms",
+    "studio_design_versions"
+  ],
+  "connectedOrganization": {
+    "name": "Kebu",
+    "id": "zdoqqcrxrbxkbxobjrsp"
+  },
+  "qaResourceCreated": false,
+  "qaCostConfirmed": false,
+  "externalMutations": [],
+  "pushed": false,
+  "merged": false,
+  "deployed": false,
+  "fullKebuComplete": false,
+  "full3J": "open",
+  "completed3CThrough3I": "preserved",
+  "limitations": [
+    "Loopback Auth and REST fixtures; actual Next work API and supabase-js with PGlite/RLS",
+    "Minimal prerequisites rather than full managed Supabase install",
+    "Studio HTTP fixtures remain controlled; decoded media output is actual",
+    "No hosted auth/storage/native multi-session/provider acceptance",
+    "Remaining original requirements still open; no whole recovered group closed"
+  ]
+}

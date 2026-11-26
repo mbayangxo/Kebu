@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { customDomainDnsTarget, buildDnsInstructions, normalizeHostname, validateCustomHostname } from "@/lib/create/dns-target";
-import { provisionCustomDomainOnHosting, hostingDomainAutoProvisionEnabled } from "@/lib/create/vercel-domains";
+import {
+  provisionCustomDomainOnHosting,
+  removeCustomDomainFromHosting,
+  hostingDomainAutoProvisionEnabled,
+} from "@/lib/create/vercel-domains";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +108,9 @@ export async function GET(_req: Request, { params }: Params) {
 export async function POST(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
@@ -208,6 +216,9 @@ export async function DELETE(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -230,6 +241,25 @@ export async function DELETE(req: Request, { params }: Params) {
   const parsed = deleteSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  }
+
+  const { data: domain } = await supabase
+    .from("site_domains")
+    .select("id, hostname")
+    .eq("id", parsed.data.domainId)
+    .eq("project_id", projectId)
+    .maybeSingle();
+
+  if (!domain) {
+    return NextResponse.json({ error: "Domain not found." }, { status: 404 });
+  }
+
+  // Detach hosting first. Keeping the database row on provider failure makes
+  // cleanup retryable and prevents a stale hostname from becoming invisible.
+  const hosting = await removeCustomDomainFromHosting(domain.hostname);
+  if (!hosting.ok) {
+    if (hosting.opsHint) console.warn("[domains.remove] hosting cleanup", hosting.opsHint);
+    return NextResponse.json({ error: hosting.detail }, { status: 502 });
   }
 
   const { error } = await supabase

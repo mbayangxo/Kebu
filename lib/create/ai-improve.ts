@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
 import type { AiImproveBrief, WebsiteDefinition } from "./website-schema";
 import { validateWebsiteDefinition } from "./website-schema";
+import { usesOnlyApprovedWebsiteMedia, websiteMediaReferences } from "./website-media-policy";
 
 function extractJson(text: string): unknown {
   const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
@@ -42,6 +42,19 @@ const LB_VISUAL_KEYS = [
   "scrollMode",
   "extraCutouts",
   "layerMoves",
+  "layerPositions",
+  "layerScales",
+  "layerZIndex",
+  "hiddenLayers",
+  "titleAsText",
+  "titleTextFontFamily",
+  "titleTextFontSize",
+  "titleTextFontWeight",
+  "titleTextLetterSpacing",
+  "titleTextLineHeight",
+  "titleTextColor",
+  "embeddedFooterPaddingTop",
+  "embeddedFooterPaddingBottom",
 ] as const;
 
 function isBlankUrl(v: unknown): boolean {
@@ -181,21 +194,21 @@ export function preserveTemplateVisualAssets(
  */
 export async function improveWebsiteWithAi(
   current: WebsiteDefinition,
-  brief: AiImproveBrief
+  brief: AiImproveBrief,
+  userId: string | null = null,
 ): Promise<
   | { ok: true; definition: WebsiteDefinition; repaired: boolean }
   | { ok: false; error: string }
 > {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     return {
       ok: false,
       error:
-        "AI is not set up yet. Ask Kebu support to enable ANTHROPIC_API_KEY, or keep editing by hand.",
+        "Yande improvements are unavailable. Your saved site is kept. Try again later or keep editing by hand.",
     };
   }
 
-  const anthropic = new Anthropic({ apiKey });
   const system = `You are Yande — Kebu's expert website DESIGNER for African businesses. Improve Kebu website structures. Return ONLY JSON matching schemaVersion “website-v1”.
 
 ALLOWED SECTION TYPES (use premium ones where appropriate):
@@ -213,6 +226,7 @@ DESIGN PHILOSOPHY:
 - Always WhatsApp section for any business with a phone.
 - Preserve useful facts (phones, emails, brand name, photo URLs, collagePhotos, socialLinks, logoImage) unless user explicitly asks to change.
 - For kdirection-home: keep backgroundCss, collagePhotos. For legally-blonde-hero: keep cutout URLs.
+- Use only media references already in the current website. Never substitute a different photograph, face, video, audio source or background media. Omit new media until the owner adds it in the editor.
 - Keep at least one home page. Never invent fake phone numbers.`;
 
   const modeHint =
@@ -226,12 +240,18 @@ DESIGN PHILOSOPHY:
             ? "MODE A8 Optimize conversion/mobile: Shorten copy, clearer CTAs, WhatsApp/Wave/order paths, mobile-first hierarchy. Prefer fewer words, stronger next actions."
             : "";
 
+  const selectedElementHint = brief.focusElement
+    ? `The user currently selected Builder element "${brief.focusElement.label}" (${brief.focusElement.kind}) in section ${brief.focusElement.sectionId}, element key ${brief.focusElement.elementId}, on ${brief.focusElement.device ?? "desktop"}. Treat that exact selection as the primary scope. Do not redesign unrelated sections unless the instruction explicitly asks for it.`
+    : "";
+
   const focus =
     brief.focusSectionTypes && brief.focusSectionTypes.length > 0
       ? `Focus changes on these section types: ${brief.focusSectionTypes.join(", ")}. Leave other sections mostly intact.`
-      : brief.mode === "page"
-        ? "Focus on the requested page; keep other pages stable."
-        : "Improve clarity, offer strength, and contact readiness across the whole home page.";
+      : brief.focusElement
+        ? "Keep unrelated pages, sections, assets, and layout settings stable. Prefer the smallest structured change that satisfies the request."
+        : brief.mode === "page"
+          ? "Focus on the requested page; keep other pages stable."
+          : "Improve clarity, offer strength, and contact readiness across the whole home page.";
 
   const userInstruction = brief.instruction?.trim()
     ? `User request: ${brief.instruction.trim()}`
@@ -247,6 +267,7 @@ DESIGN PHILOSOPHY:
 
   const userPrompt = `${modeHint}
 ${userInstruction}
+${selectedElementHint}
 ${focus}
 
 Current website JSON:
@@ -255,18 +276,15 @@ ${JSON.stringify(current)}
 Return a full improved website-v1 JSON object only.`;
 
   async function call(prompt: string) {
-    const response = await anthropic.messages.create({
+    const { yandeChat } = await import("@/lib/yande/gateway");
+    const response = await yandeChat({
+      feature: "builder_site_improve", userId,
       model: "claude-opus-4-8",
-      max_tokens: 8000,
+      maxTokens: 8000, timeoutMs: 60_000, requireComplete: true,
       thinking: { type: "adaptive" },
-      messages: [
-        { role: "user", content: system },
-        { role: "user", content: prompt },
-      ],
+      systemPrompt: system, userMessage: prompt,
     });
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") throw new Error("No text in AI response");
-    return extractJson(textBlock.text);
+    return extractJson(response.reply);
   }
 
   function finalize(def: WebsiteDefinition, repaired: boolean) {
@@ -274,6 +292,9 @@ Return a full improved website-v1 JSON object only.`;
     const again = validateWebsiteDefinition(merged);
     if (!again.ok) {
       return { ok: false as const, error: `AI output failed after asset preserve: ${again.error}` };
+    }
+    if (!usesOnlyApprovedWebsiteMedia(again.data, websiteMediaReferences(current))) {
+      return { ok: false as const, error: "Yande proposed media outside your saved site. Add your approved media in the editor, then try again. Your saved site is unchanged." };
     }
     return { ok: true as const, definition: again.data, repaired };
   }
@@ -297,10 +318,10 @@ Return a full improved website-v1 JSON object only.`;
       ok: false,
       error: `AI output failed schema validation after repair: ${validated.error}`,
     };
-  } catch (err) {
+  } catch {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "AI improve failed",
+      error: "Yande could not complete these changes. Your saved site is unchanged. Try again later.",
     };
   }
 }

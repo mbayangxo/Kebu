@@ -1,0 +1,176 @@
+{
+  "steps": [
+    {
+      "step": "cookie set on main host",
+      "pass": true,
+      "detail": [
+        "kebu_data_mode@kebu.africa",
+        "sb-kebu-test-session@kebu.africa"
+      ]
+    },
+    {
+      "step": "cookie re-sent on main-host reload (sanity check)",
+      "pass": true,
+      "detail": [
+        {
+          "url": "http://kebu.africa:38777/",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/media/2b81eeca71e9850c-s.p.3vm0tq4e-zz_5.woff2",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/media/d8aeca813a9ab546-s.p.18rizl4rsrl42.woff2",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/_1h70ut0qhzzb2._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/media/2b81eeca71e9850c-s.p.3vm0tq4e-zz_5.woff2",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/media/d8aeca813a9ab546-s.p.18rizl4rsrl42.woff2",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/%5Broot-of-the-server%5D__0j7mxitw6_gze._.css",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0fb9-gqu7_t97._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/1daa_next_dist_compiled_react-dom_cjs_react-dom-client_development_0mp0cp_t-ezj9.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/1q96_modules_next_dist_compiled_react-dom_cjs_react-dom_development_1sqry0_53krp4.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_compiled_react-dom_0grqycjrj6mju._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_compiled_1amofcmz--cdp._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_client_1165-soo5tfpf._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_05y3oi5z9mc_3._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_%40swc_helpers_cjs_1r9vbqwj2323d._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/_1anvha4rlo79g._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/turbopack-_11q0wbt2n0d9y._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/_219uq1sj0q91c._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_20wefz_f1k6jn._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/_14mt17r5mm55e._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_%40supabase_postgrest-js_dist_index_mjs_0pzlnq8ar8f4e._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_%40supabase_auth-js_dist_module_1vqrmkgvzhvl8._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_zod_v4_classic_0ktmf1jn-65-v._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_zod_v4_core_14qn2mg1f8pkp._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_zod_v4_locales_1-ided7izgr--._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_0gpggz56x79_w._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/_0j5rec9lkr6pa._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/chunks/node_modules_next_dist_1aa47hljo-d43._.js",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/media/2b81eeca71e9850c-s.p.3vm0tq4e-zz_5.woff2",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        },
+        {
+          "url": "http://kebu.africa:38777/_next/static/media/d8aeca813a9ab546-s.p.18rizl4rsrl42.woff2",
+          "cookieHeader": "kebu_data_mode=data_saver; sb-kebu-test-session=main-app-secret-session-token"
+        }
+      ]
+    },
+    {
+      "step": "main-app cookie NOT visible via document.cookie nor sent on the wire to the Cloud-deployment origin",
+      "pass": true,
+      "detail": {
+        "docCookieOnCloud": "Sandbox blocked cookie access",
+        "cloudRequestCookies": [
+          {
+            "url": "http://testdeploy.cloud.kebu.africa:38777/",
+            "cookieHeader": ""
+          }
+        ],
+        "cloudCookieJarInformationalOnly": [
+          "kebu_data_mode@kebu.africa",
+          "sb-kebu-test-session@kebu.africa"
+        ],
+        "note": "cloudCookieJarInformationalOnly uses Playwright context.cookies(), a CDP API with looser domain-match reporting than real same-host send behavior -- not used for the verdict."
+      }
+    },
+    {
+      "step": "actual Cloud API rejects opaque sandbox Origin before authentication or mutation",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    }
+  ],
+  "overallPass": true
+}

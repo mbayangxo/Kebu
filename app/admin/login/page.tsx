@@ -26,7 +26,14 @@ export default function AdminLoginPage({
       });
       if (res.ok) {
         const { next: dest } = await res.json();
-        router.push(dest || "/admin");
+        const safeDest =
+          typeof dest === "string" &&
+          dest.startsWith("/admin") &&
+          !dest.startsWith("//") &&
+          !dest.includes("\\")
+            ? dest
+            : "/admin";
+        router.push(safeDest);
         router.refresh();
       } else {
         setError("Incorrect password");

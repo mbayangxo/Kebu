@@ -1,0 +1,1272 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/tmp/kebu-native-source-m90Xxp/node_modules/playwright/cli.js",
+      "test",
+      "tests/creative-core/builder-operation-ui.local.spec.ts",
+      "tests/creative-core/collage-parity.local.spec.ts",
+      "tests/creative-core/world-visitor.local.spec.ts",
+      "--config",
+      "/tmp/kebu-native-source-m90Xxp/scripts/native-ui-temporary.config.mjs"
+    ],
+    "configFile": "/tmp/kebu-native-source-m90Xxp/scripts/native-ui-temporary.config.mjs",
+    "rootDir": "/tmp/kebu-native-source-m90Xxp/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 1,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/scratch/b1df23e7b9e8/world-combined-gate/traces",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/kebu-native-source-m90Xxp/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/workspace/scratch/b1df23e7b9e8/world-combined-gate/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "creative-core/builder-operation-ui.local.spec.ts",
+      "file": "creative-core/builder-operation-ui.local.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "property save → operation Undo/Redo → reload uses canonical storage and no legacy writes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14617,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:04:51.108Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-89a93a8097970272a5ea",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 75,
+          "column": 5
+        },
+        {
+          "title": "conflict preserves the user's edit and shows the failure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1882,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:05.816Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-73dfbdb3bcf2ebbe459a",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 93,
+          "column": 5
+        },
+        {
+          "title": "device editing preserves Desktop and Undo/Redo travels override plus state atomically",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2320,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:07.708Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-44c35f21d837618c2f1f",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 100,
+          "column": 5
+        },
+        {
+          "title": "duplicate → remove → Undo restores the same id through structural operations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1335,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:10.041Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-e12974b80d060cc4736c",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 116,
+          "column": 5
+        },
+        {
+          "title": "a truncated committed reply retries the exact transaction without a second version bump",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1933,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:11.388Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-bea22cace93879ec5911",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 130,
+          "column": 5
+        },
+        {
+          "title": "missing operation protocol blocks the editing surface with Retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 716,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:13.332Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-e328a25d03b5e23785b0",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 141,
+          "column": 5
+        },
+        {
+          "title": "local operation Builder loads at 768px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 883,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:14.058Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-587abc2d2ce7c5cf7497",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 148,
+          "column": 37
+        },
+        {
+          "title": "local operation Builder loads at 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 891,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:14.948Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-e6fadb7f6ca9436499dd",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 148,
+          "column": 37
+        },
+        {
+          "title": "Builder desktop edit-to-painted-canvas baseline at 100 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 35,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:15.851Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-cb5dcf007c858f985242",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder desktop edit-to-painted-canvas baseline at 500 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 36,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:15.895Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-323119b849b4e7b6ae90",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder desktop edit-to-painted-canvas baseline at 2000 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 41,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:15.946Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-144f559de56a1b6b5c8e",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder tablet edit-to-painted-canvas baseline at 100 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 33,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:15.994Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-a77d582a8bc89221894e",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder tablet edit-to-painted-canvas baseline at 500 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 37,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:16.034Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-7ae746cd11a9d7b5fe4e",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder tablet edit-to-painted-canvas baseline at 2000 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 39,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:16.078Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-42a07eb7e6f8a711a9ef",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder mobile edit-to-painted-canvas baseline at 100 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 36,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:16.125Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-08986675e8f090f3b3aa",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder mobile edit-to-painted-canvas baseline at 500 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 32,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:16.168Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-6ed19d4b7b0550033d78",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Builder mobile edit-to-painted-canvas baseline at 2000 nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Optional evidence run; not the authenticated QA gate.",
+                  "location": {
+                    "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                    "line": 165,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 32,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:16.208Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Optional evidence run; not the authenticated QA gate.",
+                      "location": {
+                        "file": "/tmp/kebu-native-source-m90Xxp/tests/creative-core/builder-operation-ui.local.spec.ts",
+                        "line": 165,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8da135831df425435a45-7afd43879aa83a13ef0e",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 164,
+          "column": 45
+        },
+        {
+          "title": "Pages adds, renames, reorders and deletes through atomic operation history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2598,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:16.247Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-ad5d27ad8b86ea0198ec",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 207,
+          "column": 5
+        },
+        {
+          "title": "page save reports navigation failure and blocks Undo until reconciliation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2027,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:18.852Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-a41750b1c2fa4d602b27",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 239,
+          "column": 5
+        },
+        {
+          "title": "normal Builder saves campaign-wall content, reloads and exposes public interactions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4951,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:20.895Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-ac75e07f4ed155b8370d",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 253,
+          "column": 7
+        },
+        {
+          "title": "normal Builder saves directional-world content, reloads and exposes public interactions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5989,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:25.852Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-03e4cdc1ddf8cf97f34a",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 253,
+          "column": 7
+        },
+        {
+          "title": "ordinary user creates a neutral directional world from Add section without code",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2126,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:31.852Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8da135831df425435a45-0c1756819b1c4e2816a3",
+          "file": "creative-core/builder-operation-ui.local.spec.ts",
+          "line": 299,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "creative-core/collage-parity.local.spec.ts",
+      "file": "creative-core/collage-parity.local.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "saved cutout geometry survives preview and fixture reload without Russian fallback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2366,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:33.989Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e8ab1f95d09cd5180079-e4a6f939d1f2fdf4c89e",
+          "file": "creative-core/collage-parity.local.spec.ts",
+          "line": 4,
+          "column": 5
+        },
+        {
+          "title": "navigation uses narrow container width inside a desktop viewport",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 869,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:36.367Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e8ab1f95d09cd5180079-cdf654936eadfe0d7970",
+          "file": "creative-core/collage-parity.local.spec.ts",
+          "line": 32,
+          "column": 5
+        },
+        {
+          "title": "parallax changes geometry on scroll and motion-off removes the track",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1022,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:37.251Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e8ab1f95d09cd5180079-c14eae93969d72c1909f",
+          "file": "creative-core/collage-parity.local.spec.ts",
+          "line": 44,
+          "column": 5
+        },
+        {
+          "title": "ordinary section picker creates an editable collage without private artist assets",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 872,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:38.288Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e8ab1f95d09cd5180079-4d5963d49a15a1de56ac",
+          "file": "creative-core/collage-parity.local.spec.ts",
+          "line": 59,
+          "column": 5
+        },
+        {
+          "title": "phone viewport respects reduced motion without hiding the saved portraits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 766,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:39.170Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e8ab1f95d09cd5180079-f858fa60ef10c868d468",
+          "file": "creative-core/collage-parity.local.spec.ts",
+          "line": 72,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "creative-core/world-visitor.local.spec.ts",
+      "file": "creative-core/world-visitor.local.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "creative drafts remain usable at 1440px and respect reduced motion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4833,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:39.949Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "7401ecc62cde3d0337dc-e1b36617ad8048d42b14",
+          "file": "creative-core/world-visitor.local.spec.ts",
+          "line": 5,
+          "column": 7
+        },
+        {
+          "title": "creative drafts remain usable at 390px and respect reduced motion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3723,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T05:05:44.792Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "7401ecc62cde3d0337dc-d9f0383d178c24e418bb",
+          "file": "creative-core/world-visitor.local.spec.ts",
+          "line": 5,
+          "column": 7
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-17T05:04:49.075Z",
+    "duration": 59507.807,
+    "expected": 20,
+    "skipped": 9,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

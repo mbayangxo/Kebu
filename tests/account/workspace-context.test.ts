@@ -1,46 +1,33 @@
 import { describe, expect, it } from "vitest";
-import {
-  businessScopedHref,
-  resolveAccountContext,
-  workspacePatchSchema,
-} from "@/lib/account/workspace-context";
+import { resolveAccountContext } from "@/lib/account/workspace-context";
 
-describe("Account workspace context", () => {
-  const businesses = [
-    { id: "b1", publicKebuId: "KEBU-SN-01-ABC123", name: "May Lecor", role: "founder" },
-    { id: "b2", publicKebuId: "KEBU-SN-01-XYZ789", name: "Second Co", role: "viewer" },
-  ];
+const business = {
+  id: "11111111-1111-4111-8111-111111111111",
+  publicKebuId: "KEBU-SN-26-ABC123",
+  name: "Ndao Studio",
+  role: "founder",
+};
 
-  it("defaults to personal when no active business", () => {
-    const ctx = resolveAccountContext({ activeBusinessId: null, businesses });
-    expect(ctx.mode).toBe("personal");
-    expect(ctx.activeBusiness).toBeNull();
+describe("workspace context", () => {
+  it("keeps Personal Kebu explicit even when the user has one business", () => {
+    const context = resolveAccountContext({ activeBusinessId: null, businesses: [business] });
+    expect(context.mode).toBe("personal");
+    expect(context.activeBusinessId).toBeNull();
+    expect(context.activeBusiness).toBeNull();
   });
 
-  it("auto-selects sole business membership", () => {
-    const ctx = resolveAccountContext({
-      activeBusinessId: null,
-      businesses: [businesses[0]!],
+  it("enters only an explicitly active accessible business", () => {
+    const context = resolveAccountContext({ activeBusinessId: business.id, businesses: [business] });
+    expect(context.mode).toBe("business");
+    expect(context.activeBusinessId).toBe(business.id);
+  });
+
+  it("falls back to personal when the stored business is no longer accessible", () => {
+    const context = resolveAccountContext({
+      activeBusinessId: "22222222-2222-4222-8222-222222222222",
+      businesses: [business],
     });
-    expect(ctx.mode).toBe("business");
-    expect(ctx.activeBusinessId).toBe("b1");
-  });
-
-  it("clears invalid active business id", () => {
-    const ctx = resolveAccountContext({ activeBusinessId: "unknown", businesses });
-    expect(ctx.mode).toBe("personal");
-  });
-
-  it("scopes business home href", () => {
-    expect(businessScopedHref("/business", "b1")).toBe("/business/b1");
-    expect(businessScopedHref("/business/register", "b1")).toBe("/business/register");
-  });
-
-  it("validates workspace patch", () => {
-    expect(workspacePatchSchema.parse({ mode: "personal" }).mode).toBe("personal");
-    expect(
-      workspacePatchSchema.parse({ mode: "business", businessId: "550e8400-e29b-41d4-a716-446655440000" })
-        .mode,
-    ).toBe("business");
+    expect(context.mode).toBe("personal");
+    expect(context.activeBusinessId).toBeNull();
   });
 });

@@ -49,7 +49,7 @@ describe("C4 product variants", () => {
   });
 
   it("ships migration 064 with variants table", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/064_creation_stack_slices.sql"), "utf8");
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations_archive/legacy/064_creation_stack_slices.sql"), "utf8");
     expect(sql).toContain("project_product_variants");
     expect(sql).toContain("project_product_collections");
     expect(sql).toContain("business_brand_kits");

@@ -1,0 +1,11 @@
+{
+  "codeCommit": "6ea9d0881300941682d32332f4914085912b04b9",
+  "exitCode": 0,
+  "passed": 6327,
+  "explicitSkips": 290,
+  "lintErrors": 0,
+  "repositoryWarnings": 347,
+  "productionBuild": "finalized",
+  "focusedTestsPassed": 57,
+  "canonicalMigrationVersions": 90
+}

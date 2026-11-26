@@ -1,0 +1,43 @@
+{
+  "scope": "Adversarial audit of the digital-fulfillment durability boundary added on Oct 15 (fulfillPaidDigitalOrder/Durable, platform_jobs digital.fulfill), against 7 specific failure scenarios.",
+  "findings": [
+    {
+      "point": "1. Fulfillment fails AND enqueueing fails must not falsely acknowledge durable recovery",
+      "status": "GAP FOUND AND FIXED",
+      "detail": "fulfillPaidDigitalOrderDurable caught the enqueue failure silently too, resolving normally — the webhook would then return ok:true even though nothing durable was recorded. Fixed: the enqueue call is now in its own try/catch; a double failure is logged distinctly (event: shop.digital_fulfillment_unrecoverable) and RETHROWN. None of the 6 webhook call sites wrap this call in their own try/catch, so the throw correctly prevents the ok:true response and surfaces as a failed webhook response, letting the payment provider's own redelivery be the last-resort fallback. Verified: tests/shop/digital-downloads.test.ts 'rethrows when fulfillment AND enqueueing both fail'."
+    },
+    {
+      "point": "2. A crash after payment confirmation must not permanently lose fulfillment work",
+      "status": "GAP FOUND AND FIXED (for one sub-case); already handled for another",
+      "detail": "Two distinct crash points exist. (a) Worker process dies mid-job after claiming a platform_jobs row: already handled before this audit by the existing claim_platform_jobs lease-expiry sweep (10-minute lease, requeues to 'failed' or dead-letters at max_attempts) — verified for real against the actual migration SQL in tests/shop/digital-fulfillment-boundary.local.test.ts. (b) The webhook's own request process dies BEFORE ever calling fulfillPaidDigitalOrderDurable (timeout/container restart right after complete_shop_payment commits): no platform_jobs row exists yet in this case, so the lease-expiry sweep has nothing to find — this was a genuine unhandled gap. Fixed by adding reconcileOrphanedDigitalFulfillments(admin), called from the existing platform-worker cron (app/api/cron/platform-worker/route.ts) before each run, which scans recently-paid digital orders with no download row and enqueues a digital.fulfill job (idempotent, no-ops for orders a job already exists for)."
+    },
+    {
+      "point": "3. Duplicate webhooks / repeated worker execution must not duplicate entitlements, emails, or other side effects",
+      "status": "ALREADY CORRECT — verified, not changed",
+      "detail": "createDigitalDownload checks for an existing (order_id, product_id) row before inserting, backed by a real unique index (shop_digital_downloads_order_product_uidx) as a second line of defense against a race. emailDownloadLink passes idempotencyKey through to Resend's own Idempotency-Key header (lib/email/send-campaign.ts), which the provider itself de-duplicates on. enqueuePlatformJob upserts on idempotency_key with ignoreDuplicates. Worker claim concurrency (point 6) prevents two workers executing the same job row."
+    },
+    {
+      "point": "4. Worker failures must reach existing attempt/backoff/dead-letter behavior",
+      "status": "ALREADY CORRECT — verified with new tests",
+      "detail": "Confirmed lib/platform/worker.ts's digital.fulfill case calls the RAW (throwing) fulfillPaidDigitalOrder, never the webhook-facing Durable wrapper — a real failure flows into failPlatformJob exactly like any other job type. Added tests/platform/worker.test.ts case for dead-lettering once attempts reach max_attempts (not just the 'still has attempts left' case already covered Oct 15)."
+    },
+    {
+      "point": "5. Payment/order-state checks must prevent delivery for unpaid, cancelled, or otherwise ineligible orders",
+      "status": "ALREADY CORRECT — verified for real against the actual SQL, not assumed",
+      "detail": "consume_digital_download (the only path that actually serves the file, app/api/dl/[token]/route.ts) joins to shop_orders and requires payment_status='paid' AT REDEMPTION TIME, atomically with the download-count increment, in one UPDATE...FROM...RETURNING statement — not just at creation time. Verified against the real function body (not reimplemented) in tests/shop/digital-fulfillment-boundary.local.test.ts: paid-and-fresh succeeds; refunded (after the link was already issued) is refused and the counter stays untouched; never-paid is refused; expired is refused; max_downloads is enforced atomically (3rd attempt at limit 2 fails)."
+    },
+    {
+      "point": "6. Inspect existing refund/revocation rules and concurrent execution behavior",
+      "status": "INSPECTED — no gap found",
+      "detail": "Refund (app/api/projects/[id]/orders/route.ts, action=refund) is a single atomic UPDATE...WHERE id= AND project_id= statement — no read-then-write race. It flips the same payment_status column that consume_digital_download checks, so an already-issued download link stops working immediately on refund without any separate revocation step needed (see point 5's verified test). Worker claim concurrency uses FOR UPDATE SKIP LOCKED (verified: a second concurrent claim call never claims the same queued row — tests/shop/digital-fulfillment-boundary.local.test.ts)."
+    },
+    {
+      "point": "7. Verify actual SQL constraints/transaction behavior locally + fault-injection tests",
+      "status": "DONE",
+      "detail": "tests/shop/digital-fulfillment-boundary.local.test.ts (10 cases, PGlite, skipped unless KEBU_LOCAL_PGLITE_ROOT is set — run explicitly for this audit, all 10 passed) executes the REAL consume_digital_download and claim_platform_jobs function bodies sliced verbatim from the actual migration files, against a minimal stand-in schema, rather than reimplementing the logic. Plus 6 new mocked fault-injection unit tests across tests/shop/digital-downloads.test.ts and tests/platform/worker.test.ts for the double-failure, reconciliation-sweep, and dead-letter scenarios. Hosted Supabase/Postgres acceptance remains explicitly open — this verifies the SQL logic locally."
+    }
+  ],
+  "noCompetingQueueIntroduced": "reconcileOrphanedDigitalFulfillments reuses the existing platform_jobs table/idempotency mechanism and the existing platform-worker cron schedule — it is a backfill scan, not a second queue or a new cron entry.",
+  "noteOnCronFrequency": "app/api/cron/platform-worker runs once daily (vercel.json: 15 6 * * *) — a Vercel plan limitation (vercel.json's own comment: 'Vercel plan only permits daily cron schedules'), already worked around for mail workers by moving them to Supabase pg_cron. This means the worst-case latency for a deferred digital.fulfill retry (or an orphaned-order backfill) is up to ~24h, not lost delivery — flagged as a pre-existing scheduling limitation, not fixed here since changing cron infrastructure was not asked for and is a separate, broader change.",
+  "fullSuiteResult": "typecheck 0 errors; lint 0 errors/348 warnings; vitest 5,944 passed/178 skipped (same 3 pre-existing hosted-QA-only failures, +6 passed/+10 skipped vs. the Oct 15 checkpoint — the 10 new skips are the real-SQL file, skipped by default without KEBU_LOCAL_PGLITE_ROOT, and were run explicitly for this audit with all 10 passing); build exit 0."
+}

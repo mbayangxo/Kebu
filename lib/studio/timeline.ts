@@ -75,3 +75,11 @@ export function formatTimelineClock(ms: number): string {
   const rem = s - m * 60;
   return `${m}:${rem.toFixed(1).padStart(4, "0")}`;
 }
+
+/** Static designs keep their workspace quiet; media and motion need time tools. */
+export function studioNeedsTimeline(doc: Pick<CanvasDocument, "pages" | "soundtrack">): boolean {
+  return Boolean(doc.soundtrack?.url || doc.pages.some(page =>
+    Boolean(page.transitionKind && page.transitionKind !== "cut") || page.layers.some(layer =>
+      layer.type === "video" || layer.frameMediaKind === "video" ||
+      Boolean(layer.animationPreset && layer.animationPreset !== "none"))));
+}

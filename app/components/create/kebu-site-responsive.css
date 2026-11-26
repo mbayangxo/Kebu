@@ -84,19 +84,30 @@
   max-width: 100%;
 }
 
+/* Hamburger button: always a minimum tap-target size */
+.kebu-site .kebu-nav-hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .kebu-site .kebu-site-nav__brand {
     max-width: 42%;
     font-size: 0.9rem;
   }
 
+  /* Hide desktop nav links on mobile — prevents the custom display:flex above from
+     overriding Tailwind's `hidden` class at mobile breakpoints. */
   .kebu-site .kebu-site-nav__links {
-    justify-content: flex-start;
-    width: 100%;
-  }
-
-  .kebu-site .kebu-site-nav__links a {
-    font-size: 0.75rem;
+    display: none !important;
   }
 }
 
@@ -470,3 +481,15 @@ html.kebu-mode-ultra .kebu-app {
   }
 }
 
+
+/* Small social-link variants must work in the first HTML without JavaScript. */
+.kebu-social-device-desktop { display: contents; }
+.kebu-social-device-tablet, .kebu-social-device-mobile { display: none; }
+@media (640px < width <= 1024px) {
+  .kebu-social-device-desktop { display: none; }
+  .kebu-social-device-tablet { display: contents; }
+}
+@media (width <= 640px) {
+  .kebu-social-device-desktop { display: none; }
+  .kebu-social-device-mobile { display: contents; }
+}

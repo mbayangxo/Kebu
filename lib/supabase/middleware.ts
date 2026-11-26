@@ -14,7 +14,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(pathname: string): boolean {
-  if (PUBLIC_PATHS.includes(pathname)) return true;
+  if (PUBLIC_PATHS.includes(pathname) || pathname === "/app-store") return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/api/")) return true;
   if (pathname.startsWith("/map/")) return true;
@@ -46,6 +46,20 @@ function isPublicPath(pathname: string): boolean {
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Gallery embeds contain only public template seeds. The page validates the
+  // slug with isPublicTemplateSlug; owner portfolios still return notFound.
+  // Keep this narrow exception ahead of the general /create auth guard.
+  if (/^\/create\/templates\/preview\/[^/]+\/?$/.test(pathname)) {
+    return NextResponse.next({ request });
+  }
+
+  // Dev-only Playwright fixture (renders a source-controlled template with no DB/auth
+  // needed) — the route component itself also 404s outside dev, this is defense in depth
+  // so a real deploy never serves it even if this exception were present there by mistake.
+  if (process.env.NODE_ENV !== "production" && pathname === "/create/demo/maylecor-fixture") {
+    return NextResponse.next({ request });
+  }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.next({ request });

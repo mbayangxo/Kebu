@@ -2,7 +2,7 @@
 
 Feature is **NOT built** until UI + logic + Supabase + auth + permissions + error states + tests pass CI.
 
-**Status source of truth:** `docs/IMPLEMENTATION_STATUS.md`
+**Current closeout:** [KEBU_CLOSEOUT_REGISTER.md](KEBU_CLOSEOUT_REGISTER.md). It retains the 99 recovered requirement groups and 25 Creative OS groups. The dated inventory below is historical, not a current implementation or release certificate. In particular Mail, Search and Studio have substantial implementations; their old “future/not started” labels must not trigger duplicate builds. **Historical implementation log:** `docs/IMPLEMENTATION_STATUS.md`
 
 ---
 

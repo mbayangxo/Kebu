@@ -63,9 +63,9 @@ export function normalizeMaylecorRussianHeroProps(
   const base = defaultMaylecorKsendrProps(artistName);
   const staleSeed = String(props.seedRevision ?? "") !== MAYLECOR_SEED_REVISION;
   const userExtras = Array.isArray(props.extraCutouts) ? props.extraCutouts : null;
-  /** On seed bump, re-merge logo/city from current defaults so Cursor edits land in the draft. */
+  /** Preserve authored layers across seed updates; merge only missing defaults. */
   const extrasSource =
-    staleSeed || !userExtras || userExtras.length === 0
+    !userExtras || userExtras.length === 0
       ? (base.extraCutouts ?? [])
       : userExtras;
   const merged = {
@@ -88,12 +88,10 @@ export function normalizeMaylecorRussianHeroProps(
     motionEnabled: props.motionEnabled !== false,
     /** Always prefer circle seal image — never Russian wordmark / text ring by default. */
     titleAsText: false,
-    layerScales: staleSeed
-      ? { ...(base.layerScales as Record<string, number>) }
-      : {
-          ...(base.layerScales as Record<string, number>),
-          ...((props.layerScales as Record<string, number> | undefined) ?? {}),
-        },
+    layerScales: {
+      ...(base.layerScales as Record<string, number>),
+      ...((props.layerScales as Record<string, number> | undefined) ?? {}),
+    },
     layerMotions: {
       ...((base.layerMotions as Record<string, string> | undefined) ?? {}),
       ...((props.layerMotions as Record<string, string> | undefined) ?? {}),

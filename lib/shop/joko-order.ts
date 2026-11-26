@@ -1,6 +1,5 @@
 import { createJokoCheckout } from "@/lib/joko/payments";
 import { jokoCheckoutAvailable } from "@/lib/create/site-commerce";
-import { recordPaymentLedgerEvent } from "@/lib/shop/payment-ledger";
 import { xofToCauris } from "@/lib/shop/cauris";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -97,54 +96,27 @@ export async function startShopOrderJokoCheckout(opts: {
   return { ok: true, paymentUrl: checkout.paymentUrl, reference, paymentId };
 }
 
+/**
+ * Mark a JOKO-paid shop order paid. Routes through the same atomic, row-locked
+ * `complete_shop_payment` RPC that Wave/Paystack use (matching by joko_reference) —
+ * closes a real race condition in the previous check-then-update version, where two
+ * concurrent webhook deliveries for the same payment could both pass the "not yet paid"
+ * read before either wrote, double-committing stock and double-inserting a ledger row.
+ */
 export async function markShopOrderPaid(
   admin: SupabaseClient,
   reference: string,
   paymentId: string | null,
 ): Promise<{ ok: true; orderId: string; projectId: string } | { ok: false; error: string }> {
-  const { data: order } = await admin
-    .from("shop_orders")
-    .select("id, project_id, payment_status")
-    .eq("joko_reference", reference)
-    .maybeSingle();
-
-  if (!order) return { ok: false, error: "Order not found." };
-  if (order.payment_status === "paid") {
-    return { ok: true, orderId: order.id, projectId: order.project_id };
-  }
-
-  const patch: Record<string, unknown> = {
-    payment_status: "paid",
-    status: "contacted",
-    updated_at: new Date().toISOString(),
-  };
-  if (paymentId) {
-    patch.joko_payment_id = paymentId;
-    patch.provider_payment_id = paymentId;
-  }
-  patch.payment_provider = "joko";
-
-  let { error } = await admin.from("shop_orders").update(patch).eq("id", order.id);
-  if (error && /payment_provider|provider_payment_id/i.test(error.message)) {
-    const legacy: Record<string, unknown> = {
-      payment_status: "paid",
-      status: "contacted",
-      updated_at: new Date().toISOString(),
-    };
-    if (paymentId) legacy.joko_payment_id = paymentId;
-    ({ error } = await admin.from("shop_orders").update(legacy).eq("id", order.id));
-  }
-
-  if (error) return { ok: false, error: error.message };
-  await recordPaymentLedgerEvent(admin, {
-    projectId: order.project_id,
-    orderId: order.id,
-    rail: "joko",
-    eventType: "paid",
-    provider: "joko",
-    providerReference: reference,
-    currency: "CAURIS",
-    meta: { paymentId },
+  const { data, error } = await admin.rpc("complete_shop_payment", {
+    p_reference: reference,
+    p_provider: "joko",
+    p_payment_id: paymentId,
   });
-  return { ok: true, orderId: order.id, projectId: order.project_id };
+  if (error) return { ok: false, error: error.message };
+  const receipt = Array.isArray(data) ? data[0] : data;
+  if (!receipt || !receipt.order_id || !receipt.project_id) {
+    return { ok: false, error: "Order not found." };
+  }
+  return { ok: true, orderId: receipt.order_id, projectId: receipt.project_id };
 }

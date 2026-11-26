@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs><pattern id="lines" width="1200" height="30" patternUnits="userSpaceOnUse"><path d="M0 29.5H1200" stroke="#c4c1d8" stroke-width="1"/></pattern><filter id="shadow"><feDropShadow dx="6" dy="10" stdDeviation="8" flood-opacity=".22"/></filter></defs>
+  <rect width="1200" height="800" fill="#e9006b"/>
+  <path d="M66 62 595 40 1130 65 1150 730 600 755 50 730Z" fill="#fff9ed" filter="url(#shadow)"/>
+  <path d="M66 62 595 40 1130 65 1150 730 600 755 50 730Z" fill="url(#lines)"/>
+  <path d="M595 42 600 752" stroke="#b6a39d" stroke-width="4"/>
+  <path d="M587 45 592 752M605 45 610 752" stroke="#eadbc8" stroke-width="7"/>
+  <path d="M100 90V710M1100 90V710" stroke="#e6a7b6" stroke-width="2"/>
+</svg>

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type CronJobName = "billing-monthly" | "site-health" | "shop-subscriptions";
+export type CronJobName = "billing-monthly" | "site-health" | "shop-subscriptions" | "security-check";
 
 export async function recordPlatformCronRun(
   supabase: SupabaseClient,

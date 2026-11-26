@@ -6,11 +6,13 @@ import type { StudioDesignVersionMeta } from "@/lib/studio/design-versions";
 export function StudioVersionHistoryPanel({
   designId,
   canEdit,
-  onRestored,
+  onSaveVersion,
+  onRestoreVersion,
 }: {
   designId: string;
   canEdit: boolean;
-  onRestored: () => void;
+  onSaveVersion: (label: string) => Promise<void>;
+  onRestoreVersion: (versionId: string) => Promise<void>;
 }) {
   const [versions, setVersions] = useState<StudioDesignVersionMeta[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -19,21 +21,23 @@ export function StudioVersionHistoryPanel({
   const [missingMigration, setMissingMigration] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/create/designs/${designId}/versions`, { credentials: "include" });
-    const data = await res.json().catch(() => ({}));
-    if (res.status === 503) {
-      setMissingMigration(true);
-      setVersions([]);
-      setError("Version history is not available yet.");
-      return;
-    }
-    if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Could not load versions.");
-      return;
-    }
-    setMissingMigration(false);
-    setVersions(Array.isArray(data.versions) ? data.versions : []);
-    setError(null);
+    try {
+      const res = await fetch(`/api/create/designs/${designId}/versions`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 503) {
+        setMissingMigration(true);
+        setVersions([]);
+        setError("Version history is not available yet.");
+        return;
+      }
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not load versions.");
+        return;
+      }
+      setMissingMigration(false);
+      setVersions(Array.isArray(data.versions) ? data.versions : []);
+      setError(null);
+    } catch { setError("Could not load versions. Check your connection and retry."); }
   }, [designId]);
 
   useEffect(() => {
@@ -45,19 +49,11 @@ export function StudioVersionHistoryPanel({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/create/designs/${designId}/versions`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: label.trim() || "Named version" }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not save version.");
-        return;
-      }
+      await onSaveVersion(label.trim() || "Named version");
       setLabel("");
       await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save version. Try again.");
     } finally {
       setBusy(false);
     }
@@ -71,19 +67,10 @@ export function StudioVersionHistoryPanel({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/create/designs/${designId}/versions/restore`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ versionId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Restore failed.");
-        return;
-      }
-      onRestored();
+      await onRestoreVersion(versionId);
       await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Restore failed. Try again.");
     } finally {
       setBusy(false);
     }
@@ -98,7 +85,7 @@ export function StudioVersionHistoryPanel({
         </p>
       </div>
 
-      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
+      {error ? <p role="alert" className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {missingMigration ? null : (
         <>
           {canEdit ? (

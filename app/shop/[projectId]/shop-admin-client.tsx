@@ -15,6 +15,7 @@ import { ShopCompaniesPanel } from "@/app/components/shop/shop-companies-panel";
 import { ShopDraftOrdersPanel } from "@/app/components/shop/shop-draft-orders-panel";
 import { ShopShippingPanel } from "@/app/components/shop/shop-shipping-panel";
 import { ShopDiscountsPanel } from "@/app/components/shop/shop-discounts-panel";
+import { ShopAffiliatesPanel } from "@/app/components/shop/shop-affiliates-panel";
 import { ShopAbandonedCartsPanel } from "@/app/components/shop/shop-abandoned-carts-panel";
 import { ShopMessagesPanel } from "@/app/components/shop/shop-messages-panel";
 import { ShopAnalyticsPanel } from "@/app/components/shop/shop-analytics-panel";
@@ -160,7 +161,7 @@ export default function ShopAdminPage() {
   const bc = breadcrumb(tab, sub);
 
   return (
-    <AppShell title={title}>
+    <AppShell title={title} immersive>
       <div className="shop-layout">
 
         {/* ── Left sidebar nav ── */}
@@ -185,15 +186,15 @@ export default function ShopAdminPage() {
               )}
             </div>
             <div className="shop-topbar-actions">
-              <ShopStoreSwitcher currentProjectId={projectId} currentTitle={title} />
-              <ShopNotificationsBell projectId={projectId} />
               <Link
-                href="/shop"
+                href={businessId ? `/business/${businessId}` : "/business"}
                 className="kb-btn-ghost"
                 style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
               >
-                All shops
+                ← Back
               </Link>
+              <ShopStoreSwitcher currentProjectId={projectId} currentTitle={title} />
+              <ShopNotificationsBell projectId={projectId} />
               <Link
                 href={`/create/${projectId}`}
                 className="kb-btn-primary"
@@ -280,7 +281,12 @@ export default function ShopAdminPage() {
                 {tab === "gift-cards"   && <ShopGiftCardsPanel projectId={projectId} />}
 
                 {tab === "discounts" && (
-                  <ShopDiscountsPanel projectId={projectId} businessId={businessId} />
+                  <div className="space-y-10">
+                    <ShopDiscountsPanel projectId={projectId} businessId={businessId} />
+                    <div className="border-t border-gray-200 pt-8">
+                      <ShopAffiliatesPanel projectId={projectId} />
+                    </div>
+                  </div>
                 )}
                 {tab === "markets"   && <ShopMarketsPanel projectId={projectId} />}
                 {tab === "sell"      && (

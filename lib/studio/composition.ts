@@ -4,8 +4,8 @@
  * Architecture law: Quick Edit · Smart Edit · Full Timeline all mutate THIS model.
  * Do not invent a second “toy” timeline format.
  *
- * Live today: page-based design timeline + soundtrack beats (see timeline.ts / music-analysis).
- * Multi-track composition fields are reserved for V1+ slices — parse-tolerant, not fake UI.
+ * The page-based design timeline and dedicated multi-track video editor use this model.
+ * Runtime/browser acceptance is recorded separately; schema support alone is not acceptance.
  */
 
 import { z } from "zod";
@@ -70,6 +70,26 @@ export const compositionClipSchema = z.object({
   y: z.number().min(-4000).max(4000).default(0),
   scale: z.number().min(0.05).max(8).default(1),
   rotation: z.number().min(-360).max(360).default(0),
+  /** Optional live provenance back to an editable Studio design page. */
+  sourceDesignPageId: z.string().trim().max(40).nullable().optional(),
+  sourceDesignLayerId: z.string().trim().max(40).nullable().optional(),
+  designWidth: z.number().min(1).max(4096).optional(),
+  designHeight: z.number().min(1).max(4096).optional(),
+  /** Clips sharing a linkGroupId move together (for linked picture/audio or intentional groups). */
+  linkGroupId: z.string().trim().max(40).nullable().optional(),
+  sourceAudioClipId: z.string().trim().max(40).nullable().optional(),
+  /** Semantic design payload keeps imported layers editable instead of flattening to page images. */
+  designLayer: z.object({
+    type: z.enum(["text","rect","ellipse","image","video","line","icon","frame"]),
+    text: z.string().max(500).optional(), fontSize: z.number().optional(), fontFamily: z.string().max(80).optional(), fontWeight: z.string().max(20).optional(),
+    fontStyle: z.enum(["normal","italic"]).optional(), color: z.string().max(40).optional(), textAlign: z.enum(["left","center","right"]).optional(),
+    letterSpacing: z.number().optional(), lineHeight: z.number().optional(), textDecoration: z.enum(["none","underline","line-through"]).optional(), textTransform: z.enum(["none","uppercase","lowercase"]).optional(),
+    fill: z.string().max(40).optional(), fillType:z.enum(["solid","linear_gradient"]).optional(), gradientFrom:z.string().max(40).optional(), gradientTo:z.string().max(40).optional(), gradientAngle:z.number().optional(), blendMode:z.enum(["normal","multiply","screen","overlay","darken","lighten","soft-light"]).optional(), stroke: z.string().max(40).optional(), strokeWidth: z.number().optional(), cornerRadius: z.number().optional(),
+    shadowColor: z.string().max(40).optional(), shadowBlur: z.number().optional(), shadowX: z.number().optional(), shadowY: z.number().optional(),
+    imageUrl: z.union([z.literal(""),z.string().url().max(500)]).optional(), videoUrl: z.union([z.literal(""),z.string().url().max(500)]).optional(),
+    flipX:z.boolean().optional(),flipY:z.boolean().optional(),objectFit:z.enum(["cover","contain"]).optional(),cropX:z.number().optional(),cropY:z.number().optional(),cropW:z.number().optional(),cropH:z.number().optional(),
+    brightness:z.number().optional(),contrast:z.number().optional(),saturation:z.number().optional(),grayscale:z.number().optional(),blur:z.number().optional(),iconKey:z.string().max(40).optional(),frameStyle:z.enum(["corner","rounded","polaroid"]).optional(),
+  }).optional(),
   /** Optional link to storyboard scene */
   sceneId: z.string().trim().max(40).nullable().optional(),
   /** Caption track text (V7) */
@@ -98,6 +118,8 @@ export const compositionTrackSchema = z.object({
   kind: z.enum(COMPOSITION_TRACK_KINDS),
   name: z.string().trim().max(80).default("Track"),
   muted: z.boolean().default(false),
+  solo: z.boolean().default(false),
+  volume: z.number().min(0).max(2).default(1),
   locked: z.boolean().default(false),
   order: z.number().int().min(0).max(64).default(0),
 });
@@ -139,9 +161,13 @@ export const compositionAssetSchema = z.object({
   durationMs: z.number().int().min(0).max(600_000).optional().nullable(),
   width: z.number().int().min(0).max(8192).optional().nullable(),
   height: z.number().int().min(0).max(8192).optional().nullable(),
+  peaks: z.array(z.number().min(0).max(1)).max(1200).optional(),
+  provider: z.enum(["upload","rect_sound"]).optional().default("upload"),
+  licenseRef: z.string().trim().max(200).optional().nullable(),
 });
 
 export type CompositionAsset = z.infer<typeof compositionAssetSchema>;
+export type CompositionAssetInput = z.input<typeof compositionAssetSchema>;
 
 /**
  * Full composition document (Phase 1+).
@@ -160,6 +186,7 @@ export const studioCompositionSchema = z.object({
   assets: z.array(compositionAssetSchema).max(100).default([]),
   music: compositionMusicAnalysisSchema.nullable().optional(),
   snapToBeats: z.boolean().default(true),
+  masterVolume: z.number().min(0).max(2).default(1),
   markers: z
     .array(
       z.object({
@@ -264,6 +291,45 @@ export function emptyStudioComposition(opts: {
   });
 }
 
+/**
+ * Add a new track of the given kind — the one genuine "add a track" gap this
+ * project's fixed 6-track default (V1/V2/Graphics/Text/Voice/Music) left
+ * unaddressed: a user who needs a second overlay or a separate voiceover
+ * track beyond what emptyStudioComposition() provisions had no way to get
+ * one, despite the schema already allowing up to 32.
+ */
+export function addTrack(
+  c: StudioComposition,
+  opts: { kind: CompositionTrackKind; name?: string },
+): StudioComposition | { error: string } {
+  if (c.tracks.length >= 32) return { error: "Track limit reached (32)." };
+  const order = c.tracks.reduce((m, t) => Math.max(m, t.order), -1) + 1;
+  const track = {
+    id: newCompositionId("tr"),
+    kind: opts.kind,
+    name: (opts.name ?? opts.kind.charAt(0).toUpperCase() + opts.kind.slice(1)).slice(0, 80),
+    muted: false,
+    locked: false,
+    order,
+  };
+  return studioCompositionSchema.parse({ ...c, tracks: [...c.tracks, track] });
+}
+
+/**
+ * Remove a track. Refuses to remove a track that still holds clips (or
+ * transitions/keyframes referencing those clips) rather than silently
+ * discarding a user's work — the caller must move or delete those clips
+ * first, same "no silent data loss" contract as every other destructive
+ * composition operation in this module.
+ */
+export function removeTrack(c: StudioComposition, trackId: string): StudioComposition | { error: string } {
+  if (!c.tracks.some((t) => t.id === trackId)) return { error: "Track not found." };
+  if (c.clips.some((cl) => cl.trackId === trackId)) {
+    return { error: "Move or delete this track's clips before removing it." };
+  }
+  return studioCompositionSchema.parse({ ...c, tracks: c.tracks.filter((t) => t.id !== trackId) });
+}
+
 export function compositionDurationMs(c: StudioComposition): number {
   if (!c.clips.length) return 5000;
   return Math.max(1000, ...c.clips.map((cl) => cl.startMs + cl.durationMs));
@@ -271,17 +337,18 @@ export function compositionDurationMs(c: StudioComposition): number {
 
 export function addAssetToComposition(
   c: StudioComposition,
-  asset: CompositionAsset,
+  asset: CompositionAssetInput,
 ): StudioComposition {
-  if (c.assets.some((a) => a.id === asset.id || a.url === asset.url)) return c;
-  return { ...c, assets: [...c.assets, asset].slice(0, 100) };
+  const normalized = compositionAssetSchema.parse(asset);
+  if (c.assets.some((a) => a.id === normalized.id || a.url === normalized.url)) return c;
+  return { ...c, assets: [...c.assets, normalized].slice(0, 100) };
 }
 
 /** Place media on the first matching unlocked track at end (or playhead). */
 export function addClipFromAsset(
   c: StudioComposition,
   assetId: string,
-  opts?: { trackId?: string; atMs?: number },
+  opts?: { trackId?: string; atMs?: number; sourceDesignPageId?: string | null },
 ): StudioComposition | { error: string } {
   const asset = c.assets.find((a) => a.id === assetId);
   if (!asset) return { error: "Asset not in project." };
@@ -327,6 +394,7 @@ export function addClipFromAsset(
     scale: 1,
     rotation: 0,
     sceneId: null,
+    sourceDesignPageId: opts?.sourceDesignPageId ?? null,
   };
 
   return studioCompositionSchema.parse({
@@ -387,6 +455,11 @@ export const VIDEO_ASPECT_PRESETS = [
   { id: "1:1", label: "1:1 · Square", width: 1080, height: 1080 },
   { id: "16:9", label: "16:9 · YouTube", width: 1920, height: 1080 },
   { id: "4:5", label: "4:5 · Portrait social", width: 1080, height: 1350 },
+  // Same frame as 9:16, but named for the artists looking for it: Spotify Canvas is a
+  // silent, looping 3–8s clip attached to a track. We don't enforce the loop length here
+  // (Studio's trim/export already handles clip duration) — this just puts the right
+  // starting canvas one click away instead of making a musician guess "9:16" is it.
+  { id: "spotify_canvas", label: "Spotify Canvas · looping track visual (3–8s)", width: 1080, height: 1920 },
 ] as const;
 
 /** Compile storyboard scene order into sequential video-clip placeholders (no media yet). */
@@ -569,6 +642,7 @@ export function attachSoundtrack(
     url: opts.url,
     fileName: opts.fileName ?? "soundtrack",
     durationMs: opts.analysis.durationMs,
+    provider: "upload",
   };
   next = addAssetToComposition(next, asset);
 

@@ -381,8 +381,34 @@ export function findStudioTemplate(id: string): StudioTemplate | undefined {
   return STUDIO_TEMPLATES.find((t) => t.id === id);
 }
 
-export function studioTemplateAspect(designType: StudioDesignType): "square" | "story" | "portrait" {
-  if (designType === "instagram_story" || designType === "whatsapp_status") return "story";
-  if (designType === "flyer" || designType === "poster") return "portrait";
+export function studioTemplateAspect(designType: StudioDesignType): "square" | "story" | "portrait" | "landscape" {
+  if (designType === "instagram_story" || designType === "whatsapp_status" || designType === "tiktok_video_cover") return "story";
+  if (
+    designType === "flyer" ||
+    designType === "poster" ||
+    designType === "menu" ||
+    designType === "proposal" ||
+    designType === "resume" ||
+    designType === "invoice" ||
+    designType === "digital_planner" ||
+    designType === "pinterest_pin" ||
+    designType === "newsletter" ||
+    designType === "lesson_plan" ||
+    designType === "book_cover" ||
+    designType === "invitation"
+  ) return "portrait";
+  if (
+    designType === "banner" ||
+    designType === "youtube_banner" ||
+    designType === "linkedin_banner" ||
+    designType === "youtube_thumbnail" ||
+    designType === "twitter_post" ||
+    designType === "pitch_deck_slide" ||
+    designType === "business_card" ||
+    designType === "spotify_banner" ||
+    designType === "certificate_landscape" ||
+    designType === "email_header" ||
+    designType === "postcard"
+  ) return "landscape";
   return "square";
 }

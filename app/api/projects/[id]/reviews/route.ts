@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { mapReview, type ReviewRow } from "@/lib/shop/product-reviews";
@@ -35,6 +36,8 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

@@ -266,18 +266,43 @@ export function SiteDetailInsights({
         </div>
       </div>
 
-      <div
-        className="flex flex-wrap items-end gap-3 overflow-x-auto rounded-lg border border-[#E3E3E3] bg-[#F6F6F7] p-4 sm:flex-nowrap sm:gap-4"
-      >
-        {DEVICES.map((d) => (
-          <DevicePreview
-            key={d.id}
-            device={d}
-            src={previewSrc}
-            title={title}
-            active={Boolean(previewSrc)}
-          />
-        ))}
+      <div className="rounded-[22px] border bg-[#F6F6F7] p-3 sm:p-5" style={{ borderColor: KEBU.borders.default }}>
+        <div className="relative mx-auto min-h-[300px] max-w-[1180px] sm:min-h-[420px] lg:min-h-[560px]">
+          <div className="relative z-10 w-full pr-0 sm:pr-[15%] lg:pr-[18%]">
+            <DevicePreview
+              device={DEVICES[0]}
+              src={previewSrc}
+              title={title}
+              active={Boolean(previewSrc)}
+            />
+          </div>
+
+          <div className="absolute bottom-3 right-[11%] z-20 hidden w-[28%] min-w-[150px] sm:block lg:w-[24%]">
+            <DevicePreview
+              device={DEVICES[1]}
+              src={previewSrc}
+              title={title}
+              active={Boolean(previewSrc)}
+            />
+          </div>
+
+          <div className="absolute bottom-2 right-1 z-30 hidden w-[15%] min-w-[92px] sm:block lg:w-[12%]">
+            <DevicePreview
+              device={DEVICES[2]}
+              src={previewSrc}
+              title={title}
+              active={Boolean(previewSrc)}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:hidden">
+            <DevicePreview device={DEVICES[1]} src={previewSrc} title={title} active={Boolean(previewSrc)} />
+            <DevicePreview device={DEVICES[2]} src={previewSrc} title={title} active={Boolean(previewSrc)} />
+          </div>
+        </div>
+        <p className="mt-3 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+          Live responsive preview: desktop is the primary canvas; tablet and phone are scaled from the same site at their real viewport widths.
+        </p>
       </div>
 
       {error ? (

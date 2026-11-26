@@ -1,0 +1,4 @@
+alter table public.business_brand_kits add column if not exists logos jsonb not null default '[]'::jsonb,add column if not exists color_roles jsonb not null default '{}'::jsonb,add column if not exists typography_roles jsonb not null default '{}'::jsonb,add column if not exists imagery_rules jsonb not null default '{}'::jsonb,add column if not exists voice_rules jsonb not null default '{}'::jsonb,add column if not exists approved_asset_ids uuid[] not null default '{}',add column if not exists is_default boolean not null default false;
+create unique index if not exists business_brand_kits_one_default_business on public.business_brand_kits(business_id) where business_id is not null and is_default;
+create unique index if not exists business_brand_kits_one_default_personal on public.business_brand_kits(owner_id) where business_id is null and is_default;
+notify pgrst,'reload schema';

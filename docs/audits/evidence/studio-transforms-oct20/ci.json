@@ -1,0 +1,23 @@
+{
+  "command": "npm run ci",
+  "exitCode": 0,
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 344
+  },
+  "tests": {
+    "passed": 6058,
+    "skipped": 168,
+    "filesPassed": 367,
+    "filesSkipped": 22
+  },
+  "build": {
+    "compiled": true,
+    "staticPagesGenerated": 221,
+    "buildId": "r1qenTNJlIyo0pWM0iSJr",
+    "prerenderManifestExists": true
+  },
+  "logSha256": "8cdb5907bc044c455961cb2b85eb36c08d5d5f78c1c03e368bbb08ea63abed55",
+  "hosted": false
+}

@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
@@ -41,6 +42,8 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function POST(req: Request, { params }: Params) {
+  const blocked = assertSameOriginMutation(req);
+  if (blocked) return blocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

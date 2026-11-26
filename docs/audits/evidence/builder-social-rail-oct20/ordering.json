@@ -1,0 +1,20 @@
+{
+  "runtime_commit": "3234515794849273abd59b8d149812b02da1e1f6",
+  "scope": "Additional desktop/tablet/phone row Move down/up SQL assertions; application unchanged.",
+  "stats": {
+    "startTime": "2026-10-21T03:09:45.366Z",
+    "duration": 63570.006,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cleanup": {
+    "testsStopped": true,
+    "serverStopped": true,
+    "restoredConfig": true,
+    "remainingFixtures": [],
+    "sourceSandboxRemoved": true,
+    "generatedFixtureTypesRemoved": true
+  }
+}

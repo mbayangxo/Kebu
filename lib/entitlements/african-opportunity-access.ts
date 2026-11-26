@@ -29,7 +29,11 @@ export function deriveAfricanOpportunityStatus(opts: {
   return "none";
 }
 
-/** Sync entitlement row from afrique_ids — idempotent. */
+/**
+ * Derive Opportunity access from the server-controlled Afrique ID record.
+ * This intentionally performs no user-scoped entitlement write: clients must
+ * never be able to grant themselves a protected entitlement.
+ */
 export async function syncAfricanOpportunityEntitlement(opts: {
   supabase: SupabaseClient;
   userId: string;
@@ -49,31 +53,11 @@ export async function syncAfricanOpportunityEntitlement(opts: {
       })
     : "none";
 
-  const now = new Date().toISOString();
-  const row = {
-    user_id: userId,
-    entitlement_key: AFRICAN_OPPORTUNITY_ACCESS_KEY,
-    status,
-    source: aid ? "afrique_id_sync" : "none",
-    granted_at: status === "verified" ? (aid?.verified_at ?? now) : null,
-    revoked_at: status === "revoked" ? now : null,
-    metadata: {},
-    updated_at: now,
-  };
-
-  const { error } = await supabase.from("account_entitlements").upsert(row, {
-    onConflict: "user_id,entitlement_key",
-  });
-
-  if (error?.message?.includes("does not exist")) {
-    return { key: AFRICAN_OPPORTUNITY_ACCESS_KEY, status: "none", grantedAt: null, source: null };
-  }
-
   return {
     key: AFRICAN_OPPORTUNITY_ACCESS_KEY,
     status,
-    grantedAt: row.granted_at,
-    source: row.source,
+    grantedAt: status === "verified" ? (aid?.verified_at ?? null) : null,
+    source: aid ? "afrique_id" : null,
   };
 }
 
@@ -82,27 +66,7 @@ export async function loadAfricanOpportunityEntitlement(opts: {
   userId: string;
   sync?: boolean;
 }): Promise<AfricanOpportunityEntitlement> {
-  if (opts.sync !== false) {
-    return syncAfricanOpportunityEntitlement(opts);
-  }
-
-  const { data } = await opts.supabase
-    .from("account_entitlements")
-    .select("status, granted_at, source")
-    .eq("user_id", opts.userId)
-    .eq("entitlement_key", AFRICAN_OPPORTUNITY_ACCESS_KEY)
-    .maybeSingle();
-
-  if (!data) {
-    return { key: AFRICAN_OPPORTUNITY_ACCESS_KEY, status: "none", grantedAt: null, source: null };
-  }
-
-  return {
-    key: AFRICAN_OPPORTUNITY_ACCESS_KEY,
-    status: data.status as EntitlementStatus,
-    grantedAt: data.granted_at,
-    source: data.source,
-  };
+  return syncAfricanOpportunityEntitlement(opts);
 }
 
 export function hasVerifiedAfricanOpportunityAccess(entitlement: AfricanOpportunityEntitlement): boolean {

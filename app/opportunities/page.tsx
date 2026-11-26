@@ -5,6 +5,25 @@ import { Nav } from "@/app/components/nav";
 import Link from "next/link";
 import { AFRICA_SECTORS, COUNTRY_YOUTH_PROGRAMS, SectorOpportunity } from "@/lib/data/africa-sectors";
 import { HIDDEN_OPPORTUNITIES, type HiddenOpportunity } from "@/lib/data/hidden-opportunities";
+import { ResourceVideoSection } from "@/app/components/resource-video";
+
+/** Maps a hidden-opportunity commodity to the closest /api/resource-videos query key. */
+const HIDDEN_OPPORTUNITY_VIDEO_QUERY: Record<string, string> = {
+  "cocoa-chocolate": "cocoa",
+  "coffee": "coffee",
+  "mangoes-tropical-fruit": "fruits",
+  "fishing-fisheries": "fish",
+  "textiles-fabric": "cotton",
+  "shea-beauty-cosmetics": "skincare",
+  "shea-butter": "skincare",
+  "dairy-livestock": "farming",
+  "cashew-nuts": "farming",
+  "leather-hides": "brand",
+  "palm-oil-ingredients": "farming",
+  "salt": "market",
+  "music-entertainment": "brand",
+  "tourism": "ocean",
+};
 
 const PROBLEMS_ARE_MARKETS = [
   {
@@ -231,6 +250,14 @@ export default function OpportunitiesPage() {
                     </div>
                     <p className="text-ivory/85 text-sm leading-relaxed">{opp.the_truth}</p>
                   </div>
+
+                  {/* Resource footage */}
+                  <ResourceVideoSection
+                    title={`${opp.commodity} — on the ground`}
+                    query={HIDDEN_OPPORTUNITY_VIDEO_QUERY[opp.id] ?? "market"}
+                    count={2}
+                    layout="strip"
+                  />
 
                   {/* What exists */}
                   <div className="bg-white border border-border rounded-2xl p-6">

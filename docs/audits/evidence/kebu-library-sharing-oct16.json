@@ -1,0 +1,40 @@
+{
+  "scope": "K058 — Library/Spaces sharing and permission lifecycle. Read the Oct 14 evidence first (KEBU_STUDIO_PLATFORM_CONTINUATION_2026-10-14.md, KEBU_EVERYDAY_AUDIO_2026-10-14.md); document creation, serialized saves, offline-conflict detection, device recovery, ownership-escalation guards, and 'no false-success share removal' were already implemented/tested there and were not restarted here.",
+  "criticalFindingBeforeAnyCode": {
+    "finding": "app/api/library/nodes/route.ts and app/api/library/shares/route.ts have depended on library_nodes/library_shares since commit 5d15d60 (Sep 20) — but NO migration anywhere in this repository (active or migrations_archive) ever created those tables or any RLS for them. The Oct 14 audit's information_schema read confirmed the tables exist on the hosted project, created out-of-band, never committed. A fresh/local database has had these two routes 500 ('relation does not exist') with zero RLS backing them.",
+    "verifiedIndependently": "Confirmed via git log 5d15d60 (252 lines, two route files only, no SQL) and grep across supabase/migrations/ + migrations_archive/ (zero matches for CREATE TABLE library_nodes/library_shares) before writing anything.",
+    "fix": "Added supabase/migrations/20261016120000_library_sharing.sql — the missing tables + RLS, matching exactly what the existing route code already assumes (same columns, same onConflict target for the shares upsert)."
+  },
+  "designDecisions": [
+    "Only the node's owner may create/update/delete shares for it — an editor (edit access to content) does not imply sharing rights. A trigger (guard_library_share_authority) enforces this even if a future RLS edit gets it wrong, mirroring the existing guard_workspace_item_identity convention (20261014043916).",
+    "An editor can change title/metadata but not owner_id/kind/parent_id — mirrors the existing identity-guard pattern (guard_library_node_identity), not a new convention.",
+    "A share recipient sees only their own library_shares row, not other collaborators' — the owner sees the full list. Not specified by the task; a defensible default, not a product decision that needed escalation."
+  ],
+  "realBugsCaughtBeforeShipping": [
+    {
+      "bug": "Infinite recursion detected in policy for relation library_nodes — library_nodes's SELECT policy queried library_shares, whose policies queried library_nodes back, a direct RLS cycle.",
+      "caughtBy": "Running the real migration against PGlite for the first integration test attempt — it errored immediately rather than silently passing.",
+      "fix": "Two SECURITY DEFINER helper functions (private.library_node_owner_id, private.library_share_permission) that read the other table bypassing its RLS (standard Postgres pattern for this exact problem), breaking the cycle."
+    },
+    {
+      "bug": "The test harness itself used SET LOCAL for role/JWT-claim switching, which only lives for the current transaction — db.exec and db.query here are separate statements, so every 'as a specific user' query silently ran as the unrestricted default role and RLS never actually engaged. All 12 tests initially passed-as-failed (operations that should have been blocked succeeded).",
+      "caughtBy": "Comparing against the established working convention in tests/creative-core/fixtures/3j-database.ts, which uses plain session-scoped SET.",
+      "fix": "Switched to plain SET (reset role; set request.jwt.claim.sub=...; set role authenticated)."
+    }
+  ],
+  "verifiedScenarios": {
+    "realSqlPGliteTests": "tests/library/sharing-boundary.local.test.ts — 12 cases against the actual migration applied verbatim (not reimplemented), gated on KEBU_LOCAL_PGLITE_ROOT, run explicitly for this slice: all 12 passed. Covers: independent owner vs. stranger access; a recipient reading a shared node as themselves (not as the owner); viewer cannot write, editor can; editor cannot reassign ownership or change kind; revocation cuts off access and write ability on the very next request; only the owner can share (an editor cannot re-share to a third party); a stranger cannot create or delete a share on a node they don't own, even naming themselves as owner in the payload; a recipient sees only their own share row; cannot share with yourself; only the owner can permanently delete or relocate a node.",
+    "mockedApiRouteTests": "tests/library/nodes-shares-api.test.ts (new, 11 cases) — app/api/library/{nodes,shares}/route.ts had ZERO test coverage before this slice (confirmed by search). Covers: create success/invalid-payload-400, RLS-denied update/delete surfaced as 403 (not silent success), shared=1 filter, share-requires-accepted-connection-403, share success, self-share rejected before any DB call, RLS-denied share creation surfaced as failure, GET shares list, DELETE share 403 for invisible/missing share (the Oct 14 fix, now also covered directly at this route rather than only via the Rooms call site)."
+  },
+  "uiGapFoundAndFixed": {
+    "finding": "app/components/library/library-drive-panel.tsx's Share dialog could create a share but never fetched or displayed existing shares, and had no revoke control anywhere in the component — a user could share a document but had no way to un-share it from the UI, only via a direct API call.",
+    "fix": "Added a 'Who has access' list in the Share dialog (fetched on open via GET /api/library/shares, refreshed after a new share or a revoke), each row with a Remove button calling the existing DELETE route and refreshing the list.",
+    "verificationLimit": "Verified by typecheck, lint, and production build succeeding, and by inspection against the already-verified API-route behavior (the route itself is covered by both the real-SQL and mocked tests above) — NOT by a real browser/Playwright run of this specific panel. Building a full authenticated-session + accepted-connections browser harness for this one panel was judged disproportionate to the gap; this is recorded as an honest limitation, not claimed as browser-verified."
+  },
+  "stillOpen": {
+    "hostedAcceptance": "Genuine hosted Supabase Auth/Storage/PostgREST acceptance for Library sharing remains open, per the task's own instruction — this slice is local-SQL and mocked-API verification only.",
+    "storageBoundary": "Library is text/metadata-only in practice — library_nodes has storage_path/mime_type/byte_size columns (reserved) but no route anywhere sets them, and no Supabase Storage/signed-URL call exists in the Library code path. 'Actual storage boundaries' as a requirement applies to Rooms' file storage (already covered by tests/rooms/file-deletion-runtime.test.ts) or a future file-backed Library node, not to Library as currently implemented. Noted, not fabricated.",
+    "spaces": "'Spaces' in this codebase is app/spaces/page.tsx, a dashboard aggregating businesses/sites/Rooms — not a distinct sharing primitive. Library is the actual sharing feature K058 refers to; no separate Spaces sharing work exists to do."
+  },
+  "fullSuiteResult": "typecheck 0 errors; lint 0 errors/349 warnings (+1 vs. the Oct 16 commerce-audit checkpoint — matches an already-accepted identical pattern elsewhere in the same file, not new lint debt); vitest 5,955 passed/190 skipped (+11 passed/+12 skipped — the 12 new skips are the real-SQL file, run explicitly with KEBU_LOCAL_PGLITE_ROOT set and all 12 passed; same 3 pre-existing hosted-QA-only failures); build exit 0."
+}

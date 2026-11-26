@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/create/auth";
 import { rowToMeProfile } from "@/lib/account/user-profile";
 import type { HomeSummary, HomeUpdate } from "@/lib/account/home-summary";
@@ -6,8 +7,16 @@ import { createServiceClient } from "@/lib/opportunity/admin";
 import { rowToOpportunityProfile } from "@/lib/opportunity/intake-schema";
 import { toPersonalizationSummary } from "@/lib/account/kebu-personalization";
 import { ensureAfriqueIdForUser } from "@/lib/afrique-id/ensure-afrique-id";
+import { parseKebuSetup } from "@/lib/account/kebu-setup";
 
 export const dynamic = "force-dynamic";
+
+const loadCountriesLive = unstable_cache(async () => {
+  const admin = createServiceClient();
+  if (!admin) return 0;
+  const { count } = await admin.from("country_profiles").select("country_code", { count: "exact", head: true }).eq("publish_status", "published");
+  return count ?? 0;
+}, ["home-countries-live"], { revalidate: 300 });
 
 /** Aggregated signed-in home — real DB data only. */
 export async function GET() {
@@ -17,9 +26,11 @@ export async function GET() {
 
   const { data: profileRow } = await supabase
     .from("user_profiles")
-    .select("id, name, email, avatar_url, residence_country")
+    .select("id, name, email, avatar_url, residence_country, kebu_setup, active_business_id")
     .eq("id", user.id)
     .maybeSingle();
+
+  const setup = parseKebuSetup(profileRow?.kebu_setup);
 
   const profile = profileRow
     ? rowToMeProfile(profileRow)
@@ -53,6 +64,8 @@ export async function GET() {
     .eq("status", "active");
 
   const businessIds = (memberships ?? []).map((m) => m.business_id);
+  const activeBusinessId = businessIds.includes(profileRow?.active_business_id ?? "") ? profileRow?.active_business_id ?? null : null;
+  const scopedBusinessIds = activeBusinessId ? [activeBusinessId] : [];
   const roleByBusiness = new Map((memberships ?? []).map((m) => [m.business_id, m.role]));
 
   let businesses: HomeSummary["businesses"] = [];
@@ -88,12 +101,14 @@ export async function GET() {
     });
   }
 
-  const { data: projects } = await supabase
+  const { data: projects } = activeBusinessId ? { data: [] } : await supabase
     .from("projects")
     .select("id, title, project_type, status, subdomain, updated_at")
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
 
+  // Legacy Builder projects are personal-only until project rows carry an explicit business scope.
+  // Never surface personal projects inside an active business workspace.
   const projectList = projects ?? [];
   const projectIds = projectList.map((p) => p.id);
 
@@ -123,18 +138,18 @@ export async function GET() {
   let emailSubscribers = 0;
   let draftCampaigns = 0;
   let lastCampaignSubject: string | null = null;
-  if (businessIds.length > 0) {
+  if (scopedBusinessIds.length > 0) {
     const { count: subCount } = await supabase
       .from("business_email_subscribers")
       .select("id", { count: "exact", head: true })
-      .in("business_id", businessIds)
+      .in("business_id", scopedBusinessIds)
       .is("unsubscribed_at", null);
     if (subCount != null) emailSubscribers = subCount;
 
     const { data: campaigns, error: campErr } = await supabase
       .from("business_email_campaigns")
       .select("subject, status, created_at")
-      .in("business_id", businessIds)
+      .in("business_id", scopedBusinessIds)
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -145,21 +160,12 @@ export async function GET() {
   }
 
   let createDesigns = 0;
-  const { count: designCount } = await supabase
-    .from("create_designs")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", user.id);
+  let designQuery = supabase.from("create_designs").select("id", { count: "exact", head: true }).eq("owner_id", user.id);
+  designQuery = activeBusinessId ? designQuery.eq("business_id", activeBusinessId) : designQuery.is("business_id", null);
+  const { count: designCount } = await designQuery;
   if (designCount != null) createDesigns = designCount;
 
-  let countriesLive = 0;
-  const admin = createServiceClient();
-  if (admin) {
-    const { count } = await admin
-      .from("country_profiles")
-      .select("country_code", { count: "exact", head: true })
-      .eq("publish_status", "published");
-    if (count != null) countriesLive = count;
-  }
+  const countriesLive = await loadCountriesLive();
 
   const storeProducts = sites.reduce((n, s) => n + s.productCount, 0);
   const sitesPublished = sites.filter((s) => s.status === "published").length;
@@ -200,7 +206,7 @@ export async function GET() {
     }
   }
 
-  for (const b of businesses) {
+  for (const b of businesses.filter((b) => b.id === activeBusinessId)) {
     if (b.readinessScore == null) {
       updates.push({
         id: `biz-score-${b.id}`,
@@ -228,10 +234,10 @@ export async function GET() {
       kind: "email",
       title: "Customer emails",
       body: `${emailSubscribers} subscriber${emailSubscribers === 1 ? "" : "s"} on your list. Send a campaign from your business dashboard.`,
-      href: businesses[0] ? `/business/${businesses[0].id}` : "/account",
+      href: activeBusinessId ? `/business/${activeBusinessId}` : "/account",
       at: null,
     });
-  } else if (businesses.length > 0 && sites.some((s) => s.status === "published")) {
+  } else if (activeBusinessId && sites.some((s) => s.status === "published")) {
     updates.push({
       id: "email-capture",
       kind: "email",
@@ -242,13 +248,13 @@ export async function GET() {
     });
   }
 
-  if (draftCampaigns > 0 && businesses[0]) {
+  if (draftCampaigns > 0 && activeBusinessId) {
     updates.push({
       id: "email-draft",
       kind: "email",
       title: "Email campaign draft",
       body: `You have ${draftCampaigns} draft campaign${draftCampaigns === 1 ? "" : "s"} ready to send.`,
-      href: `/business/${businesses[0].id}`,
+      href: `/business/${activeBusinessId}`,
       at: null,
     });
   }
@@ -337,6 +343,7 @@ export async function GET() {
       exploreHref: personalization.needsIntake ? "/welcome?next=/opportunity" : "/opportunity",
     },
     personalization,
+    setup,
     updates: updates.slice(0, 12),
   };
 

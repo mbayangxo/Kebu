@@ -1,0 +1,10 @@
+{
+  "startTime": "2026-10-20T07:09:28.174Z",
+  "duration": 34417.696,
+  "expected": 4,
+  "skipped": 0,
+  "unexpected": 0,
+  "flaky": 0,
+  "sqlQueries": 17,
+  "transport": "loopback Auth/REST fixture; actual Next handlers and SQL/RLS"
+}

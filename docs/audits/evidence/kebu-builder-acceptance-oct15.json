@@ -1,0 +1,378 @@
+{
+  "dateUtc": "2026-10-15T05:57:54.771794+00:00",
+  "branch": "work/kebu-completion-audit-oct13",
+  "parentCommit": "cb66f7ccc51b0d44ce3c23d3b1a7d10eee3efb69",
+  "sourceSha256": "b924fe44f0a5643f30ed5e25f3046309f4b69c6647c7599508b7656c8790c9ae",
+  "sourceFileCount": 1884,
+  "sourceHashAlgorithm": "SHA-256 over sorted rg --files app lib tests scripts supabase entries: path + NUL + file SHA-256 + newline",
+  "runtime": {
+    "browserNode": "v24.19.0",
+    "ciNode": "v20.20.2",
+    "next": "16.3.5",
+    "react": "19.2.4",
+    "vitest": "4.1.11",
+    "playwright": "1.61.0",
+    "chromium": "138.0.7204.0",
+    "supabaseJs": "2.106.2",
+    "localSql": "PGlite 0.5.8, not independent native PostgreSQL sessions"
+  },
+  "ci": {
+    "node": "v20.20.2",
+    "exitCode": 0,
+    "durationMs": 131354,
+    "buildId": "cRa_sA59JiBotj6GK9Yyg",
+    "testsPassed": 5929,
+    "testsSkipped": 168,
+    "testFilesPassed": 357,
+    "testFilesSkipped": 22,
+    "lintErrors": 0,
+    "lintWarnings": 348,
+    "generatedPages": 221
+  },
+  "additionalNode24Ci": {
+    "exitCode": 0,
+    "durationMs": 114251,
+    "buildId": "EO0aOon7bYCFRZIjVf8Ep",
+    "node": "v24.19.0"
+  },
+  "browser": {
+    "startTime": "2026-10-15T05:45:36.787Z",
+    "duration": 607688.584,
+    "expected": 148,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cleanup": {
+    "testsStopped": true,
+    "serverStopped": true,
+    "restoredConfig": true,
+    "remainingFixtures": [],
+    "sourceSandboxRemoved": true,
+    "generatedFixtureTypesRemoved": true
+  },
+  "independentCleanup": {
+    "sourceFixturesAbsent": true,
+    "sourceConfigMatchesHead": true,
+    "sandboxDirectoriesRemaining": []
+  },
+  "legacyEditorSha256": "5fbb32e69a238b5d08b6e28e2bce8a5dedc52120dafd03e38d3b7c8ec2417896",
+  "networkSqlAssertions": 18,
+  "publicNavigationRepetition": {
+    "startTime": "2026-10-15T05:43:15.579Z",
+    "duration": 56280.833999999995,
+    "expected": 18,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "legacyTiming": {
+    "scope": "Real Builder input fill through visible heading update and two animation frames at Desktop/Tablet/Phone viewport and edited device; includes Playwright command overhead. Controlled authority, no auth/SQL/network latency. Two warmups, seven samples. Other nodes are legacy text sections.",
+    "chromium": "138.0.7204.0",
+    "results": [
+      {
+        "nodes": 100,
+        "device": "desktop",
+        "viewportWidth": 1440,
+        "samplesMs": [
+          123.39999999990687,
+          113,
+          112.10000000009313,
+          111.39999999990687,
+          110.6999999997206,
+          112.79999999981374,
+          110.70000000018626
+        ],
+        "medianMs": 112.10000000009313
+      },
+      {
+        "nodes": 500,
+        "device": "desktop",
+        "viewportWidth": 1440,
+        "samplesMs": [
+          134.29999999981374,
+          128.09999999962747,
+          105.90000000037253,
+          117.3000000002794,
+          115.3000000002794,
+          109.60000000009313,
+          107.5
+        ],
+        "medianMs": 115.3000000002794
+      },
+      {
+        "nodes": 2000,
+        "device": "desktop",
+        "viewportWidth": 1440,
+        "samplesMs": [
+          311.60000000009313,
+          343.29999999981374,
+          334.29999999981374,
+          330.6999999997206,
+          315.20000000018626,
+          316.60000000009313,
+          340.89999999990687
+        ],
+        "medianMs": 330.6999999997206
+      },
+      {
+        "nodes": 100,
+        "device": "tablet",
+        "viewportWidth": 768,
+        "samplesMs": [
+          95.29999999981374,
+          93.89999999990687,
+          93.89999999990687,
+          112.10000000009313,
+          94.09999999962747,
+          112.89999999990687,
+          89.89999999990687
+        ],
+        "medianMs": 94.09999999962747
+      },
+      {
+        "nodes": 500,
+        "device": "tablet",
+        "viewportWidth": 768,
+        "samplesMs": [
+          145.10000000009313,
+          161.5,
+          159.29999999981374,
+          144.8000000002794,
+          176.29999999981374,
+          194.1999999997206,
+          142.10000000009313
+        ],
+        "medianMs": 159.29999999981374
+      },
+      {
+        "nodes": 2000,
+        "device": "tablet",
+        "viewportWidth": 768,
+        "samplesMs": [
+          181.10000000009313,
+          222.39999999990687,
+          185.3000000002794,
+          179.60000000009313,
+          194.5,
+          178.8000000002794,
+          169.5
+        ],
+        "medianMs": 181.10000000009313
+      },
+      {
+        "nodes": 100,
+        "device": "mobile",
+        "viewportWidth": 390,
+        "samplesMs": [
+          110.39999999990687,
+          92.39999999990687,
+          109.8000000002794,
+          93,
+          95.79999999981374,
+          109.70000000018626,
+          94.29999999981374
+        ],
+        "medianMs": 95.79999999981374
+      },
+      {
+        "nodes": 500,
+        "device": "mobile",
+        "viewportWidth": 390,
+        "samplesMs": [
+          144.3000000002794,
+          144,
+          143.39999999990687,
+          128.60000000009313,
+          144.10000000009313,
+          127.1999999997206,
+          143.29999999981374
+        ],
+        "medianMs": 143.39999999990687
+      },
+      {
+        "nodes": 2000,
+        "device": "mobile",
+        "viewportWidth": 390,
+        "samplesMs": [
+          294.79999999981374,
+          276.39999999990687,
+          278.89999999990687,
+          294.09999999962747,
+          327.09999999962747,
+          293.79999999981374,
+          293.6999999997206
+        ],
+        "medianMs": 293.79999999981374
+      }
+    ]
+  },
+  "nativeTiming": {
+    "scope": "Controlled local native editor; seven measured edits after two warmups",
+    "results": [
+      {
+        "device": "desktop",
+        "nodes": 100,
+        "medianMs": 97.5,
+        "samplesMs": [
+          97.5,
+          81.89999999990687,
+          83.70000000018626,
+          114.60000000009313,
+          98.70000000018626,
+          98,
+          65.39999999990687
+        ]
+      },
+      {
+        "device": "desktop",
+        "nodes": 500,
+        "medianMs": 97.8000000002794,
+        "samplesMs": [
+          97.8000000002794,
+          98.20000000018626,
+          117.10000000009313,
+          94.39999999990687,
+          99.39999999990687,
+          65,
+          65.90000000037253
+        ]
+      },
+      {
+        "device": "desktop",
+        "nodes": 2000,
+        "medianMs": 101.3000000002794,
+        "samplesMs": [
+          132,
+          101.3000000002794,
+          96.40000000037253,
+          99.39999999990687,
+          99.10000000009313,
+          149.3000000002794,
+          115.5
+        ]
+      },
+      {
+        "device": "tablet",
+        "nodes": 100,
+        "medianMs": 97.60000000009313,
+        "samplesMs": [
+          99.39999999990687,
+          99.10000000009313,
+          99.39999999990687,
+          97.60000000009313,
+          83.10000000009313,
+          94.29999999981374,
+          64.79999999981374
+        ]
+      },
+      {
+        "device": "tablet",
+        "nodes": 500,
+        "medianMs": 98.8000000002794,
+        "samplesMs": [
+          98.60000000009313,
+          99.8000000002794,
+          98,
+          98.8000000002794,
+          99.29999999981374,
+          99,
+          82.8000000002794
+        ]
+      },
+      {
+        "device": "tablet",
+        "nodes": 2000,
+        "medianMs": 131.90000000037253,
+        "samplesMs": [
+          132.60000000009313,
+          115.6999999997206,
+          131.90000000037253,
+          116.10000000009313,
+          115.09999999962747,
+          132.70000000018626,
+          132.79999999981374
+        ]
+      },
+      {
+        "device": "mobile",
+        "nodes": 100,
+        "medianMs": 98.5,
+        "samplesMs": [
+          99.10000000009313,
+          98.5,
+          99,
+          99.59999999962747,
+          81.29999999981374,
+          83.5,
+          81
+        ]
+      },
+      {
+        "device": "mobile",
+        "nodes": 500,
+        "medianMs": 100,
+        "samplesMs": [
+          115.5,
+          100,
+          97.39999999990687,
+          132.70000000018626,
+          98.3000000002794,
+          99.59999999962747,
+          115
+        ]
+      },
+      {
+        "device": "mobile",
+        "nodes": 2000,
+        "medianMs": 132.5,
+        "samplesMs": [
+          132.6999999997206,
+          132.60000000009313,
+          131.10000000009313,
+          132.1999999997206,
+          132.5,
+          132.60000000009313,
+          132.39999999990687
+        ]
+      }
+    ]
+  },
+  "migrationHygiene": {
+    "canonicalVersions": 72,
+    "executableLegacyBundles": false
+  },
+  "hostedMigrationsApplied": [],
+  "productionAccess": "Read-only inventory/system catalogs only; no user rows mutated",
+  "qaProvisioning": "Blocked: Supabase get_cost returned UNAVAILABLE, including retry after tool availability refresh; no cost or resource confirmation",
+  "releaseActions": {
+    "push": false,
+    "pullRequest": false,
+    "merge": false,
+    "deploy": false,
+    "productionChanges": false
+  },
+  "limits": [
+    "Controlled API/Auth transport with real components, SQL bridge or exported static snapshots; not hosted Auth/Storage acceptance.",
+    "No application navigation repair claimed solely from passing instrumented repetitions.",
+    "Development timing baselines include Playwright overhead; no production SLA or real-device performance sign-off.",
+    "Full 3J and all original 99 requirement groups remain in scope; this is not Kebu completion."
+  ],
+  "browserSuites": [
+    "tests/creative-core/3j-editor-ui.local.spec.ts",
+    "tests/creative-core/3j-published-ui.local.spec.ts",
+    "tests/creative-core/builder-operation-ui.local.spec.ts",
+    "tests/creative-core/builder-pages-ui.local.spec.ts",
+    "tests/creative-core/primitive-ui.local.spec.ts",
+    "tests/creative-core/brand-brain-application-ui.local.spec.ts",
+    "tests/creative-core/brand-brain-completion-ui.local.spec.ts",
+    "tests/creative-core/brand-brain-ui.local.spec.ts",
+    "tests/creative-core/experience-dna-ui.local.spec.ts",
+    "tests/creative-core/experience-engine-ui.local.spec.ts",
+    "tests/creative-core/experience-published-ui.local.spec.ts"
+  ],
+  "probeEnvironment": [
+    "KEBU_BUILDER_BROWSER_PERF_REPORT",
+    "KEBU_NATIVE_BROWSER_PERF_REPORT"
+  ]
+}

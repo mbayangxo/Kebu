@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string; collectionId: string }> };
 
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -81,6 +84,8 @@ export async function PATCH(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(_req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

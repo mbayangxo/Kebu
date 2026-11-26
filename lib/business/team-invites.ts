@@ -182,26 +182,21 @@ export async function acceptBusinessInvite(
     };
   }
 
-  const { data: existing } = await admin
+  const findMembership = () => admin
     .from("business_members")
-    .select("id, status")
+    .select("id, status, role")
     .eq("business_id", invite.business_id)
     .eq("user_id", opts.userId)
     .maybeSingle();
-
-  if (existing?.status === "active") {
-    await admin
-      .from("business_invites")
-      .update({
-        status: "accepted",
-        accepted_at: new Date().toISOString(),
-        accepted_user_id: opts.userId,
-      })
-      .eq("id", invite.id);
-    return { ok: true, businessId: invite.business_id, role: invite.role };
+  const { data: existing, error: membershipError } = await findMembership();
+  if (membershipError) {
+    return { ok: false, error: "Could not verify team membership.", status: 500 };
   }
 
-  if (existing) {
+  let effectiveRole = invite.role;
+  if (existing?.status === "active") {
+    effectiveRole = existing.role;
+  } else if (existing) {
     const { error: upErr } = await admin
       .from("business_members")
       .update({ status: "active", role: invite.role })
@@ -214,8 +209,15 @@ export async function acceptBusinessInvite(
       role: invite.role,
       status: "active",
     });
-    if (insErr) {
-      // role check may reject manager/creative until 055 applied
+    if (insErr?.code === "23505") {
+      // Only recover a duplicate when the winning membership belongs to this
+      // exact business/account and is active; never infer access from 23505 alone.
+      const { data: winner, error: winnerError } = await findMembership();
+      if (winnerError || winner?.status !== "active") {
+        return { ok: false, error: "Could not verify team membership.", status: 500 };
+      }
+      effectiveRole = winner.role;
+    } else if (insErr) {
       return {
         ok: false,
         error: /role|check/i.test(insErr.message)
@@ -226,7 +228,7 @@ export async function acceptBusinessInvite(
     }
   }
 
-  await admin
+  const { error: acceptError } = await admin
     .from("business_invites")
     .update({
       status: "accepted",
@@ -234,13 +236,14 @@ export async function acceptBusinessInvite(
       accepted_user_id: opts.userId,
     })
     .eq("id", invite.id);
+  if (acceptError) return { ok: false, error: "Could not finalize team invite.", status: 500 };
 
   await admin.from("business_audit_logs").insert({
     business_id: invite.business_id,
     actor_user_id: opts.userId,
     action: "team.invite_accepted",
-    metadata: { role: invite.role, email: invite.email },
+    metadata: { role: effectiveRole, email: invite.email },
   });
 
-  return { ok: true, businessId: invite.business_id, role: invite.role };
+  return { ok: true, businessId: invite.business_id, role: effectiveRole };
 }

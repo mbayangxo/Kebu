@@ -1,3 +1,4 @@
+import { saveWaveCheckoutQuote } from "@/lib/payments/wave-checkout-quote";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WebsiteDefinition } from "./website-schema";
 import { validateWebsiteDefinition } from "./website-schema";
@@ -7,12 +8,14 @@ import { userFeaturedAesthetics } from "./user-aesthetics-catalog";
 import { parseKebuTemplateFile } from "./kebu-template-file";
 import { addProjectTheme, editProjectTheme } from "./project-themes";
 import { templateRequiresPurchase, userOwnsTemplate } from "@/lib/billing/subscriptions";
-import { createJokoCheckout } from "@/lib/joko/payments";
+import { startKebuCheckout, type KebuCheckoutMethod } from "@/lib/payments/kebu-checkout";
 import { formatUsdFromCents } from "@/lib/billing/pricing";
+
+export { KEBU_CHECKOUT_METHODS, kebuCheckoutMethodsAvailable, type KebuCheckoutMethod } from "@/lib/payments/kebu-checkout";
 import { randomUUID } from "node:crypto";
 
 export const AESTHETICS_TABLE_MISSING =
-  "Aesthetics tables missing. Apply supabase/migrations/040_aesthetics_marketplace.sql (and 014 if marketplace tables are missing).";
+  "Aesthetic Gallery is temporarily unavailable. Please try again later.";
 
 function tableMissing(message: string | undefined): boolean {
   return Boolean(message?.includes("does not exist") || message?.includes("schema cache"));
@@ -50,7 +53,6 @@ export type MarketplaceAestheticRow = {
   description: string | null;
   category: string | null;
   price_cents: number;
-  definition: WebsiteDefinition;
   preview_url: string | null;
   status: string;
   sales_count: number;
@@ -112,7 +114,7 @@ export async function listPublishedMarketplaceAesthetics(
   const { data, error } = await supabase
     .from("marketplace_templates")
     .select(
-      "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at, developer_profiles(display_name)",
+      "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at, developer_profiles(display_name)",
     )
     .eq("status", "published")
     .order("updated_at", { ascending: false })
@@ -126,7 +128,7 @@ export async function listPublishedMarketplaceAesthetics(
     const retry = await supabase
       .from("marketplace_templates")
       .select(
-        "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at",
+        "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at",
       )
       .eq("status", "published")
       .order("updated_at", { ascending: false })
@@ -137,10 +139,7 @@ export async function listPublishedMarketplaceAesthetics(
     if (retry.error) return { ok: false, status: 500, error: retry.error.message };
     return {
       ok: true,
-      items: ((retry.data ?? []) as MarketplaceAestheticRow[]).map((row) => ({
-        ...row,
-        definition: row.definition,
-      })),
+      items: (retry.data ?? []) as MarketplaceAestheticRow[],
     };
   }
 
@@ -153,7 +152,6 @@ export async function listPublishedMarketplaceAesthetics(
     return {
       ...r,
       developer_name: name ?? undefined,
-      definition: r.definition,
     };
   });
   return { ok: true, items };
@@ -180,7 +178,7 @@ export async function listDeveloperMarketplaceAesthetics(
   const { data, error } = await supabase
     .from("marketplace_templates")
     .select(
-      "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at",
+      "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at",
     )
     .eq("developer_id", profile.id)
     .order("updated_at", { ascending: false });
@@ -250,7 +248,7 @@ export async function uploadMarketplaceAesthetic(
       status,
     })
     .select(
-      "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at",
+      "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at",
     )
     .single();
 
@@ -336,10 +334,13 @@ export async function acquireCatalogAesthetic(
   user: { id: string; email?: string | null },
   catalogSlug: string,
   appUrl: string,
+  method: KebuCheckoutMethod = "joko",
+  checkoutAuthority?: SupabaseClient | null,
 ): Promise<
   | { ok: true; alreadyOwned?: boolean; item?: AestheticLibraryRow; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
 > {
+  if (!checkoutAuthority) return { ok: false, status: 503, error: "Secure checkout is unavailable. Please try again later." };
   const ownedLib = await listOwnedAesthetics(supabase, user.id);
   if (!ownedLib.ok) return ownedLib;
   const existing = ownedLib.items.find((i) => i.kind === "catalog" && i.catalog_slug === catalogSlug);
@@ -348,7 +349,7 @@ export async function acquireCatalogAesthetic(
   if (await userOwnsTemplate(supabase, user.id, catalogSlug)) {
     const resolved = await resolveCatalogDefinition(catalogSlug, "My site");
     if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
-    const inserted = await insertOwnedLibrary(supabase, user.id, {
+    const inserted = await insertOwnedLibrary(checkoutAuthority, user.id, {
       kind: "catalog",
       catalogSlug,
       name: resolved.name,
@@ -364,7 +365,7 @@ export async function acquireCatalogAesthetic(
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
   if (!required || priceUsdCents <= 0) {
-    const inserted = await insertOwnedLibrary(supabase, user.id, {
+    const inserted = await insertOwnedLibrary(checkoutAuthority, user.id, {
       kind: "catalog",
       catalogSlug,
       name: resolved.name,
@@ -375,25 +376,28 @@ export async function acquireCatalogAesthetic(
     return { ok: true, item: inserted.item };
   }
 
-  const reference = `kebu-aes-${catalogSlug.slice(0, 10)}-${randomUUID().slice(0, 8)}`;
-  const pending = await insertPendingLibrary(supabase, user.id, {
+  const reference = `kebu-aes-${catalogSlug.slice(0, 10)}-${randomUUID()}`;
+  const pending = await insertPendingLibrary(checkoutAuthority, user.id, {
     kind: "catalog",
     catalogSlug,
     name: resolved.name,
     definition: resolved.definition,
     amountUsdCents: priceUsdCents,
-    jokoReference: reference,
+    reference,
+    provider: method,
   });
   if (!pending.ok) return pending;
 
-  const checkout = await createJokoCheckout({
+  const checkout = await startKebuCheckout({
+    method,
     reference,
-    amountUsdCents: priceUsdCents,
+    amountMinor: priceUsdCents,
+    currency: "USD",
     description: `Kebu aesthetic — ${resolved.name}`,
     customerEmail: user.email ?? undefined,
     returnUrl: `${appUrl}/create/aesthetics?billing=success`,
     cancelUrl: `${appUrl}/create/aesthetics?billing=cancelled`,
-    webhookUrl: `${appUrl}/api/webhooks/joko`,
+    webhookBaseUrl: appUrl,
     metadata: {
       kind: "aesthetic_purchase",
       library_id: pending.item.id,
@@ -403,19 +407,24 @@ export async function acquireCatalogAesthetic(
   });
 
   if (!checkout.ok) {
-    await supabase.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
+    await checkoutAuthority.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await supabase
-    .from("aesthetic_library")
-    .update({ joko_payment_id: checkout.paymentId })
-    .eq("id", pending.item.id);
+  if (method==="wave") {
+    const saved=await saveWaveCheckoutQuote(checkoutAuthority,{
+      kind:"aesthetic_purchase",purchaseId:pending.item.id,reference,checkoutId:checkout.providerPaymentId??"",
+      sourceAmountMinor:pending.item.amount_usd_cents,sourceCurrency:"USD",settlement:checkout.settlement,
+    });
+    if (!saved.ok) return {ok:false,status:503,error:saved.error};
+  } else {
+    await checkoutAuthority.from("aesthetic_library").update({provider_payment_id:checkout.providerPaymentId??null}).eq("id",pending.item.id);
+  }
 
   return {
     ok: true,
     paymentUrl: checkout.paymentUrl,
-    priceLabel: formatUsdFromCents(priceUsdCents),
+    priceLabel: method==="wave" && checkout.settlement ? checkout.settlement.amountMinor.toLocaleString("fr-SN")+" XOF ("+formatUsdFromCents(priceUsdCents)+")" : formatUsdFromCents(priceUsdCents),
   };
 }
 
@@ -424,16 +433,21 @@ export async function acquireMarketplaceAesthetic(
   user: { id: string; email?: string | null },
   marketplaceId: string,
   appUrl: string,
+  method: KebuCheckoutMethod = "joko",
+  checkoutAuthority?: SupabaseClient | null,
 ): Promise<
   | { ok: true; alreadyOwned?: boolean; item?: AestheticLibraryRow; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
 > {
+  if (!checkoutAuthority) return { ok: false, status: 503, error: "Secure checkout is unavailable. Please try again later." };
   const ownedLib = await listOwnedAesthetics(supabase, user.id);
   if (!ownedLib.ok) return ownedLib;
   const existing = ownedLib.items.find((i) => i.marketplace_id === marketplaceId);
   if (existing) return { ok: true, alreadyOwned: true, item: existing };
 
-  const { data: row, error } = await supabase
+  // Only trusted server authority may read purchasable source. The authenticated
+  // store client has metadata-only column grants, even for published listings.
+  const { data: row, error } = await checkoutAuthority
     .from("marketplace_templates")
     .select(
       "id, developer_id, slug, name, description, category, price_cents, definition, status",
@@ -452,7 +466,7 @@ export async function acquireMarketplaceAesthetic(
 
   const priceCents = row.price_cents ?? 0;
   if (priceCents <= 0) {
-    const inserted = await insertOwnedLibrary(supabase, user.id, {
+    const inserted = await insertOwnedLibrary(checkoutAuthority, user.id, {
       kind: "marketplace",
       marketplaceId: row.id,
       name: row.name,
@@ -464,25 +478,28 @@ export async function acquireMarketplaceAesthetic(
     return { ok: true, item: inserted.item };
   }
 
-  const reference = `kebu-mp-${row.slug.slice(0, 10)}-${randomUUID().slice(0, 8)}`;
-  const pending = await insertPendingLibrary(supabase, user.id, {
+  const reference = `kebu-mp-${row.slug.slice(0, 10)}-${randomUUID()}`;
+  const pending = await insertPendingLibrary(checkoutAuthority, user.id, {
     kind: "marketplace",
     marketplaceId: row.id,
     name: row.name,
     definition: validated.data,
     amountUsdCents: priceCents,
-    jokoReference: reference,
+    reference,
+    provider: method,
   });
   if (!pending.ok) return pending;
 
-  const checkout = await createJokoCheckout({
+  const checkout = await startKebuCheckout({
+    method,
     reference,
-    amountUsdCents: priceCents,
+    amountMinor: priceCents,
+    currency: "USD",
     description: `Kebu aesthetic — ${row.name}`,
     customerEmail: user.email ?? undefined,
     returnUrl: `${appUrl}/create/aesthetics?billing=success`,
     cancelUrl: `${appUrl}/create/aesthetics?billing=cancelled`,
-    webhookUrl: `${appUrl}/api/webhooks/joko`,
+    webhookBaseUrl: appUrl,
     metadata: {
       kind: "aesthetic_purchase",
       library_id: pending.item.id,
@@ -492,19 +509,24 @@ export async function acquireMarketplaceAesthetic(
   });
 
   if (!checkout.ok) {
-    await supabase.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
+    await checkoutAuthority.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await supabase
-    .from("aesthetic_library")
-    .update({ joko_payment_id: checkout.paymentId })
-    .eq("id", pending.item.id);
+  if (method==="wave") {
+    const saved=await saveWaveCheckoutQuote(checkoutAuthority,{
+      kind:"aesthetic_purchase",purchaseId:pending.item.id,reference,checkoutId:checkout.providerPaymentId??"",
+      sourceAmountMinor:pending.item.amount_usd_cents,sourceCurrency:"USD",settlement:checkout.settlement,
+    });
+    if (!saved.ok) return {ok:false,status:503,error:saved.error};
+  } else {
+    await checkoutAuthority.from("aesthetic_library").update({provider_payment_id:checkout.providerPaymentId??null}).eq("id",pending.item.id);
+  }
 
   return {
     ok: true,
     paymentUrl: checkout.paymentUrl,
-    priceLabel: formatUsdFromCents(priceCents),
+    priceLabel: method==="wave" && checkout.settlement ? checkout.settlement.amountMinor.toLocaleString("fr-SN")+" XOF ("+formatUsdFromCents(priceCents)+")" : formatUsdFromCents(priceCents),
   };
 }
 
@@ -580,7 +602,8 @@ async function insertPendingLibrary(
     name: string;
     definition: WebsiteDefinition;
     amountUsdCents: number;
-    jokoReference: string;
+    reference: string;
+    provider: KebuCheckoutMethod;
   },
 ): Promise<
   | { ok: true; item: AestheticLibraryRow }
@@ -597,7 +620,8 @@ async function insertPendingLibrary(
       definition: input.definition,
       status: "pending",
       amount_usd_cents: input.amountUsdCents,
-      joko_reference: input.jokoReference,
+      provider: input.provider,
+      provider_reference: input.reference,
     })
     .select(
       "id, owner_id, kind, catalog_slug, marketplace_id, name, definition, status, amount_usd_cents, created_at, updated_at",
@@ -686,11 +710,12 @@ export async function markAestheticPurchasePaid(
   supabase: SupabaseClient,
   reference: string,
   paymentId: string | null,
+  provider?: string | null,
 ): Promise<{ ok: true; libraryId: string; marketplaceId: string | null } | { ok: false; error: string }> {
   const { data: row } = await supabase
     .from("aesthetic_library")
     .select("id, marketplace_id, status")
-    .eq("joko_reference", reference)
+    .eq("provider_reference", reference)
     .maybeSingle();
 
   if (!row) return { ok: false, error: "Aesthetic purchase not found." };
@@ -700,7 +725,8 @@ export async function markAestheticPurchasePaid(
     .from("aesthetic_library")
     .update({
       status: "owned",
-      joko_payment_id: paymentId ?? row.id,
+      provider_payment_id: paymentId ?? row.id,
+      ...(provider ? { provider } : {}),
       updated_at: now,
     })
     .eq("id", row.id);

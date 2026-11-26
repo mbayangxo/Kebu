@@ -1,7 +1,9 @@
 "use client";
 
 import { YandeMark } from "@/app/components/yande-mark";
-import { BUILDER, YANDE_SUGGESTIONS_CREATE, YANDE_SUGGESTIONS_IMPROVE } from "@/lib/create/builder-ui";
+import { YANDE_SUGGESTIONS_CREATE, YANDE_SUGGESTIONS_IMPROVE } from "@/lib/create/builder-ui";
+
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 
 type YandeAssistantProps = {
   variant: "create" | "improve";
@@ -36,10 +38,10 @@ export function YandeAssistant({
         type="button"
         onClick={onExpand}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-full pl-1 pr-4 py-1 text-sm font-semibold transition-all hover:brightness-105 disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-2 rounded-full pl-1 pr-4 py-1 text-sm font-semibold transition-all hover:brightness-105 disabled:opacity-50"
         style={{
-          background: BUILDER.ink,
-          color: "#fff",
+          background: BUILDER.action,
+          color: BUILDER.onAction,
           boxShadow: BUILDER.shadowSoft,
         }}
       >
@@ -53,7 +55,9 @@ export function YandeAssistant({
     <div
       className="rounded-2xl overflow-hidden"
       style={{
-        background: BUILDER.yandeGradient,
+        background: BUILDER.surfaceMuted,
+        color: BUILDER.ink,
+        colorScheme: BUILDER.colorScheme,
         boxShadow: BUILDER.shadow,
         border: `1px solid ${BUILDER.border}`,
       }}
@@ -74,9 +78,9 @@ export function YandeAssistant({
               type="button"
               disabled={busy}
               onClick={() => onChange(s)}
-              className="shrink-0 text-left rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 max-w-[180px] truncate"
+              className="min-h-11 shrink-0 text-left rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 max-w-[180px] truncate"
               style={{
-                background: "#fff",
+                background: BUILDER.surface,
                 color: BUILDER.ink,
                 border: `1px solid ${BUILDER.border}`,
               }}
@@ -90,7 +94,7 @@ export function YandeAssistant({
         <textarea
           className="w-full text-sm rounded-xl px-3 py-2.5 min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF5500]/25"
           style={{
-            background: "#fff",
+            background: BUILDER.surface,
             border: `1px solid ${BUILDER.border}`,
             color: BUILDER.ink,
           }}
@@ -111,8 +115,8 @@ export function YandeAssistant({
             type="button"
             onClick={onSubmit}
             disabled={busy || !value.trim()}
-            className="rounded-full px-6 py-2.5 text-sm font-bold disabled:opacity-40 transition-all hover:brightness-105"
-            style={{ background: BUILDER.gradient, color: "#fff" }}
+            className="min-h-11 rounded-full px-6 py-2.5 text-sm font-bold disabled:opacity-40 transition-all hover:brightness-105"
+            style={{ background: BUILDER.action, color: BUILDER.onAction }}
           >
             {busy
               ? "Yande is building…"
@@ -124,7 +128,7 @@ export function YandeAssistant({
               type="button"
               onClick={onCancel}
               disabled={busy}
-              className="text-sm font-medium disabled:opacity-50"
+              className="min-h-11 px-2 text-sm font-medium disabled:opacity-50"
               style={{ color: BUILDER.muted }}
             >
               Cancel

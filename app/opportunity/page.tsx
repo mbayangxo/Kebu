@@ -124,118 +124,51 @@ export default function OpportunityOsHubPage() {
     return (
       <OpportunityOsShell
         title="Opportunity OS"
-        headline="Your personal opportunity feed is ready."
-        subhead="Grants, fellowships, and government tenders — filtered for your country, skills, and business stage. Verify once to unlock your feed."
+        headline="Explore opportunities across Africa."
+        subhead="Browse countries, programs, grants, fellowships and tenders now. Afri ID unlocks deeper personalization and protected actions when you are ready."
         heroVisual={
-          /* Blurred preview cards — show the value, create desire */
-          <div className="relative select-none" aria-hidden>
-            <div className="grid gap-2" style={{ filter: "blur(3px)", opacity: 0.55, pointerEvents: "none" }}>
-              {[
-                { label: "Grant", country: "KE", title: "Youth Innovation Fund", amount: "$45,000", tag: "15 days left", color: "#10B981" },
-                { label: "Tender", country: "GH", title: "Gov't Digital Services", amount: "$120K", tag: "Open now", color: "#0EA5E9" },
-                { label: "Fellowship", country: "NG", title: "EU Digital Fellowship", amount: "€18,000", tag: "8 days left", color: "#9333EA" },
-              ].map((card) => (
-                <div
-                  key={card.title}
-                  className="flex items-center gap-3 rounded-2xl px-4 py-3"
-                  style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[10px] font-black text-white"
-                    style={{ background: card.color }}
-                  >
-                    {card.country}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: card.color }}>
-                      {card.label}
-                    </p>
-                    <p className="text-sm font-bold truncate">{card.title}</p>
-                    <p className="text-xs" style={{ color: KEBU.muted }}>{card.amount} · {card.tag}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {/* Frosted glass unlock overlay */}
-            <div
-              className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3"
-              style={{
-                background: "rgba(255,251,247,0.72)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                border: `1px solid rgba(255,85,0,0.15)`,
-              }}
-            >
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{ background: KEBU.orange, boxShadow: "0 8px 24px rgba(255,85,0,0.35)" }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-              </div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-center px-4" style={{ color: KEBU.black }}>
-                Your matches are locked
-              </p>
-              <p className="text-[11px] text-center px-6 leading-relaxed" style={{ color: KEBU.muted }}>
-                Verify your African identity to see opportunities filtered for you
-              </p>
-            </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Link href="/opportunity/listings" className="rounded-2xl border bg-white p-4 text-left transition hover:-translate-y-0.5" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Open to browse</p>
+              <p className="mt-2 text-lg font-bold">Programs & listings</p>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: KEBU.muted }}>Search real opportunities without creating an Afri ID first.</p>
+            </Link>
+            <Link href="/opportunity/countries" className="rounded-2xl border bg-white p-4 text-left transition hover:-translate-y-0.5" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Explore</p>
+              <p className="mt-2 text-lg font-bold">Countries</p>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: KEBU.muted }}>Move through Kebu by country, city and local opportunity context.</p>
+            </Link>
           </div>
         }
       >
-        {/* Value propositions */}
-        <div className="max-w-lg space-y-8">
-          <ul className="space-y-3">
-            {[
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "2,400+ grants, fellowships, and tenders from 54 African countries" },
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "Filtered daily to your location, skills, and business stage" },
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "Verify once — your access stays active forever" },
-            ].map((item) => (
-              <li key={item.text} className="flex items-start gap-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={KEBU.orange} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-                  <path d={item.icon} />
-                </svg>
-                <span className="text-sm leading-relaxed" style={{ color: KEBU.black }}>{item.text}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <section className="rounded-3xl border bg-white p-5 sm:p-7" style={{ borderColor: KEBU.border }}>
+            <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Browse first</p>
+            <h2 className="mt-2 text-2xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>Afri ID is not the front door.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: KEBU.muted }}>
+              You can explore Opportunity OS before verification. Afri ID is used when Kebu needs verified eligibility, protected application tools, or deeper personal matching.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link href="/opportunity/listings" className="rounded-full bg-black px-5 py-3 text-[10px] font-black uppercase tracking-wide text-white">Browse listings →</Link>
+              <Link href="/opportunity/countries" className="rounded-full border bg-white px-5 py-3 text-[10px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.border }}>Explore countries</Link>
+              {data.cardsHref ? <Link href={data.cardsHref} className="rounded-full border bg-white px-5 py-3 text-[10px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.border }}>Opportunity cards</Link> : null}
+            </div>
+          </section>
 
-          {isPending ? (
-            <div
-              className="rounded-2xl px-5 py-4 flex items-center gap-4"
-              style={{ background: `rgba(255,85,0,0.07)`, border: `1px solid rgba(255,85,0,0.2)` }}
-            >
-              <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: KEBU.orange }} />
-              <div>
-                <p className="text-sm font-bold" style={{ color: KEBU.black }}>Verification in review</p>
-                <p className="text-xs mt-0.5" style={{ color: KEBU.muted }}>We'll notify you when access is granted — usually within 24 hours.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Link
-                href={data.verifyHref ?? "/account#african-id"}
-                className="flex items-center justify-between w-full rounded-2xl px-6 py-4 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{ background: KEBU.orange, boxShadow: "0 8px 32px rgba(255,85,0,0.30)" }}
-              >
-                <span>Verify African Access</span>
-                <span className="flex items-center gap-2 text-xs opacity-80">
-                  Takes 60 seconds
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
+          <aside className="rounded-3xl p-5" style={{ background: "rgba(255,85,0,.07)", border: "1px solid rgba(255,85,0,.18)" }}>
+            <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Optional verification</p>
+            <h2 className="mt-2 text-lg font-bold">{isPending ? "Afri ID review in progress" : "Unlock your full Opportunity OS"}</h2>
+            <p className="mt-2 text-xs leading-5" style={{ color: KEBU.muted }}>
+              {isPending
+                ? "Keep browsing while your verification is reviewed."
+                : "Create your Afri ID when you want verified eligibility, stronger matching and protected application features."}
+            </p>
+            {!isPending ? (
+              <Link href={data.verifyHref ?? "/account#african-id"} className="mt-4 inline-flex rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide text-white" style={{ background: KEBU.orange }}>
+                Create Afri ID →
               </Link>
-              <p className="text-xs text-center" style={{ color: KEBU.faint }}>
-                No ID stored on our servers · African residents only ·{" "}
-                <Link href={data.exploreHref ?? "/opportunity/countries"} className="underline" style={{ color: KEBU.orange }}>
-                  Browse countries freely
-                </Link>
-              </p>
-            </div>
-          )}
+            ) : null}
+          </aside>
         </div>
       </OpportunityOsShell>
     );

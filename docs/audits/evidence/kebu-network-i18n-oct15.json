@@ -1,0 +1,44 @@
+{
+  "scope": "Network multilingual slice — English, French, Wolof (/network, /network/join)",
+  "runtime": { "node": "v22.22.2 (supplementary; required Node 20.20.2 not re-verified here)" },
+  "browserHarnessResult": {
+    "startTime": "2026-10-15T16:44:53.267Z",
+    "duration": 28105.46,
+    "browserCasesExpected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "sqlQueries": 16,
+    "note": "8 browser cases: original 4 (pending-field-freeze x2 viewports, lost-response retry, ownership rejection) plus 4 new i18n cases added this slice."
+  },
+  "newBrowserCasesThisSlice": [
+    "French join submission stores canonical English enum values and French preference survives reload",
+    "switching language mid-draft via the language bar does not discard the in-progress form",
+    "Wolof renders the join page and surfaces the unreviewed-translation notice",
+    "blocked storage (private browsing) still renders a usable join page in English"
+  ],
+  "rootCausesFoundAndFixed": [
+    {
+      "file": "app/components/locale-context.tsx",
+      "defect": "LocaleProvider rendered <>{children}</> before its load effect ran, then switched to <LocaleContext.Provider>{children}</LocaleContext.Provider> once ready — a Fragment-to-Provider type change at the same tree position, which forces React to unmount and remount the entire children subtree once per page load.",
+      "fix": "Always render the same Provider element; 'ready' no longer gates the render shape, only used to be internal and is now removed entirely. Also wrapped all localStorage reads/writes in try/catch so blocked storage (private browsing) degrades to in-memory English/USD defaults instead of throwing."
+    },
+    {
+      "file": "app/components/language-bar.tsx",
+      "defect": "LanguageBar had never been mounted anywhere in the app before this slice. Its root stacking context was z-40, lower than Nav's sticky header at z-50, so wherever both are present together the language dropdown's options render visually/interactively underneath the header and cannot be clicked — found via a real Playwright click, not inspection.",
+      "fix": "Raised LanguageBar's root to z-[60] so its dropdown always out-ranks a sticky page header it may overlap."
+    },
+    {
+      "file": "lib/network/directory-loader.ts",
+      "defect": "Error state was a hardcoded English sentence, making it untranslatable without string-matching.",
+      "fix": "Changed DirectoryState.error to a stable reason code ('signed_out' | 'load_failed'); the component now maps the code to localized text. Updated the one test that asserted the old English sentence to assert the new code instead."
+    }
+  ],
+  "enumIntegrityPreserved": "Sector/stage/looking_for <option>/<button> elements now carry an explicit value= distinct from their translated display label, so French/Wolof submissions still send canonical English enum values (verified by intercepting the real POST body in the French test case: sector/stage/looking_for all stayed English while the visible UI was French).",
+  "wolof": "NOT reviewed by a fluent native speaker. The existing LanguageBar 'AI translations are approximate' + Wolof-specific correction-callout banner (HIGH_QUALITY_LANGS excludes 'wo') is reused as the honesty mechanism and is itself covered by a browser assertion. No automated test result should be read as linguistic acceptance of the Wolof wording in lib/network/network-i18n.ts.",
+  "notConclusivelyEstablished": [
+    "Hosted Supabase Auth/Data-API acceptance for any of this — all runs used the loopback PGlite fixture, not the QA/production project.",
+    "Translation coverage elsewhere in the app — this slice only covers /network and /network/join. The pre-existing global LanguageBar/UI_STRINGS system and the unrelated maylecor-site-i18n.ts micro-dictionary were left untouched.",
+    "Required Node 20.20.2 verification — this environment only has Node 22.22.2."
+  ]
+}

@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 describe("business registration migration bundle", () => {
   it("APPLY_MIGRATIONS_005_007 includes core tables, grants, and logo_url", () => {
     const sql = readFileSync(
-      resolve(process.cwd(), "supabase/migrations/APPLY_MIGRATIONS_005_007.sql"),
+      resolve(process.cwd(), "supabase/migrations_archive/legacy/APPLY_MIGRATIONS_005_007.sql"),
       "utf8",
     );
     expect(sql).toContain("create table if not exists public.businesses");

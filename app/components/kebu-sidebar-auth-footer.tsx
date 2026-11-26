@@ -10,20 +10,31 @@ import { createClient } from "@/lib/supabase/client";
 
 /** Sidebar footer — signed-in greeting + Sign out (or auth links when logged out). */
 export function KebuSidebarAuthFooter({ variant = "light" }: { variant?: "light" | "dark" }) {
-  const { profile, loading } = useKebuUser();
+  const { profile, loading, error } = useKebuUser();
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => {
+    try { return createClient(); } catch { return null; }
+  }, []);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const dark = variant === "dark";
   const border = dark ? "rgba(255,85,0,0.25)" : KEBU.border;
   const muted = dark ? "rgba(255,255,255,0.55)" : KEBU.muted;
 
   async function handleSignOut() {
+    if (!supabase) return;
     setSigningOut(true);
-    await supabase.auth.signOut();
-    setSigningOut(false);
-    router.push("/");
-    router.refresh();
+    setSignOutError(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.push("/");
+      router.refresh();
+    } catch {
+      setSignOutError("Could not sign out. Please retry.");
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   if (loading) {
@@ -40,6 +51,7 @@ export function KebuSidebarAuthFooter({ variant = "light" }: { variant?: "light"
     const first = displayFirstName(profile.name, profile.email);
     return (
       <div className="p-3 space-y-2" style={{ borderTop: `1px solid ${border}` }}>
+        {signOutError ? <p role="status" className="text-xs" style={{ color: muted }}>{signOutError}</p> : null}
         <Link
           href="/account"
           className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors"
@@ -89,6 +101,7 @@ export function KebuSidebarAuthFooter({ variant = "light" }: { variant?: "light"
 
   return (
     <div className="p-3 space-y-2" style={{ borderTop: `1px solid ${border}` }}>
+      {error ? <p role="status" className="text-xs" style={{ color: muted }}>{error}</p> : null}
       <Link
         href="/login"
         className="block w-full text-center rounded-full py-2 text-[10px] font-bold uppercase tracking-wider"

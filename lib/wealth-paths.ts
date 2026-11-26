@@ -1,6 +1,8 @@
 export interface WealthPath {
   id: string;
   persona: string;
+  /** Matches the free-text wealth_path label used on local-starts records (app/starts, lib/data/local-starts). */
+  localStartLabel: string;
   emoji: string;
   tagline: string;
   startingCapital: string;
@@ -20,6 +22,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "beauty",
     persona: "Beauty Founder",
+    localStartLabel: "Beauty Founder",
     emoji: "💄",
     tagline: "Products → Brand → Region",
     startingCapital: "$500–$2,000",
@@ -39,6 +42,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "farmer",
     persona: "Farmer",
+    localStartLabel: "Farmer / Producer",
     emoji: "🌾",
     tagline: "Land → Cooperative → Export",
     startingCapital: "$200–$1,000",
@@ -58,6 +62,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "tech",
     persona: "Tech Founder",
+    localStartLabel: "Tech Founder",
     emoji: "💻",
     tagline: "MVP → Traction → Investment → Scale",
     startingCapital: "$0–$500",
@@ -77,6 +82,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "creator",
     persona: "Creator",
+    localStartLabel: "Creator / Freelancer",
     emoji: "🎬",
     tagline: "Content → Audience → Brand Deals → IP",
     startingCapital: "$0–$200",
@@ -96,6 +102,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "manufacturer",
     persona: "Manufacturer",
+    localStartLabel: "Manufacturer",
     emoji: "🏭",
     tagline: "Register → Loan → Contract → Scale",
     startingCapital: "$1,000–$5,000",
@@ -115,6 +122,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "fashion",
     persona: "Fashion Brand",
+    localStartLabel: "Fashion Brand",
     emoji: "👗",
     tagline: "Design → Brand → Market → Export",
     startingCapital: "$300–$2,000",
@@ -134,6 +142,7 @@ export const WEALTH_PATHS: WealthPath[] = [
   {
     id: "exporter",
     persona: "Exporter",
+    localStartLabel: "Exporter",
     emoji: "🚢",
     tagline: "Source → Certify → Trade Route → Scale",
     startingCapital: "$1,000–$5,000",
@@ -151,3 +160,8 @@ export const WEALTH_PATHS: WealthPath[] = [
     prefilledGoal: "Build an export business taking African products to international markets at premium prices",
   },
 ];
+
+/** Look up the full WealthPath by the free-text label used on local-starts records. */
+export function wealthPathByLocalStartLabel(label: string): WealthPath | undefined {
+  return WEALTH_PATHS.find((p) => p.localStartLabel === label);
+}

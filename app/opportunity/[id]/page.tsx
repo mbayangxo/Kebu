@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Nav } from "@/app/components/nav";
 import { TrackListingButton } from "@/app/components/opportunity/track-listing-button";
 import { computeFreshness, freshnessUI } from "@/lib/verification";
@@ -7,6 +7,10 @@ import { FlagListing } from "@/app/components/flag-listing";
 import { createClient } from "@/lib/supabase/server";
 import { getOpportunityListingById } from "@/lib/opportunity/listings";
 import { KEBU } from "@/lib/kebu-brand";
+import {
+  hasVerifiedAfricanOpportunityAccess,
+  loadAfricanOpportunityEntitlement,
+} from "@/lib/entitlements/african-opportunity-access";
 
 export default async function OpportunityPage({
   params,
@@ -16,6 +20,14 @@ export default async function OpportunityPage({
   const { id } = await params;
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/opportunity/${id}`)}`);
+
+  const entitlement = await loadAfricanOpportunityEntitlement({ supabase, userId: user.id });
+  if (!hasVerifiedAfricanOpportunityAccess(entitlement)) {
+    redirect("/opportunity?needsEntitlement=1");
+  }
+
   const { listing: opp, missingTable } = await getOpportunityListingById(supabase, id);
 
   if (missingTable || !opp) notFound();

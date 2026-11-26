@@ -1,6 +1,7 @@
 "use client";
 
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
+import type { KcdDocument } from "@/lib/creative-core";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import type { BuilderDevice } from "@/lib/create/builder-device";
 import {
@@ -12,10 +13,14 @@ import {
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { useDataMode } from "@/app/components/create/data-mode-provider";
 import { useRef, useState } from "react";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 
 export type BuilderEditorState = {
   selectedSectionId: string | null;
+  selectedElement?: BuilderElementSelection | null;
   onSelectSection: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
+  onSpatialChange?: (id: string, box: import("@/lib/creative-core").SpatialBox) => Promise<unknown>;
   onPatchSection: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
@@ -41,8 +46,10 @@ export function BuilderEditablePreview({
   pageTitle = "Home",
   /** When true, site fills the pane — no + Add section strip under the canvas. */
   canvasFill = false,
+  nativeDocument,
 }: {
   definition: WebsiteDefinition;
+  nativeDocument?: KcdDocument;
   pageSlug: string;
   siteBase?: string;
   projectId?: string;
@@ -60,7 +67,7 @@ export function BuilderEditablePreview({
   return (
     <div
       ref={rootRef}
-      className={canvasFill ? "relative flex min-h-full w-full flex-1 flex-col" : "relative min-h-full"}
+      className={canvasFill ? "relative min-h-full w-full bg-[#EEEDEA]" : "relative min-h-full bg-[#EEEDEA]"}
       onDragOver={(e) => {
         if (!onAssetDrop) return;
         if (
@@ -90,17 +97,18 @@ export function BuilderEditablePreview({
     >
       {dragOver ? (
         <div
-          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-lg border-2 border-dashed"
-          style={{ borderColor: "#FF5500", background: "rgba(255,85,0,0.12)" }}
+          className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-[10px] border border-dashed shadow-[inset_0_0_0_1px_rgba(255,106,0,.08)]"
+          style={{ borderColor: "#FF6A00", background: "rgba(255,106,0,0.07)" }}
         >
-          <span className="rounded-full bg-black/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white">
-            Drop to add to site
+          <span className="rounded-md bg-black/85 px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm">
+            Drop media here
           </span>
         </div>
       ) : null}
-      <div className={canvasFill ? "min-h-full w-full flex-1" : undefined}>
+      <div className={canvasFill ? "min-h-full w-full" : undefined}>
         <SiteRenderer
           definition={definition}
+          nativeDocument={nativeDocument}
           mode="preview"
           pageSlug={pageSlug}
           siteBase={siteBase}

@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-21",
+  "scope": "collage-frame-development-verification",
+  "sourceCommit": "6e1989d4afbd7bd4153985b546b8e14dbd59710a",
+  "sourceTree": "3238e97b0f4896dc0e3b7acd21438d63d2c6d8e2",
+  "authoritativeIntegrated": true,
+  "localBrowser": {
+    "stats": {
+      "startTime": "2026-10-21T21:23:07.813Z",
+      "duration": 564360.833,
+      "expected": 77,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cleanup": {
+      "testsStopped": true,
+      "serverStopped": true,
+      "restoredConfig": true,
+      "remainingFixtures": [],
+      "sourceSandboxRemoved": true,
+      "generatedFixtureTypesRemoved": true
+    },
+    "performanceProbes": 9
+  },
+  "focusedUnit": {
+    "passed": 97
+  },
+  "exactRemote": {
+    "ci": {
+      "run": 39678232374,
+      "job": 119493592903,
+      "conclusion": "success",
+      "testsPassed": 6462,
+      "testsSkipped": 299,
+      "filesPassed": 404,
+      "filesSkipped": 44,
+      "lintErrors": 0,
+      "existingWarnings": 347,
+      "finalizedBuild": true
+    },
+    "builder": {
+      "run": 39678232472,
+      "job": 119493592827,
+      "conclusion": "success",
+      "passed": 77,
+      "skipped": 0,
+      "flaky": 0,
+      "cleanup": true
+    },
+    "platform": {
+      "run": 39678232367,
+      "job": 119493592847,
+      "conclusion": "success",
+      "sqlSuites": 20,
+      "browserPassed": 21
+    },
+    "nativePostgres": {
+      "run": 39678232164,
+      "job": 119493591078,
+      "conclusion": "success",
+      "uniqueCases": 10,
+      "mandatoryIterations": 3,
+      "passed": 30,
+      "skipped": 0,
+      "databasesCleaned": true
+    },
+    "publicPreview": {
+      "run": 39678645724,
+      "job": 119495020811,
+      "conclusion": "success",
+      "passed": 533,
+      "explicitSkips": 35
+    }
+  },
+  "preview": {
+    "id": "dpl_DXXTiBNAzcsDXA6ckzWg6QD8aPBN",
+    "url": "https://kebu-pcy7k4nbw-mbayangxos-projects.vercel.app",
+    "state": "READY"
+  },
+  "hostedAuthenticated": {
+    "accepted": false,
+    "executed": false,
+    "cases": 26,
+    "reason": "Dedicated QA project access denied; connected project list exposes production only."
+  },
+  "production": {
+    "promoted": false,
+    "schemaChanged": false,
+    "dnsChanged": false,
+    "preflightChecks": 37,
+    "preflightFailures": 22,
+    "sourceCommit": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+    "deploymentId": "dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2"
+  },
+  "migration": {
+    "file": "20261021205917_kcd_collage_frame_presentation.sql",
+    "scope": "two additive registry allowlist entries",
+    "appliedToProduction": false,
+    "canonicalFiles": 96
+  },
+  "artAssetsModified": false
+}

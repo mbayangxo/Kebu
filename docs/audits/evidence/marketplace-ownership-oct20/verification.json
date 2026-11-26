@@ -1,0 +1,10 @@
+{
+  "runtimeCommit": "048622eb7f8fa023a5f35cdc61dbdadd478bc654",
+  "tree": "22e251873b7344c2d2793ecd58a70a8e57eaadab",
+  "before": { "scope": "Isolated canonical migration SQL through 0910bdac; authenticated buyer", "rejectionTests": 2, "failed": 2, "actual": "Both paid asset and marketplace-template owned INSERTs returned one new owned row" },
+  "after": { "scope": "Actual new ownership migration SQL plus acquisition route regressions", "filesPassed": 3, "testsPassed": 22, "failed": 0, "sqlCasesExecuted": 5 },
+  "fullLocalCI": { "exitCode": 0, "testsPassed": 6357, "explicitSkips": 298, "filesPassed": 397, "filesSkipped": 43, "lintErrors": 0, "existingWarnings": 349, "typecheck": "passed", "productionBuild": "finalized" },
+  "migrationHygiene": { "canonicalTimestamps": 94, "newMigration": "20261021030002_marketplace_paid_ownership_boundary.sql", "productionApplied": false },
+  "remainingCheckoutBlockers": ["Provider-confirmed amount/currency/payment binding", "Atomic idempotent completion and counters", "Currency adapter consistency", "Paid file/definition exposure", "Real hosted Auth/provider/database verification"],
+  "productionWritesOrPayments": false
+}

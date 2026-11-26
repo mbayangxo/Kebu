@@ -1,0 +1,155 @@
+{
+  "scope": "Wave settlement development verification; not real merchant payment, hosted authenticated acceptance or release certification",
+  "runtimeCommit": "45f29df913022b067bd12ca43f2c57bc09b56276",
+  "runtimeTree": "8cac2f5e707e1b22d7baf1f5204b07a1724de7a5",
+  "baseCommit": "cf3dcc13d28dbfe84ce2b55228bafe777286bc32",
+  "dateUTC": "2026-10-21",
+  "source": {
+    "changedFiles": 21,
+    "allBlobShasCompared": true,
+    "ahead": 2,
+    "behind": 0,
+    "authoritativeFastForward": true,
+    "forcePush": false,
+    "priorAuthorsPreserved": true
+  },
+  "regression": {
+    "originalHttpFailed": 23,
+    "originalHttpPassed": 7,
+    "firstLocalRepairPassed": 30,
+    "finalVerification": "GitHub Actions exact-source; local execution service unavailable",
+    "decimalFx": {
+      "usdCents": 1,
+      "rate": "49.999999999999999999",
+      "before": "incorrectly rounded to 1 XOF",
+      "after": "refused zero rounded charge"
+    }
+  },
+  "checks": {
+    "ci": {
+      "passed": 6526,
+      "skipped": 314,
+      "filesPassed": 406,
+      "filesSkipped": 46,
+      "lintErrors": 0,
+      "existingLintWarnings": 347,
+      "typeScript": true,
+      "build": true
+    },
+    "wave": {
+      "httpAndAdapterPassed": 64,
+      "sqlPassed": 13,
+      "nativeUniqueCases": 2,
+      "mandatoryIterations": 3,
+      "nativePassed": 6,
+      "skipped": 0,
+      "postgres": "17.6",
+      "databasesCleaned": true
+    },
+    "builder": {
+      "passed": 77,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0,
+      "fixturesCleaned": true,
+      "performanceProbesUnchanged": 9
+    },
+    "platform": {
+      "sqlSuites": 20,
+      "browserPassed": 21,
+      "mail": 7,
+      "liguey": 13,
+      "locale": 1,
+      "skipped": 0,
+      "flaky": 0
+    },
+    "originalNative": {
+      "uniqueCases": 10,
+      "mandatoryIterations": 3,
+      "passed": 30,
+      "skipped": 0,
+      "databasesCleaned": true
+    },
+    "publicPreview": {
+      "passed": 533,
+      "skipped": 35,
+      "authenticatedCasesExecuted": 0
+    }
+  },
+  "workflowRuns": [
+    {
+      "id": 39685785865,
+      "name": "Preview E2E",
+      "sha": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39685785865"
+    },
+    {
+      "id": 39685624906,
+      "name": "Native PostgreSQL races",
+      "sha": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39685624906"
+    },
+    {
+      "id": 39685624887,
+      "name": "Verified Wave settlement",
+      "sha": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39685624887"
+    },
+    {
+      "id": 39685624847,
+      "name": "Platform SQL and browser",
+      "sha": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39685624847"
+    },
+    {
+      "id": 39685624938,
+      "name": "CI",
+      "sha": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39685624938"
+    },
+    {
+      "id": 39685624868,
+      "name": "Builder SQL and browser",
+      "sha": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39685624868"
+    }
+  ],
+  "preview": {
+    "id": "dpl_G9kbpMSTaE2vD53mrKasd4rY1XTn",
+    "state": "READY",
+    "url": "https://kebu-hyajzr1qh-mbayangxos-projects.vercel.app",
+    "sha": "45f29df913022b067bd12ca43f2c57bc09b56276"
+  },
+  "migration": {
+    "path": "supabase/migrations/20261021214459_verified_wave_settlement.sql",
+    "canonicalCount": 97,
+    "cliCreated": true,
+    "appliedToProduction": false
+  },
+  "boundaries": [
+    "Provider HTTP replies are explicit fixtures; no live provider calls or money movement.",
+    "SQL uses actual canonical marketplace and stock/checkout functions; minimal typed Shop fixture tables do not certify full Shop fresh installation.",
+    "Independent PostgreSQL sessions and actual observed lock barriers certify tested races; service-role SQL is not signed-in hosted Auth/RLS.",
+    "Authenticated hosted 26 cases remain unexecuted; existing dedicated QA access explicitly denied.",
+    "Production preflight remains 22 failing prerequisites out of 37; migration history requires deliberate reconciliation, not blind push.",
+    "Other provider proof, private paid-source/file delivery, reconciliation/refunds and independent second payments remain open.",
+    "No production migration, DNS, paid infrastructure, credential decryption or production promotion."
+  ],
+  "production": {
+    "commit": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+    "deployment": "dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2",
+    "unchanged": true
+  }
+}

@@ -1,6 +1,6 @@
 # Kebu Mail — real email, not a fake inbox
 
-**Status:** **NOT STARTED** — product law and architecture only until explicitly assigned as a vertical slice.
+**Status:** **IN PROGRESS** — personal and business mail (M1-M3), real send/receive via Resend, RLS, threading, attachments, and automatic forwarding are implemented and locally verified (real browser + real SQL). Live-provider credentials, hosted delivery to/from the open internet, the platform `kebu.africa` domain's own provider verification, and shared mailboxes remain open. See `docs/audits/KEBU-MAIL-AUDIT.md` for exact evidence. (Corrected October 20, 2026 — this line previously said "NOT STARTED," which no longer matched the code.)
 
 **Agent rule:** `.cursor/rules/kebu-mail.mdc`  
 **Account model:** `docs/product/KEBU-UNIFIED-ACCOUNT.md` · `docs/product/KEBU-ACCOUNT-MODEL.md`

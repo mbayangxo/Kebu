@@ -1,0 +1,79 @@
+{
+  "project": "tnygqgcqlnlsmjpygrca",
+  "readOnly": true,
+  "scope": "yande-schema-and-grants-only",
+  "checks": [
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "anonExecute": null,
+        "serviceExecute": null,
+        "securityDefiner": null,
+        "authenticatedExecute": null
+      },
+      "requirement": "function:reserve_account_ai_generation"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": true,
+        "anonSelect": true,
+        "anonAnyWrite": false,
+        "serviceInsert": true,
+        "authenticatedSelect": true,
+        "authenticatedAnyWrite": true
+      },
+      "requirement": "grants:account_ai_usage_events"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "anonSelect": null,
+        "anonAnyWrite": null,
+        "serviceInsert": null,
+        "authenticatedSelect": null,
+        "authenticatedAnyWrite": null
+      },
+      "requirement": "grants:yande_interactions"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:account_ai_usage_events"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:studio_campaign_projects"
+    },
+    {
+      "passed": true,
+      "details": {
+        "present": true,
+        "rlsEnabled": true
+      },
+      "requirement": "table:studio_generation_runs"
+    },
+    {
+      "passed": false,
+      "details": {
+        "present": false,
+        "rlsEnabled": null
+      },
+      "requirement": "table:yande_interactions"
+    }
+  ],
+  "observedAt": "2026-10-22T05:16:18.061129+00:00",
+  "checksPassed": false,
+  "failedChecks": 4,
+  "releaseCertification": "not-established-by-this-query",
+  "authenticatedAcceptance": "not-established-by-this-query"
+}

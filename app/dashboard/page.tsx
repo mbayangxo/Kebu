@@ -2,603 +2,167 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { Skeleton } from "@/app/components/kebu-skeleton";
-import { KEBU } from "@/lib/kebu-brand";
 import { displayFirstName } from "@/lib/account/user-profile";
-import type { HomeSummary, HomeUpdate, HomeSiteRow } from "@/lib/account/home-summary";
-import { readStoredWorkspace } from "@/lib/navigation/kebu-workspace";
-import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
+import type { HomeSummary } from "@/lib/account/home-summary";
+import type { WorkItemRow } from "@/lib/work/items";
+import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
+import { KEBU } from "@/lib/kebu-brand";
+import { useKebuAccountContext } from "@/app/hooks/use-kebu-account-context";
 
-// ── Compact stat strip ────────────────────────────────────────────────────────
-
-function StatStrip({
-  stats,
-  businesses,
-}: {
-  stats: HomeSummary["stats"];
-  businesses: HomeSummary["businesses"];
-}) {
-  const items = [
-    { value: stats.sitesTotal,       label: "Sites",       href: MY_SITES_HREF,                                                           accent: KEBU.orange },
-    { value: stats.sitesPublished,   label: "Published",   href: `${MY_SITES_HREF}?filter=live`,                                          accent: KEBU.red    },
-    { value: stats.storeProducts,    label: "Products",    href: MY_SITES_HREF,                                                           accent: "#10B981"   },
-    { value: stats.emailSubscribers, label: "Subscribers", href: businesses[0] ? `/business/${businesses[0].id}` : "/account",            accent: "#0EA5E9"   },
-    { value: stats.createDesigns,    label: "Designs",     href: "/studio",                                                               accent: "#9333EA"   },
-    { value: stats.countriesLive,    label: "Countries",   href: "/opportunity/countries",                                                accent: "#10B981"   },
-  ];
-
-  return (
-    <div
-      className="flex flex-wrap overflow-hidden rounded-2xl mb-8"
-      style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}
-    >
-      {items.map((item, i) => (
-        <Link
-          key={item.label}
-          href={item.href}
-          className="flex-1 min-w-[80px] px-4 py-3.5 transition-colors"
-          style={{ borderRight: i < items.length - 1 ? `1px solid ${KEBU.border}` : "none" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,85,0,0.035)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
-        >
-          <p
-            className="text-xl font-black leading-none mb-1 tabular-nums"
-            style={{ fontFamily: "var(--font-fraunces)", color: item.value > 0 ? item.accent : KEBU.faint }}
-          >
-            {item.value}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: KEBU.muted }}>
-            {item.label}
-          </p>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-// ── Onboarding checklist for brand-new users ─────────────────────────────────
-
-const CHECKLIST = [
-  {
-    id: "intake",
-    label: "Tell Kebu about yourself",
-    href: "/welcome",
-    sub: "3 min — personalises your whole experience",
-    icon: "🌍",
-    cta: "Personalize",
-  },
-  {
-    id: "site",
-    label: "Build your first site",
-    href: "/create/new",
-    sub: "Pick a style → go live in minutes",
-    icon: "🌐",
-    cta: "Build a site",
-  },
-  {
-    id: "shop",
-    label: "Add a product to your shop",
-    href: "/create/new?type=store",
-    sub: "Sell from day one — free with transaction fee",
-    icon: "🛍️",
-    cta: "Add product",
-  },
-  {
-    id: "business",
-    label: "Register a Kebu business",
-    href: "/business/register",
-    sub: "Get your Kebu ID, unlock the B2B directory",
-    icon: "💼",
-    cta: "Register",
-  },
-  {
-    id: "design",
-    label: "Create a design in Studio",
-    href: "/studio/new",
-    sub: "Poster, flyer, social media — better than Canva",
-    icon: "🎨",
-    cta: "Open Studio",
-  },
-  {
-    id: "opportunity",
-    label: "Explore Opportunity OS",
-    href: "/opportunity",
-    sub: "Grants, fellowships, tenders curated for you",
-    icon: "✨",
-    cta: "Explore",
-  },
+const QUICK:Array<{label:string;href:string;icon:KebuIconName}>=[
+  {label:"Create",href:"/studio/new",icon:"create"},
+  {label:"Build a site",href:"/create/new",icon:"builder"},
+  {label:"Studio",href:"/studio",icon:"studio"},
+  {label:"Search",href:"/search",icon:"search"},
+  {label:"Spaces",href:"/spaces",icon:"spaces"},
+  {label:"Opportunity",href:"/opportunity",icon:"opportunity"},
+  {label:"Library",href:"/library",icon:"library"},
+  {label:"More",href:"/settings",icon:"more"},
 ];
 
-function SetupChecklist({ summary }: { summary: HomeSummary }) {
-  const done = new Set<string>();
-  if (!summary.personalization.needsIntake) done.add("intake");
-  if (summary.stats.sitesTotal > 0) done.add("site");
-  if (summary.stats.storeProducts > 0) done.add("shop");
-  if (summary.businesses.length > 0) done.add("business");
-  if (summary.stats.createDesigns > 0) done.add("design");
-
-  const pct = Math.round((done.size / CHECKLIST.length) * 100);
-  if (pct >= 100) return null;
-
-  const pending = CHECKLIST.filter(({ id }) => !done.has(id));
-  const completed = CHECKLIST.filter(({ id }) => done.has(id));
-
-  return (
-    <section className="mb-10">
-      {/* Header + progress */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: KEBU.orange }}>
-          Get started
-        </h2>
-        <span className="text-[10px] font-bold" style={{ color: KEBU.faint }}>
-          {done.size}/{CHECKLIST.length} done
-        </span>
-      </div>
-      <div
-        className="h-1.5 rounded-full mb-6 overflow-hidden"
-        style={{ background: "rgba(10,10,10,0.08)" }}
-      >
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
-        />
-      </div>
-
-      {/* Visual action cards for pending items */}
-      {pending.length > 0 && (
-        <div className="grid sm:grid-cols-2 gap-3 mb-4">
-          {pending.map(({ id, label, href, sub, icon, cta }) => (
-            <Link
-              key={id}
-              href={href}
-              className="group block rounded-2xl p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-              style={{
-                background: KEBU.white,
-                border: `1px solid ${KEBU.border}`,
-              }}
-            >
-              <span className="text-2xl block mb-3">{icon}</span>
-              <p className="text-sm font-bold mb-1" style={{ color: KEBU.black }}>{label}</p>
-              <p className="text-[11px] mb-4 leading-relaxed" style={{ color: KEBU.muted }}>{sub}</p>
-              <span
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold rounded-full px-3 py-1.5"
-                style={{ background: KEBU.orange, color: KEBU.white }}
-              >
-                {cta}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Compact completed rows */}
-      {completed.length > 0 && (
-        <div className="space-y-1.5">
-          {completed.map(({ id, label, href, icon }) => (
-            <Link
-              key={id}
-              href={href}
-              className="flex items-center gap-3 rounded-xl px-4 py-2.5"
-              style={{
-                background: "rgba(16,185,129,0.05)",
-                border: "1px solid rgba(16,185,129,0.15)",
-                opacity: 0.75,
-              }}
-            >
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "#10B981" }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <span className="text-base leading-none">{icon}</span>
-              <p className="text-sm font-semibold" style={{ color: KEBU.muted }}>{label}</p>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
-  );
+function formatWhen(value:string|null){
+  if(!value)return "";
+  const date=new Date(value);
+  const today=new Date();
+  if(date.toDateString()===today.toDateString())return date.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  return date.toLocaleDateString([],{month:"short",day:"numeric"});
 }
 
-// ── Recent sites strip ────────────────────────────────────────────────────────
+export default function KebuHomePage(){
+  const router=useRouter();
+  const {context}=useKebuAccountContext();
+  const [summary,setSummary]=useState<HomeSummary|null>(null);
+  const [tasks,setTasks]=useState<WorkItemRow[]>([]);
+  const [events,setEvents]=useState<WorkItemRow[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState<string|null>(null);
 
-function SiteRow({ site }: { site: HomeSiteRow }) {
-  const live = site.status === "published";
-  const isStore = site.projectType === "store";
-  return (
-    <Link
-      href={isStore ? `/shop/${site.id}` : `/my-sites/${site.id}`}
-      className="flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all hover:-translate-y-px"
-      style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
-    >
-      <div
-        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-        style={{ background: isStore ? "#10B981" : KEBU.orange }}
-      >
-        {isStore ? (
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 01-8 0" />
-          </svg>
-        ) : (
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
-          </svg>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold truncate" style={{ color: KEBU.black }}>{site.title}</p>
-        <p className="text-[10px] truncate" style={{ color: KEBU.faint }}>
-          {site.subdomain ? `${site.subdomain}.kebu.co` : (isStore ? "Store" : "Site")}
-          {isStore && site.productCount > 0 ? ` · ${site.productCount} products` : ""}
-        </p>
-      </div>
-      <span
-        className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
-        style={{
-          background: live ? "rgba(16,185,129,0.1)" : "rgba(10,10,10,0.06)",
-          color: live ? "#10B981" : KEBU.muted,
-        }}
-      >
-        {live ? "Live" : "Draft"}
-      </span>
-    </Link>
-  );
-}
+  const load=useCallback(async()=>{
+    setLoading(true);setError(null);
+    try{
+      const homeRes=await fetch("/api/me/home",{credentials:"include"});
+      const homeData=await homeRes.json().catch(()=>({})) as {summary?:HomeSummary;error?:string};
+      if(homeRes.status===401){router.replace("/login?next=/dashboard");return;}
+      if(!homeRes.ok||!homeData.summary){setError(homeData.error??"Could not load Kebu.");return;}
+      if(!homeData.summary.setup?.onboardingComplete){router.replace("/welcome?next=/dashboard");return;}
+      setSummary(homeData.summary);
 
-// ── Activity feed item ────────────────────────────────────────────────────────
+      const wsRes=await fetch("/api/me/workspace",{credentials:"include"});
+      const wsData=await wsRes.json().catch(()=>({}));
+      const businessId=wsRes.ok?wsData.context?.activeBusinessId:null;
+      const base=new URLSearchParams();
+      if(businessId)base.set("businessId",businessId);else base.set("personal","1");
+      const taskParams=new URLSearchParams(base);taskParams.set("kind","task");
+      const eventParams=new URLSearchParams(base);eventParams.set("kind","event");
+      const [taskRes,eventRes]=await Promise.all([
+        fetch("/api/work/items?"+taskParams.toString(),{credentials:"include"}),
+        fetch("/api/work/items?"+eventParams.toString(),{credentials:"include"}),
+      ]);
+      const [taskData,eventData]=await Promise.all([taskRes.json().catch(()=>({})),eventRes.json().catch(()=>({}))]);
+      if(taskRes.ok)setTasks(Array.isArray(taskData.items)?taskData.items:[]);
+      if(eventRes.ok)setEvents(Array.isArray(eventData.items)?eventData.items:[]);
+    }catch{setError("Network error. Retry.");}
+    finally{setLoading(false);}
+  },[router]);
 
-const KIND_COLOR: Record<HomeUpdate["kind"], string> = {
-  site: KEBU.orange,
-  business: "#10B981",
-  email: "#0EA5E9",
-  create: "#9333EA",
-  opportunity: KEBU.red,
-  b2b: "#F59E0B",
-};
+  useEffect(()=>{void load()},[load]);
 
-function UpdateRow({ item }: { item: HomeUpdate }) {
-  return (
-    <Link
-      href={item.href}
-      className="flex gap-3 rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
-      style={{
-        background: KEBU.white,
-        border: `1px solid ${KEBU.border}`,
-        borderLeft: `3px solid ${KIND_COLOR[item.kind]}`,
-      }}
-    >
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm truncate" style={{ color: KEBU.black }}>{item.title}</p>
-        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: KEBU.muted }}>{item.body}</p>
-      </div>
-      <svg
-        className="shrink-0 self-center"
-        width="14" height="14" viewBox="0 0 24 24" fill="none"
-        stroke={KEBU.orange} strokeWidth="2.5" strokeLinecap="round"
-      >
-        <path d="M5 12h14M12 5l7 7-7 7" />
-      </svg>
-    </Link>
-  );
-}
+  const first=displayFirstName(summary?.profile.name,summary?.profile.email);
+  const activeName=context?.mode==="business"&&context.activeBusiness?.name?context.activeBusiness.name:null;
+  const activeSpace=activeName??"Kebu";
+  const recent=useMemo(()=>{
+    if(!summary)return [];
+    const sites=summary.sites.map(site=>({id:"site-"+site.id,title:site.title,kind:site.projectType==="store"?"Store":"Site",href:site.projectType==="store"?"/shop/"+site.id:"/my-sites/"+site.id}));
+    const businesses=summary.businesses.map(b=>({id:"biz-"+b.id,title:b.name,kind:"Business",href:"/business/"+b.id}));
+    return [...sites,...businesses].slice(0,6);
+  },[summary]);
+  const hasWork=recent.length>0 || Boolean(summary?.updates.length) || tasks.length>0 || events.length>0;
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
-export default function KebuHomePage() {
-  const router = useRouter();
-  const [summary, setSummary] = useState<HomeSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/me/home", { credentials: "include" });
-      const data = (await res.json().catch(() => ({}))) as { summary?: HomeSummary; error?: string };
-      if (res.status === 401) { router.replace("/login?next=/dashboard"); return; }
-      if (!res.ok || !data.summary) { setError(data.error ?? "Could not load your Kebu home."); return; }
-      if (data.summary.personalization?.needsIntake) { router.replace("/welcome?next=/dashboard"); return; }
-      if (!readStoredWorkspace()) { router.replace("/start?next=/dashboard"); return; }
-      setSummary(data.summary);
-    } catch {
-      setError("Network error. Retry.");
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const first = displayFirstName(summary?.profile.name, summary?.profile.email);
-  const isNew = summary
-    ? summary.stats.sitesTotal === 0 && summary.businesses.length === 0
-    : false;
-
-  return (
-    <AppShell title="Your Kebu">
-      <div className="min-h-full">
-
-        {/* ── Compact hero strip ───────────────────────────────── */}
-        <div style={{ background: KEBU.black }}>
-          <div className="max-w-5xl mx-auto px-5 lg:px-10 py-3.5 flex items-center gap-3">
-            {loading ? (
-              <>
-                <Skeleton width={32} height={32} radius={16} style={{ background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />
-                <Skeleton height={12} width={140} style={{ background: "rgba(255,255,255,0.12)" }} />
-              </>
-            ) : error ? (
-              <div className="rounded-lg px-3 py-1.5 text-xs" style={{ background: KEBU.red, color: KEBU.white }}>
-                {error}{" "}
-                <button type="button" className="underline font-bold" onClick={() => void load()}>Retry</button>
+  return <AppShell title="Home">
+    <div className="min-h-[calc(100vh-48px)] bg-[#FFFCF8] text-black">
+      <div className="mx-auto max-w-[1540px] px-3 py-3 sm:px-5">
+        {loading?<div className="space-y-3"><Skeleton height={180}/><Skeleton height={90}/><Skeleton height={300}/></div>:error?<div className="rounded-[16px] border p-6" style={{borderColor:KEBU.status.errorBorder,background:KEBU.status.errorBg}}><p className="font-semibold">{error}</p><button onClick={()=>void load()} className="mt-3 rounded-full bg-black px-4 py-2 text-[10px] font-semibold text-white">Retry</button></div>:summary?<>
+          <section className="relative overflow-hidden rounded-[18px] bg-black text-white">
+            <div className="absolute inset-0" style={{background:"radial-gradient(circle at 20% 45%,rgba(255,106,0,.72),transparent 24%),radial-gradient(circle at 82% 25%,rgba(255,177,143,.22),transparent 22%),linear-gradient(105deg,#130807,#45160e 52%,#111214)"}}/>
+            <div className="absolute -left-10 top-[-70px] h-[280px] w-[280px] rotate-[32deg] rounded-[42%] border-[42px] border-[#FF5A1F]/60"/>
+            <div className="relative grid min-h-[178px] items-center lg:grid-cols-[1fr_350px]">
+              <div className="p-5 sm:p-7">
+                <div className="flex items-center gap-2"><p className="text-[8px] font-semibold uppercase tracking-[.16em] text-white/42">{activeName??"Kebu"}</p><span className="rounded-full bg-white/10 px-2 py-1 text-[7px] text-white/45">{activeSpace} space</span></div>
+                <h1 className="mt-2 text-[36px] leading-[.95] tracking-[-.045em] sm:text-[48px]" style={{fontFamily:"var(--font-fraunces)"}}>Good evening, {first}.</h1>
+                <p className="mt-2 max-w-lg text-[11px] leading-relaxed text-white/60">Pick up what matters, create something new, or go somewhere else in Kebu.</p>
               </div>
-            ) : summary ? (
-              <>
-                {summary.profile.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={summary.profile.avatarUrl}
-                    alt=""
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FF5500] shrink-0"
-                  />
-                ) : (
-                  <span
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0"
-                    style={{ background: KEBU.orange }}
-                  >
-                    {first.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.24em] leading-none mb-0.5" style={{ color: KEBU.orange }}>
-                    Your Kebu
-                  </p>
-                  <p className="text-sm font-black text-white leading-tight truncate">
-                    {isNew ? `Welcome, ${first}` : `Hi, ${first}`}
-                  </p>
-                </div>
-                {summary.profile.afriqueId && (
-                  <p className="text-[10px] font-mono font-bold shrink-0 hidden sm:block" style={{ color: "rgba(255,255,255,0.45)" }}>
-                    {summary.profile.afriqueId}
-                  </p>
-                )}
-              </>
-            ) : null}
-          </div>
-          <div className="h-px w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
-        </div>
-
-        {/* ── Body ────────────────────────────────────────────── */}
-        <div className="max-w-5xl mx-auto px-5 lg:px-10 py-7 lg:py-10">
-
-          {loading ? (
-            <>
-              {/* Compact strip skeleton */}
-              <div
-                className="flex overflow-hidden rounded-2xl mb-8"
-                style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}
-              >
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    className="flex-1 px-4 py-3.5"
-                    style={{ borderRight: i < 6 ? `1px solid ${KEBU.border}` : "none" }}
-                  >
-                    <Skeleton height={22} width="50%" style={{ marginBottom: 6 }} />
-                    <Skeleton height={10} width="70%" />
-                  </div>
-                ))}
+              <div className="hidden h-full border-l border-white/10 p-5 lg:flex lg:flex-col lg:justify-between">
+                <p className="max-w-[210px] text-[26px] leading-[1.02]" style={{fontFamily:"var(--font-fraunces)"}}>Ideas become real when the tools get out of the way.</p>
+                <Link href="/opportunity" className="text-[9px] font-semibold text-[#FFB09A]">Explore what’s possible →</Link>
               </div>
-            </>
-          ) : null}
+            </div>
+          </section>
 
-          {summary ? (
-            <>
-              {/* Onboarding checklist (shown when user hasn't done things yet) */}
-              {isNew ? (
-                <SetupChecklist summary={summary} />
-              ) : null}
+          <section className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {QUICK.map((item,index)=><Link key={item.label} href={item.href} className="group flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-[12px] border bg-white px-2 text-center transition hover:-translate-y-0.5" style={{borderColor:KEBU.border,background:index===0?"#FFF0E8":"white"}}><KebuIcon name={item.icon} size={18} style={{color:index===0?KEBU.orange:KEBU.black}}/><span className="text-[8px] font-semibold">{item.label}</span></Link>)}
+          </section>
 
-              {/* Compact stat strip — hide when brand new */}
-              {!isNew ? (
-                <StatStrip stats={summary.stats} businesses={summary.businesses} />
-              ) : null}
+          {!hasWork?<section className="mt-3 rounded-[14px] border border-dashed bg-white px-5 py-8 text-center" style={{borderColor:KEBU.border}}><p className="text-[11px] font-semibold">Nothing is filled with demo activity.</p><p className="mt-1 text-[9px] text-black/35">Your real work will appear here automatically as you create, save, join spaces, or schedule things.</p></section>:null}
 
-              {/* Quick actions */}
-              <section className="mb-8">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.24em] mb-3" style={{ color: KEBU.red }}>
-                  Quick actions
-                </h2>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                  {[
-                    {
-                      label: "Builder",
-                      href: "/create",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "Studio",
-                      href: "/studio",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
-                          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
-                          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
-                          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
-                          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "Businesses",
-                      href: "/business",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                          <polyline points="9 22 9 12 15 12 15 22"/>
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "Opportunity",
-                      href: "/opportunity",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/>
-                          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "B2B",
-                      href: "/b2b",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                          <circle cx="9" cy="7" r="4"/>
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "Countries",
-                      href: "/opportunity/countries",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                          <circle cx="12" cy="10" r="3"/>
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "Account",
-                      href: "/account",
-                      icon: (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                          <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                      ),
-                    },
-                  ].map((a) => (
-                    <Link
-                      key={a.href}
-                      href={a.href}
-                      className="group flex flex-col items-center gap-2 rounded-2xl p-3 transition-all hover:-translate-y-0.5 active:scale-[0.97]"
-                      style={{
-                        background: KEBU.white,
-                        border: `1px solid ${KEBU.border}`,
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = KEBU.orange; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(255,85,0,0.12)`; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ""; (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
-                    >
-                      <span style={{ color: KEBU.orange }}>{a.icon}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight" style={{ color: KEBU.black }}>{a.label}</span>
-                    </Link>
-                  ))}
+          <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <main className="min-w-0 space-y-3">
+              <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
+                <div className="flex items-center justify-between"><div><p className="text-[11px] font-semibold">Recent work</p><p className="mt-0.5 text-[8px] text-black/35">Sites, businesses and creative work you can reopen.</p></div><Link href="/library" className="text-[8px] text-black/35">See all →</Link></div>
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                  {recent.map((item,index)=><Link key={item.id} href={item.href} className="min-w-[175px] overflow-hidden rounded-[12px] border bg-white" style={{borderColor:KEBU.border}}><div className="h-[78px]" style={{background:index%3===0?"linear-gradient(135deg,#1a0906,#ff6a00)":index%3===1?"linear-gradient(135deg,#161719,#a84935)":"linear-gradient(135deg,#ecd7c9,#35120d)"}}/><div className="p-2.5"><p className="truncate text-[9px] font-semibold">{item.title}</p><p className="mt-0.5 text-[8px] text-black/35">{item.kind}</p></div></Link>)}
+                  {!recent.length?<Link href="/studio/new" className="flex min-h-[120px] min-w-[220px] items-center justify-center rounded-[12px] border border-dashed text-[9px] text-black/40" style={{borderColor:KEBU.border}}>Create your first project →</Link>:null}
                 </div>
               </section>
 
-              {/* Recent sites */}
-              {summary.sites.length > 0 ? (
-                <section className="mb-8">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: KEBU.red }}>
-                      Your sites
-                    </h2>
-                    <Link href={MY_SITES_HREF} className="text-[10px] font-bold" style={{ color: KEBU.orange }}>
-                      All sites →
-                    </Link>
+              <section className="grid gap-3 lg:grid-cols-2">
+                <div className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
+                  <div className="flex items-center justify-between"><p className="flex items-center gap-2 text-[11px] font-semibold"><span aria-hidden />Needs your attention</p><Link href="/work" className="text-[8px] text-black/35">Work →</Link></div>
+                  <div className="mt-2">
+                    {summary.updates.slice(0,5).map(item=><Link key={item.id} href={item.href} className="flex items-center gap-2 border-t py-2.5" style={{borderColor:KEBU.border}}><span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00]"/><span className="min-w-0 flex-1"><span className="block truncate text-[9px] font-semibold">{item.title}</span><span className="block truncate text-[8px] text-black/35">{item.body}</span></span><span className="text-black/20">→</span></Link>)}
                   </div>
-                  <div className="space-y-1.5">
-                    {summary.sites.slice(0, 4).map((s) => (
-                      <SiteRow key={s.id} site={s} />
-                    ))}
+                </div>
+                <div className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
+                  <div className="flex items-center justify-between gap-3"><p className="text-[11px] font-semibold">Your spaces</p><div className="flex items-center gap-2"><Link href="/business/register" className="rounded-lg px-5 py-2.5 text-[8px] font-semibold" style={{background:"#FFF0E8",color:KEBU.orange}}>+ New space</Link><Link href="/spaces" className="text-[8px] text-black/35">Open Spaces →</Link></div></div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {summary.businesses.slice(0,4).map((business,index)=><Link key={business.id} href={"/business/"+business.id} className="min-h-[76px] rounded-[10px] p-3 text-white" style={{background:index%2?"linear-gradient(135deg,#171719,#85301f)":"linear-gradient(135deg,#250c08,#ff6a00)"}}><p className="truncate text-[9px] font-semibold">{business.name}</p><p className="mt-1 text-[8px] text-white/45">{business.role}</p></Link>)}
+                    {!summary.businesses.length?<Link href="/business/register" className="col-span-2 flex min-h-[76px] items-center justify-center rounded-[10px] border border-dashed text-[8px] text-black/35" style={{borderColor:KEBU.border}}>Create a business space when you need one</Link>:null}
                   </div>
-                </section>
-              ) : null}
+                </div>
+              </section>
 
-              {/* Business & KA score */}
-              {summary.businesses.length > 0 ? (
-                <section className="mb-8">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: KEBU.red }}>
-                      Business & Kebu ID
-                    </h2>
-                    <Link href="/business" className="text-[10px] font-bold" style={{ color: KEBU.orange }}>
-                      All businesses →
-                    </Link>
-                  </div>
-                  <div className="space-y-2">
-                    {summary.businesses.map((b) => (
-                      <Link
-                        key={b.id}
-                        href={`/business/${b.id}`}
-                        className="flex items-center justify-between rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
-                        style={{ background: KEBU.black, borderLeft: `3px solid ${KEBU.orange}` }}
-                      >
-                        <div className="min-w-0">
-                          <p className="font-bold text-sm text-white truncate">{b.name}</p>
-                          <p className="text-[10px] font-mono font-bold mt-0.5" style={{ color: KEBU.orange }}>
-                            {b.publicKebuId}
-                          </p>
-                        </div>
-                        {b.readinessScore != null ? (
-                          <div className="text-right shrink-0 ml-3">
-                            <p className="text-xl font-black" style={{ color: KEBU.orange }}>
-                              {b.readinessScore}
-                            </p>
-                            <p className="text-[9px] font-bold uppercase" style={{ color: KEBU.faint }}>
-                              readiness
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs font-bold uppercase shrink-0 ml-3" style={{ color: KEBU.orange }}>
-                            Set up →
-                          </span>
-                        )}
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+              <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                {[
+                  ["Businesses",summary.businesses.length,"/business"],
+                  ["Sites",summary.stats.sitesTotal,"/my-sites"],
+                  ["Designs",summary.stats.createDesigns,"/studio"],
+                  ["Products",summary.stats.storeProducts,"/shop"],
+                  ["Opportunities",summary.opportunities.count,summary.opportunities.exploreHref],
+                ].map(([label,value,href])=><Link key={String(label)} href={String(href)} className="rounded-[12px] border bg-white p-3" style={{borderColor:KEBU.border}}><p className="text-[20px]" style={{fontFamily:"var(--font-fraunces)"}}>{String(value)}</p><p className="mt-1 text-[8px] text-black/35">{String(label)}</p></Link>)}
+              </section>
+            </main>
 
-              {/* Partial checklist for returning users who haven't finished */}
-              {!isNew ? (
-                <SetupChecklist summary={summary} />
-              ) : null}
+            <aside className="space-y-3">
+              <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
+                <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Your tasks</p><Link href="/tasks" className="text-[8px] text-black/35">See all →</Link></div>
+                <div className="mt-2">{tasks.filter(item=>item.status!=="done").slice(0,5).map(item=><Link key={item.id} href="/tasks" className="flex items-center gap-2 border-t py-2.5" style={{borderColor:KEBU.border}}><span className="h-3.5 w-3.5 rounded-full border border-black/30"/><span className="min-w-0 flex-1 truncate text-[8px]">{item.title}</span><span className="text-[7px] text-black/35">{formatWhen(item.due_at)}</span></Link>)}{!tasks.some(item=>item.status!=="done")?<p className="py-4 text-[8px] text-black/35">Nothing due right now.</p>:null}</div>
+              </section>
 
-              {/* Activity feed */}
-              {summary.updates.length > 0 ? (
-                <section>
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.24em] mb-3" style={{ color: KEBU.red }}>
-                    Next steps
-                  </h2>
-                  <div className="space-y-1.5">
-                    {summary.updates.map((u) => (
-                      <UpdateRow key={u.id} item={u} />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-            </>
-          ) : null}
-        </div>
+              <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
+                <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Next event</p><Link href="/calendar" className="text-[8px] text-black/35">Calendar →</Link></div>
+                {events[0]?<Link href="/calendar" className="mt-3 block rounded-[11px] bg-[#F7EFEA] p-3"><p className="text-[9px] font-semibold">{events[0].title}</p><p className="mt-1 text-[8px] text-black/40">{formatWhen(events[0].start_at)}</p></Link>:<p className="py-4 text-[8px] text-black/35">No upcoming event.</p>}
+              </section>
+
+              <section className="relative overflow-hidden rounded-[14px] bg-black p-4 text-white">
+                <div className="absolute -right-12 -top-12 h-32 w-32 rotate-[28deg] rounded-[40%] bg-[#FF5A1F]"/>
+                <div className="relative"><div className="flex items-center gap-2"><span className="text-[20px]" style={{fontFamily:"var(--font-fraunces)"}}>K Mail</span><span className="text-[7px] uppercase text-[#FF8A67]">beta</span></div><p className="mt-2 max-w-[190px] text-[9px] leading-relaxed text-white/48">Your communication and thinking partner across Kebu.</p><Link href="/email" className="mt-4 inline-flex rounded-full bg-white px-3 py-2 text-[8px] font-semibold text-black">Open K Mail →</Link></div>
+              </section>
+            </aside>
+          </div>
+        </>:null}
       </div>
-    </AppShell>
-  );
+    </div>
+  </AppShell>;
 }

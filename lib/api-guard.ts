@@ -1,4 +1,6 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
+import { recordSecurityEvent } from "@/lib/platform/security-events";
 
 // ── IP-based rate limiter ─────────────────────────────────────────────────────
 // Each serverless instance has its own map. This stops casual abuse and script
@@ -12,6 +14,26 @@ const BUILDER_LIMIT = 120; // saves / publish / settings per IP per window
 const PUBLIC_LIMIT = 180; // public site reads per IP per window
 const AUTH_LIMIT = 20; // login / admin login attempts per IP per window
 const WINDOW_MS = 60_000; // 1 minute
+const MAX_LOCAL_BUCKETS = 10_000;
+
+// A Vercel Firewall/edge policy is the intended production-wide first line of
+// defense (see docs/security/RATE_LIMITING.md). This bounded limiter remains an
+// independent application guard; it is not globally distributed.
+
+// Local fallback only. Keep memory bounded even if a warm server instance sees many IPs.
+function pruneExpiredBuckets(now: number): void {
+  if (buckets.size < MAX_LOCAL_BUCKETS) return;
+  for (const [key, bucket] of buckets) {
+    if (now > bucket.resetAt) buckets.delete(key);
+  }
+  // Fail safe for memory: if traffic is extremely high, evict oldest insertion-order
+  // entries. Distributed enforcement belongs at the edge/shared store, not this map.
+  while (buckets.size >= MAX_LOCAL_BUCKETS) {
+    const oldest = buckets.keys().next().value as string | undefined;
+    if (!oldest) break;
+    buckets.delete(oldest);
+  }
+}
 
 function clientKey(req: NextRequest): string {
   return (
@@ -25,6 +47,7 @@ function clientKey(req: NextRequest): string {
 function rateLimit(req: NextRequest, limit: number, bucketSuffix: string): Response | null {
   const key = `${clientKey(req)}:${bucketSuffix}`;
   const now = Date.now();
+  pruneExpiredBuckets(now);
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetAt) {
@@ -62,6 +85,16 @@ export function publicSiteRateLimit(req: Request | NextRequest): Response | null
   return rateLimit(req as NextRequest, PUBLIC_LIMIT, "public");
 }
 
+// Nominatim/OSRM's public demo endpoints are shared, free, no-key community
+// infrastructure with their own usage policies — keep this tighter than our
+// general public limit so we stay a good citizen of those services.
+const MAPS_PROXY_LIMIT = 30;
+
+/** Geocoding / routing proxy calls to open, no-key third-party demo endpoints. */
+export function mapsProxyRateLimit(req: Request | NextRequest): Response | null {
+  return rateLimit(req as NextRequest, MAPS_PROXY_LIMIT, "maps-proxy");
+}
+
 const SHOP_ORDER_LIMIT = 20;
 
 /** Customer order posts from live sites. */
@@ -71,16 +104,42 @@ export function shopOrderRateLimit(req: Request | NextRequest): Response | null 
 
 /** Login / admin login — stops password guessing from one IP. */
 export function authRateLimit(req: Request | NextRequest): Response | null {
-  return rateLimit(req as NextRequest, AUTH_LIMIT, "auth");
+  const limited = rateLimit(req as NextRequest, AUTH_LIMIT, "auth");
+  if (limited) {
+    recordSecurityEvent({
+      eventType: "auth_rate_limited",
+      source: (() => {
+        try {
+          return new URL(req.url).pathname;
+        } catch {
+          return "unknown";
+        }
+      })(),
+    });
+  }
+  return limited;
 }
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.
-// Pass through if CRON_SECRET is not set (local dev convenience).
+// Production fails closed when the secret is missing. Local dev may run without it.
 export function requireCronSecret(req: NextRequest): Response | null {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return null;
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  const secret = process.env.CRON_SECRET?.trim();
+  const invalidProductionSecret =
+    process.env.NODE_ENV === "production" &&
+    (!secret || secret.length < 32 || /^(change_me|replace_|your_|example)/i.test(secret));
+  if (!secret || invalidProductionSecret) {
+    if (process.env.NODE_ENV !== "production") return null;
+    console.error("CRON_SECRET is missing, weak, or placeholder in production; refusing privileged cron request.");
+    return new Response(JSON.stringify({ error: "Cron authentication is not configured." }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const auth = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  const authDigest = createHash("sha256").update(auth).digest();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  if (!timingSafeEqual(authDigest, expectedDigest)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

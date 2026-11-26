@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
+import { createServiceClient } from "@/lib/opportunity/admin";
 import { assertShopProjectAccess } from "@/lib/shop/shop-project-access";
+import { getShopSellerBalance, SHOP_KEBU_CONTROLLED_RAILS, type ShopSellerBalance } from "@/lib/shop/seller-payouts";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +17,16 @@ export type PayoutWeek = {
 
 export type PayoutSummary = {
   totalPaidXof: number;
+  /** @deprecated nothing ever wrote shop_orders.payout_at — this was always 0% paid out. Use `balance` instead. */
   pendingXof: number;
+  /** @deprecated see pendingXof. */
   paidOutXof: number;
+  /** Real, ledger-derived Kebu balance — only for rails Kebu actually custodies. */
+  balance: ShopSellerBalance;
+  /** Rails whose money lands in Kebu's own account and accumulates in `balance`. */
+  kebuControlledRails: readonly string[];
+  /** Rails that settle directly between buyer and seller — never touch a Kebu account. */
+  directSettlementRails: readonly string[];
   weeks: PayoutWeek[];
   generatedAt: string;
 };
@@ -45,7 +55,7 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data: orders, error } = await access.db
     .from("shop_orders")
-    .select("payment_status, payment_preference, amount_xof, created_at, payout_at")
+    .select("payment_status, payment_preference, amount_xof, created_at")
     .eq("project_id", projectId)
     .eq("payment_status", "paid")
     .gte("created_at", since)
@@ -61,12 +71,9 @@ export async function GET(req: Request, { params }: Params) {
     payment_preference: string | null;
     amount_xof: number | null;
     created_at: string;
-    payout_at?: string | null;
   }[];
 
   let totalPaidXof = 0;
-  let paidOutXof = 0;
-  let pendingXof = 0;
 
   // Group by ISO week
   const weekMap: Record<string, { orders: number; revenueXof: number; methods: Record<string, { count: number; amountXof: number }> }> = {};
@@ -74,11 +81,6 @@ export async function GET(req: Request, { params }: Params) {
   for (const r of rows) {
     const amt = r.amount_xof ?? 0;
     totalPaidXof += amt;
-    if (r.payout_at) {
-      paidOutXof += amt;
-    } else {
-      pendingXof += amt;
-    }
 
     const d = new Date(r.created_at);
     const weekStart = new Date(d);
@@ -113,10 +115,24 @@ export async function GET(req: Request, { params }: Params) {
       })),
     }));
 
+  // shop_seller_balance is service-role-only (it trusts p_project_id with no internal
+  // ownership check) — access was already verified above via assertShopProjectAccess.
+  const serviceDb = createServiceClient();
+  const balanceResult = serviceDb
+    ? await getShopSellerBalance(serviceDb, projectId)
+    : { ok: false as const, status: 503, error: "Service unavailable." };
+  const balance = balanceResult.ok
+    ? balanceResult.balance
+    : { collectedXof: 0, refundedXof: 0, fulfillmentCommissionXof: 0, requestedOrPaidXof: 0, availableXof: 0 };
+
   const summary: PayoutSummary = {
     totalPaidXof,
-    pendingXof,
-    paidOutXof,
+    // Kept for older clients; no longer meaningful (payout_at was never written). Mirror balance instead.
+    pendingXof: balance.availableXof,
+    paidOutXof: balance.requestedOrPaidXof,
+    balance,
+    kebuControlledRails: SHOP_KEBU_CONTROLLED_RAILS,
+    directSettlementRails: ["whatsapp", "cod"],
     weeks,
     generatedAt: new Date().toISOString(),
   };

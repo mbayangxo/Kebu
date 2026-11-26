@@ -30,34 +30,43 @@ function LoginForm() {
     setError("");
     setEmailConfirmPending(false);
     setResendStatus("idle");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (isEmailNotConfirmed(error.message)) {
-        setEmailConfirmPending(true);
-        setError(
-          "Confirm your email first. Open the link we sent when you signed up, then sign in here."
-        );
-      } else {
-        setError(error.message);
-      }
-      setLoading(false);
-      return;
-    }
-
-    // Confirm cookies landed before navigation — soft client routing can race and show guest UI.
-    if (!data.session) {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        setError("Signed in, but the browser did not keep the session. Disable blockers and try again.");
-        setLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        if (isEmailNotConfirmed(error.message)) {
+          setEmailConfirmPending(true);
+          setError(
+            "Confirm your email first. Open the link we sent when you signed up, then sign in here."
+          );
+        } else {
+          setError(error.message);
+        }
         return;
       }
-    }
 
-    const dest = postAuthDestination(searchParams.get("next"));
-    window.location.assign(dest);
+      // Confirm cookies landed before navigation — soft client routing can race and show guest UI.
+      if (!data.session) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) {
+          setError("Signed in, but the browser did not keep the session. Disable blockers and try again.");
+          return;
+        }
+      }
+
+      const dest = postAuthDestination(searchParams.get("next"));
+      window.location.assign(dest);
+    } catch {
+      setError(
+        "Kebu could not reach the sign-in service. Check your connection and try again. If this keeps happening, contact Kebu support."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleResendConfirmation() {
@@ -68,33 +77,38 @@ function LoginForm() {
     }
     setResendStatus("sending");
     setError("");
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: trimmed,
-      options: { emailRedirectTo: authCallbackUrl(nextPath) },
-    });
-    if (error) {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: trimmed,
+        options: { emailRedirectTo: authCallbackUrl(nextPath) },
+      });
+      if (error) {
+        setResendStatus("idle");
+        setError(error.message);
+        return;
+      }
+      setEmailConfirmPending(true);
+      setResendStatus("sent");
+    } catch {
       setResendStatus("idle");
-      setError(error.message);
-      return;
+      setError("Kebu could not resend the confirmation email. Check your connection and try again.");
     }
-    setEmailConfirmPending(true);
-    setResendStatus("sent");
   }
 
   return (
     <div className="relative w-full max-w-md">
       <div className="text-center mb-10">
-        <Link href="/" className="inline-flex flex-col items-center gap-3">
+        <Link href="/" aria-label="Kebu" className="inline-flex flex-col items-center gap-3">
           <KebuMark size={64} />
           <span
             className="text-3xl font-bold uppercase tracking-[0.16em]"
-            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.white }}
+            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
           >
             Kebu
           </span>
         </Link>
-        <p className="mt-3 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
           Africa is the opportunity
         </p>
       </div>
@@ -133,6 +147,7 @@ function LoginForm() {
 
         {error && (
           <div
+            role="alert"
             className="rounded-xl px-4 py-3 text-sm mb-6"
             style={{
               background: emailConfirmPending ? "rgba(255,85,0,0.1)" : KEBU.errorBg,
@@ -163,10 +178,12 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: KEBU.black }}>
+            <label htmlFor="login-email" className="block text-sm font-semibold mb-2" style={{ color: KEBU.black }}>
               Email
             </label>
             <input
+              id="login-email"
+              autoComplete="username"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -179,7 +196,7 @@ function LoginForm() {
 
           <div>
             <div className="flex items-center justify-between gap-3 mb-2">
-              <label className="block text-sm font-semibold" style={{ color: KEBU.black }}>
+              <label htmlFor="login-password" className="block text-sm font-semibold" style={{ color: KEBU.black }}>
                 Password
               </label>
               <Link
@@ -191,6 +208,8 @@ function LoginForm() {
               </Link>
             </div>
             <input
+              id="login-password"
+              autoComplete="current-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

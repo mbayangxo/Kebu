@@ -1,0 +1,75 @@
+{
+  "runtime": "5cd43a35e5f8379124ab71cc2568be3eeddeae2b",
+  "parent": "eb1785edffaf65c1e14ea273be2b7195f2b2ad99",
+  "gates": [
+    {
+      "name": "CI",
+      "run": 39730974041,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39730974041",
+      "result": "6602 passed; 338 explicit skips; TypeScript, lint (0 errors/346 existing warnings), finalized build"
+    },
+    {
+      "name": "Yande",
+      "run": 39730974071,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39730974071",
+      "result": "24 generation + 54 proposal/authority + 4 SQL passed; 0 skips"
+    },
+    {
+      "name": "Native SQL",
+      "run": 39730974190,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39730974190",
+      "result": "10 unique × 3 mandatory = 30 passed"
+    },
+    {
+      "name": "Builder SQL/browser",
+      "run": 39730974024,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39730974024",
+      "result": "77 passed; 9 strict performance probes; normal cleanup"
+    },
+    {
+      "name": "Studio",
+      "run": 39730974032,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39730974032",
+      "result": "44 full + 6 mandatory phone/tablet = 50 passed; 0 skips/flaky/retries"
+    },
+    {
+      "name": "Platform",
+      "run": 39730974003,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39730974003",
+      "result": "20 SQL suites + 21 browser cases passed"
+    },
+    {
+      "name": "Public production smoke",
+      "run": 39731239021,
+      "url": "https://github.com/mbayangxo/Kebu/actions/runs/39731239021",
+      "result": "533 passed; 35 explicit skips; not the 26 authenticated hosted acceptance cases"
+    }
+  ],
+  "baselines": {
+    "generation": {
+      "passed": 6,
+      "failed": 18
+    },
+    "proposals": {
+      "passed": 18,
+      "failed": 32,
+      "executed": 50
+    }
+  },
+  "preview": {
+    "id": "dpl_BcGNXzsKSccuosguMbxTesYjTsGz",
+    "url": "https://kebu-nbewqgfux-mbayangxos-projects.vercel.app",
+    "state": "READY"
+  },
+  "production": {
+    "sha": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+    "promoted": false
+  },
+  "hostedAcceptance": {
+    "executed": false,
+    "requiredCases": 26
+  },
+  "productionMigrationsApplied": false,
+  "dnsModified": false,
+  "realProviderCalls": false
+}

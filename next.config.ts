@@ -10,9 +10,9 @@ const SECURITY_HEADERS = [
 const NO_STORE = "private, no-cache, no-store, max-age=0, must-revalidate";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  serverExternalPackages: ["playwright", "playwright-core", "@sparticuz/chromium"],
+  outputFileTracingIncludes: { "/api/generation/**": ["./node_modules/@sparticuz/chromium/bin/**/*"], "/api/cron/creative-generation": ["./node_modules/@sparticuz/chromium/bin/**/*"] },
+  experimental: { turbopackFileSystemCacheForBuild: false, cpus: 1 },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
@@ -90,6 +90,28 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [...SECURITY_HEADERS, { key: "Cache-Control", value: NO_STORE }],
+      },
+      // Room calls need real camera/mic access; everywhere else keeps the
+      // default lockdown. Must come after the catch-all above — Next.js
+      // applies the later matching rule's value when the same header key
+      // matches the same path from more than one entry.
+      {
+        source: "/rooms/:id/call",
+        headers: [
+          ...SECURITY_HEADERS.filter((h) => h.key !== "Permissions-Policy"),
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+          { key: "Cache-Control", value: NO_STORE },
+        ],
+      },
+      // Kebu Map needs real browser geolocation ("Locate me"); everywhere
+      // else keeps the default lockdown.
+      {
+        source: "/map",
+        headers: [
+          ...SECURITY_HEADERS.filter((h) => h.key !== "Permissions-Policy"),
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+          { key: "Cache-Control", value: NO_STORE },
+        ],
       },
     ];
   },

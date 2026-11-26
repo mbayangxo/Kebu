@@ -1,0 +1,27 @@
+{
+  "base_commit": "4caf70f82a399f26b005972eaad9d5751ee9756f",
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 368
+  },
+  "unit_tests": {
+    "passed": 7182,
+    "skipped": 507,
+    "failed": 0
+  },
+  "production_build": "passed",
+  "browser_cases": {
+    "sheets_and_notifications": 5,
+    "slides": 4,
+    "calls": 4,
+    "docs": 4
+  },
+  "cloud_browser_policy": "passed",
+  "sql_access_tests": 24,
+  "hosted_migrations_applied": false,
+  "deployed": false,
+  "maylecor_live_http_status": 402,
+  "maylecor_live_error": "DEPLOYMENT_DISABLED",
+  "production_restoration": "automatic approval review rejected shared-project unpause; clarification pending"
+}

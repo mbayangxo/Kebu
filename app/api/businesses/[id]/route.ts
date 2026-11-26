@@ -3,6 +3,7 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 import { SAFE_REGISTRATION_FIELDS } from "@/lib/kebu-id/registration-schema";
+import { safeWebsiteUrlSchema } from "@/lib/kebu-id/schemas";
 import { z } from "zod";
 
 import { isValidLegalStructure } from "@/lib/kebu-id/countries";
@@ -16,7 +17,7 @@ const founderUpdateSchema = z.object({
   description: z.string().trim().min(20).max(1000).optional(),
   businessEmail: z.string().trim().email().max(254).optional(),
   businessPhone: z.string().trim().min(5).max(40).optional(),
-  website: z.string().trim().url().max(300).optional().nullable().or(z.literal("")),
+  website: safeWebsiteUrlSchema.optional().nullable().or(z.literal("")),
   legalStructure: z.string().trim().min(1).max(80).optional(),
 });
 

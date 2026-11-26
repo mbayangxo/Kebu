@@ -19,6 +19,8 @@ import { YandeAssistant } from "@/app/components/create/yande-assistant";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { templateGroupId, type TemplateCategoryGroupId } from "@/lib/create/template-catalog";
 
+import { pagesForCategory } from "@/lib/create/site-pages";
+
 type Template = { id: string; slug: string; name: string; category: string; description: string };
 type Business = { id: string; legal_name: string; country_code: string; category: string; description: string };
 
@@ -75,6 +77,7 @@ function CreateWebsiteWizardInner() {
   const [templateFilter, setTemplateFilter] = useState<TemplateCategoryGroupId | "">("");
   const [businessName, setBusinessName] = useState("");
   const [category, setCategory] = useState("services");
+  const [pagesInput, setPagesInput] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [countryCode, setCountryCode] = useState("SN");
   const [locale, setLocale] = useState("en");
@@ -181,6 +184,15 @@ function CreateWebsiteWizardInner() {
       setError("Choose a site address (subdomain) — at least 3 characters.");
       return;
     }
+    const desiredPages = (pagesInput ?? pagesForCategory(category).join(", ")).split(",").map((page) => page.trim().toLowerCase());
+    if ((mode === "ai" || mode === "photos") && (
+      desiredPages.length > 8 || !desiredPages.includes("home") ||
+      desiredPages.some((page) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page) || page.length > 40) ||
+      new Set(desiredPages).size !== desiredPages.length
+    )) {
+      setError("Choose up to 8 unique page addresses, including home. Use letters, numbers and hyphens, separated by commas.");
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);
@@ -192,14 +204,7 @@ function CreateWebsiteWizardInner() {
         description,
         countryCode,
         locale,
-        desiredPages:
-          mode === "ai" || mode === "photos"
-            ? category === "fashion" || category === "beauty" || category === "store"
-              ? ["home", "shop", "about", "contact"]
-              : category === "restaurant"
-                ? ["home", "menu", "about", "contact"]
-                : ["home", "about", "contact"]
-            : ["home"],
+        desiredPages: mode === "ai" || mode === "photos" ? desiredPages : ["home"],
         templateSlug: mode === "template" ? templateSlug : undefined,
         photoUrls: mode === "photos" ? photoUrls : undefined,
         subdomain: subdomain.trim().toLowerCase(),
@@ -575,6 +580,22 @@ function CreateWebsiteWizardInner() {
               />
             </label>
           </div>
+
+          {mode === "ai" || mode === "photos" ? (
+            <label className="block">
+              <BuilderFieldLabel hint="Up to 8 page addresses, separated by commas. Include home. These pages take priority over page names in your brief.">
+                Pages
+              </BuilderFieldLabel>
+              <input
+                aria-label="Pages"
+                value={pagesInput ?? pagesForCategory(category).join(", ")}
+                onChange={(e) => setPagesInput(e.target.value)}
+                disabled={submitting}
+                className={builderInputClass}
+                style={builderInputStyle}
+              />
+            </label>
+          ) : null}
 
           {error && (
             <div role="alert" className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>

@@ -1,0 +1,39 @@
+{
+  "historyHead": "38e9b2be8cdef3291e81ca9f255d209a43b4eeba",
+  "sourceTree": "87f738e1d7970eab60e7e1cb5bceb77a6679de6b",
+  "remoteBase": "1f677e7145cdc117c3a87e34ffd11c7f81b774ab",
+  "bundleSha256": "cdd887738d67b453460d1e77ea18fd0f40f164e838489132fd059b10f8aaad47",
+  "bundleBytes": 10909835,
+  "parts": [
+    {
+      "path": "docs/recovery/kebu-consolidated-oct28.bundle.part-000",
+      "size": 2097152,
+      "gitBlob": "35c96b19800b586f65f4348353f649e57d941f97"
+    },
+    {
+      "path": "docs/recovery/kebu-consolidated-oct28.bundle.part-001",
+      "size": 2097152,
+      "gitBlob": "0171114855120c3a4fce8c6778d452d8b3703172"
+    },
+    {
+      "path": "docs/recovery/kebu-consolidated-oct28.bundle.part-002",
+      "size": 2097152,
+      "gitBlob": "afb65d5bf0f60ff627c437b6f6d4fa089bf89ff2"
+    },
+    {
+      "path": "docs/recovery/kebu-consolidated-oct28.bundle.part-003",
+      "size": 2097152,
+      "gitBlob": "9ba2d6ad55214815861b4d284d7ddc791e58002a"
+    },
+    {
+      "path": "docs/recovery/kebu-consolidated-oct28.bundle.part-004",
+      "size": 2097152,
+      "gitBlob": "a3d11a0c771c1204952431b539de1cb03572abbf"
+    },
+    {
+      "path": "docs/recovery/kebu-consolidated-oct28.bundle.part-005",
+      "size": 424075,
+      "gitBlob": "0f06a2070ef7ea4b53cc17b84b568d204cd3b83b"
+    }
+  ]
+}

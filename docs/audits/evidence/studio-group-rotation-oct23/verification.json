@@ -1,0 +1,472 @@
+{
+  "runtimeCommit": "626a5d40833a7cbd54c7e443e909c3bdd9d1b693",
+  "sourceTree": "79d4a8d5b9cbaa17fd6aa0d26b6b745cfbcb5f75",
+  "baseCommit": "b9acdc0217c8f90be61cb4ba9ab9eb316d487ff8",
+  "focused": {
+    "newGeometryPassed": 14,
+    "combinedGeometryPassed": 32,
+    "browserPassed": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "normalTeardown": true,
+    "inspectedViewports": [
+      1440,
+      390,
+      834
+    ],
+    "decodedPngGeometry": true
+  },
+  "localFullCI": {
+    "status": "success",
+    "testsPassed": 6638,
+    "testsSkipped": 338,
+    "lintErrors": 0,
+    "existingLintWarnings": 346,
+    "generatedPages": 230,
+    "sourceTreeMatchesRuntime": true
+  },
+  "remoteCI": {
+    "runId": 40029905798,
+    "status": "success",
+    "testsPassed": 6638,
+    "testsSkipped": 338
+  },
+  "remoteStudio": {
+    "runId": 40029905848,
+    "status": "success",
+    "fullPassed": 61,
+    "touchPassed": 6,
+    "rounds": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "normalTeardown": true,
+    "originalMarqueeRegressionReproduced": true,
+    "originalMissingRotationControlReproduced": true
+  },
+  "publicSmoke": {
+    "runId": 40030271969,
+    "status": "success"
+  },
+  "preview": {
+    "id": "dpl_HmGjbiKGSHeArQGMiG2EAgCUa1uo",
+    "url": "https://kebu-ps5vyyoo5-mbayangxos-projects.vercel.app",
+    "status": "READY"
+  },
+  "localFullBrowser": {
+    "firstRun": {
+      "passed": 53,
+      "unexpected": 1,
+      "skipped": 7,
+      "flaky": 0,
+      "accepted": false,
+      "cause": "worker SIGKILL; cgroup 8GB limit, oom_kill=1 while local CI/build and browser ran concurrently",
+      "normalTeardown": true
+    },
+    "sequentialRerun": {
+      "status": "success",
+      "attempt": 3,
+      "passed": 61,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0,
+      "normalTeardown": true,
+      "sourceUnchanged": true,
+      "checkoutWritesFrozen": true,
+      "durationMs": 399542.31
+    },
+    "secondRun": {
+      "passed": 25,
+      "unexpected": 1,
+      "skipped": 35,
+      "flaky": 0,
+      "accepted": false,
+      "normalTeardown": true,
+      "error": "Internal Next.js error: Router action dispatched before initialization.",
+      "traceOrigin": "Next dev hot-reloader -> appRouter.hmrRefresh -> dispatchAppRouterAction; handoff files edited while dev server ran",
+      "correctiveAction": "Freeze every checkout file, finish all local builds, rerun with unchanged runtime and no suppressed page errors"
+    }
+  },
+  "qaProvisioning": {
+    "organizationId": "zdoqqcrxrbxkbxobjrsp",
+    "observedPlan": "free",
+    "nativeBranchRequires": "Pro or above",
+    "separateProjectQuote": {
+      "amount": 0,
+      "recurrence": "monthly"
+    },
+    "separateProjectCreation": "rejected: account-wide limit of 2 active free projects across organizations",
+    "projectCreated": false,
+    "subscriptionChanged": false,
+    "otherProjectPausedOrDeleted": false,
+    "oldQa": {
+      "projectRef": "skqnxyaeimvbyrmdfzvk",
+      "readback": "permission denied"
+    }
+  },
+  "hostedInventory": {
+    "hosted_release_preflight": {
+      "scope": "schema-and-grants-only",
+      "checks": [
+        {
+          "passed": false,
+          "details": {},
+          "requirement": "column:aesthetic_library.provider"
+        },
+        {
+          "passed": false,
+          "details": {},
+          "requirement": "column:aesthetic_library.provider_reference"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:create_designs.updated_at"
+        },
+        {
+          "passed": false,
+          "details": {},
+          "requirement": "column:creative_asset_library.provider"
+        },
+        {
+          "passed": false,
+          "details": {},
+          "requirement": "column:creative_asset_library.provider_reference"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:project_pages.layout_version"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:project_sections.node_version"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:project_sections.order_key"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:project_sections.parent_id"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:project_sections.type_version"
+        },
+        {
+          "passed": true,
+          "details": {},
+          "requirement": "column:projects.document_schema_version"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "anonExecute": false,
+            "serviceExecute": true,
+            "authenticatedExecute": true
+          },
+          "requirement": "function:public.apply_experience_plan(uuid,jsonb)"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "anonExecute": false,
+            "serviceExecute": true,
+            "authenticatedExecute": true
+          },
+          "requirement": "function:public.apply_node_ops(uuid,jsonb)"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "anonExecute": false,
+            "serviceExecute": true,
+            "authenticatedExecute": true
+          },
+          "requirement": "function:public.kcd_operation_protocol()"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "anonExecute": false,
+            "serviceExecute": true,
+            "authenticatedExecute": false
+          },
+          "requirement": "function:public.publish_kcd_document(uuid,uuid,text,jsonb,jsonb,text)"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:aesthetic_library"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:creative_asset_library"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:creative_op_journal"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:deployments"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:developer_profiles"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:job_listings"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:kcd_node_types"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:mail_attachments"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:mail_forwarding_rules"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:mail_messages"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:mail_threads"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:mailboxes"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:marketplace_creative_assets"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:marketplace_templates"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:network_profiles"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:personal_connections"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:project_pages"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:project_sections"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:projects"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:search_documents"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:website_versions"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:worker_profiles"
+        }
+      ],
+      "observedAt": "2026-10-23T22:00:54.283579+00:00",
+      "failedChecks": 10,
+      "postgresVersion": "17.6",
+      "schemaChecksPassed": false,
+      "releaseCertification": "not-established-by-this-query",
+      "authenticatedAcceptance": "not-established-by-this-query"
+    },
+    "yande_release_preflight": {
+      "scope": "yande-schema-and-grants-only",
+      "checks": [
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "anonExecute": false,
+            "serviceExecute": true,
+            "securityDefiner": false,
+            "authenticatedExecute": false
+          },
+          "requirement": "function:reserve_account_ai_generation"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "anonSelect": true,
+            "anonAnyWrite": false,
+            "serviceInsert": true,
+            "authenticatedSelect": true,
+            "authenticatedAnyWrite": false
+          },
+          "requirement": "grants:account_ai_usage_events"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "anonSelect": null,
+            "anonAnyWrite": null,
+            "serviceInsert": null,
+            "authenticatedSelect": null,
+            "authenticatedAnyWrite": null
+          },
+          "requirement": "grants:yande_interactions"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:account_ai_usage_events"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:studio_campaign_projects"
+        },
+        {
+          "passed": true,
+          "details": {
+            "present": true,
+            "rlsEnabled": true
+          },
+          "requirement": "table:studio_generation_runs"
+        },
+        {
+          "passed": false,
+          "details": {
+            "present": false,
+            "rlsEnabled": null
+          },
+          "requirement": "table:yande_interactions"
+        }
+      ],
+      "observedAt": "2026-10-23T22:00:55.325748+00:00",
+      "checksPassed": false,
+      "failedChecks": 2,
+      "releaseCertification": "not-established-by-this-query",
+      "authenticatedAcceptance": "not-established-by-this-query"
+    }
+  },
+  "managedHostedAcceptance": false,
+  "productionPromoted": false,
+  "productionCommit": "71815f99c50022482e545e22e1f6e040ee1cafe4"
+}

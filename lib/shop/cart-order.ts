@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
 import { applyPercentOff, resolveActiveDiscount, incrementDiscountUse } from "@/lib/shop/discounts";
+import { resolveAffiliateCodeForAttribution, incrementAffiliateUse } from "@/lib/shop/affiliates";
 import {
   giftCardApplyAmount,
   redeemGiftCardBalance,
@@ -10,6 +11,8 @@ import {
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { SHOP_PAYMENT_PREFERENCES } from "@/lib/create/site-commerce";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
+import { resolveShippingOptionForOrder } from "@/lib/shop/shipping-options";
+import { computeJokoFulfillmentCommissionXof, createJokoFulfillmentCartOrder } from "@/lib/shop/joko-fulfillment";
 import {
   giftColumnsForInsert,
   giftWhatsAppSuffix,
@@ -47,6 +50,12 @@ export const shopCartCheckoutSchema = z
         z.string().trim().max(32).optional(),
       )
       .optional(),
+    affiliateCode: z
+      .preprocess(
+        (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+        z.string().trim().max(32).optional(),
+      )
+      .optional(),
     giftCardCode: z
       .preprocess(
         (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
@@ -60,6 +69,8 @@ export const shopCartCheckoutSchema = z
       .toUpperCase()
       .regex(/^[A-Z]{2}$/)
       .optional(),
+    /** Id only — the real price is always looked up server-side, never trusted from the client. */
+    shippingOptionId: z.string().trim().uuid().optional(),
   })
   .and(shopGiftFieldsSchema);
 
@@ -241,11 +252,13 @@ export async function createCartOrder(opts: {
   customerEmail: string | null;
   paymentPreference: string;
   discountCode?: string | null;
+  affiliateCode?: string | null;
   giftCardCode?: string | null;
   customerUserId?: string | null;
   gift?: ShopGiftFields;
   buyerCountry?: string | null;
   sellerCountry?: string | null;
+  shippingOptionId?: string | null;
 }): Promise<
   | {
       ok: true;
@@ -257,6 +270,8 @@ export async function createCartOrder(opts: {
       giftCardCode: string | null;
       giftCardAmountXof: number | null;
       giftPublicId: string | null;
+      shippingAmountXof: number | null;
+      shippingLabel: string | null;
     }
   | { ok: false; error: string }
 > {
@@ -267,6 +282,7 @@ export async function createCartOrder(opts: {
   );
   if (!discountResult.ok) return { ok: false, error: discountResult.error };
   const discount = discountResult.discount;
+  const affiliateCode = await resolveAffiliateCodeForAttribution(opts.admin, opts.projectId, opts.affiliateCode);
 
   const giftCardResult = await resolveActiveGiftCard(
     opts.admin,
@@ -300,13 +316,31 @@ export async function createCartOrder(opts: {
   const gift = opts.gift ?? { isGift: false, recipientName: "", recipientPhone: "", giftMessage: "" };
   const giftCols = giftColumnsForInsert(gift);
   const sellerCountry = (opts.sellerCountry ?? "SN").toUpperCase();
-  const shippingQuote = opts.buyerCountry
-    ? quoteShippingCorridor({
-        fromCountry: sellerCountry,
-        toCountry: opts.buyerCountry,
-        goodsValueXof: totalXof,
-      })
+
+  // Real, seller-defined shipping choice takes priority — looked up fresh by
+  // id, scoped to this project, so the client's chosen label/price never
+  // reaches the charged total directly. Falls back to the informational-only
+  // corridor estimate below when the seller hasn't configured real options
+  // (or the id didn't resolve), preserving prior behavior for those stores.
+  const shippingOption = opts.shippingOptionId
+    ? await resolveShippingOptionForOrder(opts.admin, opts.projectId, opts.shippingOptionId)
     : null;
+  // Captured before the shipping fee is folded in — Joko Fulfillment's
+  // commission is a share of the goods Kebu actually handles, not of the
+  // shipping fee itself (see lib/shop/joko-fulfillment.ts).
+  const subtotalBeforeShippingXof = totalXof;
+  if (shippingOption && totalXof != null) {
+    totalXof = totalXof + shippingOption.amountXof;
+  }
+
+  const shippingQuote =
+    !shippingOption && opts.buyerCountry
+      ? quoteShippingCorridor({
+          fromCountry: sellerCountry,
+          toCountry: opts.buyerCountry,
+          goodsValueXof: totalXof,
+        })
+      : null;
 
   const insertOrder: Record<string, unknown> = {
     project_id: opts.projectId,
@@ -321,11 +355,13 @@ export async function createCartOrder(opts: {
     customer_phone: opts.customerPhone,
     customer_note: [
       opts.customerNote,
-      shippingQuote
-        ? `Shipping: ${shippingQuote.summary} [${shippingQuote.trustLabel}]`
-        : opts.buyerCountry
-          ? `Ship to: ${opts.buyerCountry} (no corridor quote yet)`
-          : "",
+      shippingOption
+        ? `Shipping: ${shippingOption.label} · ${shippingOption.amountXof.toLocaleString("fr-FR")} XOF`
+        : shippingQuote
+          ? `Shipping: ${shippingQuote.summary} [${shippingQuote.trustLabel}]`
+          : opts.buyerCountry
+            ? `Ship to: ${opts.buyerCountry} (no corridor quote yet)`
+            : "",
     ]
       .filter(Boolean)
       .join("\n")
@@ -344,6 +380,7 @@ export async function createCartOrder(opts: {
     insertOrder.discount_code = discount.code;
     insertOrder.discount_percent = discount.percent_off;
   }
+  if (affiliateCode) insertOrder.affiliate_code = affiliateCode;
   if (giftCard && giftCardAmount > 0) {
     insertOrder.gift_card_code = giftCard.code;
     insertOrder.gift_card_amount_xof = giftCardAmount;
@@ -351,7 +388,11 @@ export async function createCartOrder(opts: {
   if (beforeDiscount != null) insertOrder.amount_xof_before_discount = beforeDiscount;
   if (totalXof != null) insertOrder.amount_xof = totalXof;
   if (opts.buyerCountry) insertOrder.buyer_country_code = opts.buyerCountry.toUpperCase();
-  if (shippingQuote) {
+  if (shippingOption) {
+    insertOrder.shipping_option_id = shippingOption.id;
+    insertOrder.shipping_option_label = shippingOption.label;
+    insertOrder.shipping_amount_xof = shippingOption.amountXof;
+  } else if (shippingQuote) {
     insertOrder.shipping_amount_xof = shippingQuote.amountXof;
     insertOrder.shipping_eta_min_days = shippingQuote.etaMinDays;
     insertOrder.shipping_eta_max_days = shippingQuote.etaMaxDays;
@@ -360,22 +401,32 @@ export async function createCartOrder(opts: {
     insertOrder.shipping_quote_version = shippingQuote.quoteVersion;
   }
 
-  const { data: order, error } = await opts.admin
-    .from("shop_orders")
-    .insert(insertOrder)
-    .select("id, order_number, gift_public_id")
-    .single();
+  const { data: order, error } = shippingOption?.fulfillmentType === "joko_fulfillment"
+    ? await createJokoFulfillmentCartOrder(
+        opts.admin,
+        insertOrder,
+        computeJokoFulfillmentCommissionXof(subtotalBeforeShippingXof ?? 0, shippingOption.commissionBps),
+      )
+    : await opts.admin
+        .from("shop_orders")
+        .insert(insertOrder)
+        .select("id, order_number, gift_public_id")
+        .single();
 
   if (error || !order) {
     return {
       ok: false,
-      error: error?.message?.includes("does not exist")
+      error: shippingOption?.fulfillmentType === "joko_fulfillment"
+        ? "Pickup and delivery checkout is unavailable. Please try again later."
+        : error?.message?.includes("does not exist")
         ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql."
         : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
           ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
           : error?.message?.includes("gift_card")
             ? "Gift card columns missing. Apply migration 066."
-            : "Could not save cart order.",
+            : error?.message?.includes("shipping_option")
+              ? "Shipping option columns missing. Apply migration 20261103135000_shop_shipping_options.sql."
+              : "Could not save cart order.",
     };
   }
 
@@ -420,6 +471,13 @@ export async function createCartOrder(opts: {
       /* best-effort */
     }
   }
+  if (affiliateCode) {
+    try {
+      await incrementAffiliateUse(opts.admin, opts.projectId, affiliateCode);
+    } catch {
+      /* best-effort */
+    }
+  }
 
   try {
     const { upsertShopCustomerAfterOrder } = await import("@/lib/shop/customer-profiles");
@@ -443,6 +501,8 @@ export async function createCartOrder(opts: {
     giftCardAmountXof: giftCardAmount > 0 ? giftCardAmount : null,
     giftPublicId:
       typeof order.gift_public_id === "string" ? order.gift_public_id : null,
+    shippingAmountXof: shippingOption?.amountXof ?? null,
+    shippingLabel: shippingOption?.label ?? null,
   };
 }
 

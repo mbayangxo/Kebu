@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-16",
+  "runtime": "Node 24.19.0",
+  "focusedTests": {
+    "filesPassed": 2,
+    "testsPassed": 14,
+    "newRegressions": 4
+  },
+  "browser": {
+    "stats": {
+      "startTime": "2026-10-16T22:57:07.477Z",
+      "duration": 37020.429,
+      "expected": 10,
+      "skipped": 9,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cleanup": {
+      "testsStopped": true,
+      "serverStopped": true,
+      "restoredConfig": true,
+      "remainingFixtures": [],
+      "sourceSandboxRemoved": true,
+      "generatedFixtureTypesRemoved": true
+    },
+    "scope": "Actual editor components with controlled in-memory API operation receipts; not hosted SQL/provider evidence.",
+    "skips": "Nine optional performance/timing probes were not enabled."
+  },
+  "provider": {
+    "projectId": "prj_P4Ou2No89MPIp1KdmnJHepJ818ED",
+    "metadataOnly": true,
+    "decrypted": false,
+    "configuredAiVariableNames": [],
+    "hiddenProductionEnvCount": 0,
+    "runtimeKeyAvailable": false,
+    "projectLocalKeyAvailable": false,
+    "configurationChanged": false,
+    "liveRequestMade": false
+  },
+  "ci": {
+    "command": "npm run ci",
+    "exitCode": 0,
+    "node": "24.19.0",
+    "typecheckErrors": 0,
+    "lintErrors": 0,
+    "existingLintWarnings": 348,
+    "testFilesPassed": 359,
+    "testFilesSkipped": 22,
+    "testsPassed": 5943,
+    "testsSkipped": 168,
+    "build": "passed",
+    "logSha256": "dd7060f4e394cdd81be7b9900a561b28245c0d85a86fdb5d13a0a38de7e07077"
+  }
+}
