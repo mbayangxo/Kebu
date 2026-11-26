@@ -143,6 +143,11 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <section className="space-y-3 rounded-xl border p-4">
           <h3 className="text-lg font-semibold">Store devices</h3>
           <p>{enrollment.data ? "This browser is enrolled." : "Open this page on the browser you want to enroll."}</p>
+          {enrollment.data && <div className="flex gap-4">
+            <Link className="underline" href={`/retail-order/${id}/register`}>Open register</Link>
+            <Link className="underline" href={`/retail-order/${id}/kiosk`}>Open self-service menu</Link>
+            <Link className="underline" href={`/business/${id}/retail/kitchen`}>Open kitchen queue</Link>
+          </div>}
           <ul className="divide-y">
             {devices.data?.map((device) => <li className="flex flex-wrap items-center justify-between gap-2 py-2" key={device.id}>
               <span>{device.label} · {storeName(device.location_id)} · {device.kind} · {device.revoked_at ? "Revoked" : "Enrolled"}</span>
