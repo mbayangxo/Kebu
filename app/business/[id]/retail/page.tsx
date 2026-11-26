@@ -17,7 +17,7 @@ async function retailAccess(businessId: string) {
     .eq("status", "active").maybeSingle();
   if (error) throw new Error("Could not check retail permissions.");
   if (!canManageRetailLocations(data?.role)) notFound();
-  return auth.supabase;
+  return { db: auth.supabase, canManageStaff: data?.role === "founder" || data?.role === "administrator" };
 }
 
 const feedback = {
@@ -30,7 +30,7 @@ const feedback = {
 
 async function createLocation(businessId: string, form: FormData) {
   "use server";
-  const db = await retailAccess(businessId);
+  const { db } = await retailAccess(businessId);
   const input = locationInput.safeParse(Object.fromEntries(form));
   if (!input.success) redirect(`/business/${businessId}/retail?result=invalid`);
   const { error } = await db.from("retail_locations").insert({ ...input.data, business_id: businessId });
@@ -40,7 +40,7 @@ async function createLocation(businessId: string, form: FormData) {
 
 async function setLocationActive(businessId: string, id: string, active: boolean) {
   "use server";
-  const db = await retailAccess(businessId);
+  const { db } = await retailAccess(businessId);
   const { data, error } = await db.from("retail_locations").update({ active })
     .eq("business_id", businessId).eq("id", id).select("id").maybeSingle();
   redirect(`/business/${businessId}/retail?result=${error || !data ? "failed" : "updated"}`);
@@ -52,7 +52,7 @@ export default async function RetailLocationsPage({ params, searchParams }: {
 }) {
   const { id } = await params;
   const { result } = await searchParams;
-  const db = await retailAccess(id);
+  const { db, canManageStaff } = await retailAccess(id);
   const { data, error } = await db.from("retail_locations")
     .select("id, code, name, address, timezone, active").eq("business_id", id).order("name").order("id");
   const message = typeof result === "string" && Object.hasOwn(feedback, result)
@@ -63,6 +63,7 @@ export default async function RetailLocationsPage({ params, searchParams }: {
       <section aria-labelledby="retail-locations-title" className="mx-auto max-w-4xl space-y-8 px-4 py-8">
         <header className="space-y-2">
           <Link href={`/business/${id}`} className="text-sm underline">Business dashboard</Link>
+          {canManageStaff && <Link href={`/business/${id}/retail/staff`} className="ml-4 text-sm underline">Staff and devices</Link>}
           <h2 id="retail-locations-title" className="text-3xl font-semibold tracking-tight">Retail locations</h2>
         </header>
         {message && <p role="status">{message}</p>}

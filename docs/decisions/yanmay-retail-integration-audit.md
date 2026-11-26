@@ -15,3 +15,8 @@ Tracks [issue #24](https://github.com/mbayangxo/Kebu/issues/24). Reviewed branch
 For data changes, use Kebu-qa with synthetic tenants, test accounts and server-side authorization checks. Verify allowed and denied access through the application and database. Capture provider sandbox events and preserve physical hardware acceptance for the final release gate. Keep production deployments and migrations outside this milestone.
 
 Baseline command: `npm test -- tests/yanmay/order-economics.test.ts tests/inventory/replenishment.test.ts tests/shop/cart-order.test.ts tests/shop/place-order.test.ts`. All 18 tests passed. The checkout browser smoke only checks that the published shop renders. It requires a configured shop and supplies no retail checkout acceptance evidence.
+
+### Provider acceptance for slices 08 and 09
+
+- **08 Card payments.** Use the card-present provider's sandbox through the retail checkout path. Capture a sandbox transaction reference and evidence for approval, decline, cancellation, and idempotent handling of duplicate provider events.
+- **09 Reverse ATM.** Use the reverse ATM vendor's test interface through the retail checkout path. Record vendor-side evidence for an issued instrument, a failed operation, an unavailable machine and the approved fallback. Reconcile each case with the register records. A simulated local vendor can support development but does not satisfy vendor acceptance.
