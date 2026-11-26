@@ -29,8 +29,8 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
       ]);
       const colData = await colRes.json().catch(() => ({}));
       const prodData = await prodRes.json().catch(() => ({}));
-      if (!colRes.ok) {
-        setError(colData.error ?? "Could not load collections.");
+      if (!colRes.ok || !prodRes.ok) {
+        setError(colData.error ?? prodData.error ?? "Could not load collections and products.");
         return;
       }
       setCollections((colData.collections ?? []) as CollectionWithProducts[]);
@@ -94,6 +94,8 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
       resetForm();
       setNote(editingId ? "Collection updated." : "Collection created.");
       await load();
+    } catch {
+      setNote("Network error. Try again.");
     } finally {
       setBusy(false);
     }
@@ -102,12 +104,18 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
   async function removeCollection(id: string) {
     setBusy(true);
     try {
-      await fetch(`/api/projects/${projectId}/collections/${id}`, {
+      const res = await fetch(`/api/projects/${projectId}/collections/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
+      if (!res.ok) {
+        setNote("Could not remove collection.");
+        return;
+      }
       setNote("Collection removed.");
       await load();
+    } catch {
+      setNote("Network error. Try again.");
     } finally {
       setBusy(false);
     }
@@ -136,7 +144,7 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
       ) : null}
       {note ? (
-        <p className="rounded-xl px-3 py-2 text-xs" style={{ background: KEBU.cream }}>
+        <p role="status" className="rounded-xl px-3 py-2 text-xs" style={{ background: KEBU.cream }}>
           {note}
         </p>
       ) : null}
@@ -149,6 +157,7 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
+          aria-label="Collection name"
           placeholder="Collection name"
           className="w-full rounded-xl border px-3 py-2 text-sm"
           style={{ borderColor: KEBU.border }}
@@ -156,6 +165,7 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          aria-label="Description"
           placeholder="Description (optional)"
           rows={2}
           className="w-full rounded-xl border px-3 py-2 text-sm"

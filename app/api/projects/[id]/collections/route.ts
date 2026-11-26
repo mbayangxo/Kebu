@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
+import { saveShopCollection } from "@/lib/shop/save-collection";
 import { builderRateLimit } from "@/lib/api-guard";
 import {
   COLLECTION_SELECT,
@@ -41,11 +42,12 @@ export async function GET(_req: Request, { params }: Params) {
   const ids = (collections ?? []).map((c) => c.id);
   let items: { collection_id: string; product_id: string; sort_order: number }[] = [];
   if (ids.length) {
-    const { data: rows } = await supabase
+    const { data: rows, error: itemError } = await supabase
       .from("project_collection_items")
       .select("collection_id, product_id, sort_order")
       .in("collection_id", ids)
       .order("sort_order", { ascending: true });
+    if (itemError) return NextResponse.json({ error: "Could not load collection products." }, { status: 500 });
     items = rows ?? [];
   }
 
@@ -98,50 +100,6 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Collection slug is required." }, { status: 400 });
   }
 
-  const { data: last } = await supabase
-    .from("project_product_collections")
-    .select("sort_order")
-    .eq("project_id", projectId)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const { data: collection, error } = await supabase
-    .from("project_product_collections")
-    .insert({
-      project_id: projectId,
-      business_id: project.business_id,
-      name: parsed.data.name,
-      slug,
-      description: parsed.data.description,
-      image_url: parsed.data.imageUrl,
-      sort_order: parsed.data.sortOrder ?? (last?.sort_order ?? 0) + 1,
-      is_active: parsed.data.isActive ?? true,
-    })
-    .select(COLLECTION_SELECT)
-    .single();
-
-  if (error || !collection) {
-    return NextResponse.json(
-      {
-        error: /duplicate|unique/i.test(error?.message ?? "")
-          ? "That collection slug already exists."
-          : "Could not create collection.",
-      },
-      { status: /duplicate|unique/i.test(error?.message ?? "") ? 409 : 500 },
-    );
-  }
-
-  const productIds = parsed.data.productIds ?? [];
-  if (productIds.length) {
-    await supabase.from("project_collection_items").insert(
-      productIds.map((productId, i) => ({
-        collection_id: collection.id,
-        product_id: productId,
-        sort_order: i,
-      })),
-    );
-  }
-
-  return NextResponse.json({ collection: { ...collection, productIds } });
+  const { productIds, ...fields } = parsed.data;
+  return saveShopCollection(supabase, projectId, null, { ...fields, slug }, productIds);
 }

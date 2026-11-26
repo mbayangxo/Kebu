@@ -10,7 +10,7 @@ const imageUrl = z.union([
     .regex(/^\/[a-zA-Z0-9._\-/]+$/),
 ]);
 
-export const collectionSchema = z.object({
+const collectionFields = z.object({
   name: z.string().trim().min(1).max(120),
   slug: z
     .string()
@@ -19,11 +19,18 @@ export const collectionSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, hyphens")
     .max(80)
     .optional(),
-  description: z.string().trim().max(1000).default(""),
-  imageUrl: imageUrl.default(""),
+  description: z.string().trim().max(1000),
+  imageUrl,
   sortOrder: z.number().int().min(0).max(999).optional(),
-  isActive: z.boolean().optional().default(true),
+  isActive: z.boolean(),
   productIds: z.array(z.string().uuid()).max(48).optional(),
+});
+
+export const collectionPatchSchema = collectionFields.partial();
+export const collectionSchema = collectionFields.extend({
+  description: collectionFields.shape.description.default(""),
+  imageUrl: imageUrl.default(""),
+  isActive: z.boolean().default(true),
 });
 
 export type CollectionInput = z.infer<typeof collectionSchema>;

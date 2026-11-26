@@ -787,17 +787,17 @@ input:focus, select:focus, textarea:focus {
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 720px) {
-  .shop-sidenav {
-    position: fixed;
-    z-index: 50;
-    height: 100%;
-    transform: translateX(0);
-  }
+  .shop-layout { flex-direction: column; }
+  .shop-sidenav,
   .shop-sidenav[data-collapsed] {
-    width: 0;
-    overflow: hidden;
-    border: none;
+    position: static;
+    width: 100%;
+    height: auto;
+    max-height: 45vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
   }
+  .shop-sidenav[data-collapsed] .shop-sidenav-nav { display: none; }
   .shop-panel-area { padding: 20px 16px 40px; }
   .shop-topbar { padding: 14px 16px 12px; }
   .shop-topbar-title { font-size: 1.125rem; }

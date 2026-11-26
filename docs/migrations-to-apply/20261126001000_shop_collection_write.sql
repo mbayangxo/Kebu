@@ -1,0 +1,1 @@
+../../supabase/migrations/20261126001000_shop_collection_write.sql
