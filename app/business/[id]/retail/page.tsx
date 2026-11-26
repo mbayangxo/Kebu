@@ -64,6 +64,7 @@ export default async function RetailLocationsPage({ params, searchParams }: {
         <header className="space-y-2">
           <Link href={`/business/${id}`} className="text-sm underline">Business dashboard</Link>
           {canManageStaff && <Link href={`/business/${id}/retail/staff`} className="ml-4 text-sm underline">Staff and devices</Link>}
+          {canManageStaff && <Link href={`/business/${id}/retail/catalog`} className="ml-4 text-sm underline">Catalog and recipes</Link>}
           <h2 id="retail-locations-title" className="text-3xl font-semibold tracking-tight">Retail locations</h2>
         </header>
         {message && <p role="status">{message}</p>}
