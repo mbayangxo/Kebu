@@ -108,6 +108,31 @@ export function ShopCollectionsPanel({ projectId, showStorefrontAisles }: {
     }
   }
 
+  async function changeCollectionVisibility(collection: CollectionWithProducts) {
+    setBusy(true);
+    setNote(null);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/collections/${collection.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !collection.is_active }),
+      });
+      if (!response.ok) {
+        setNote("Could not update collection visibility.");
+        return;
+      }
+      const { collection: saved } = await response.json() as { collection: CollectionWithProducts };
+      setCollections((current) => current.map((item) => item.id === saved.id ? saved : item));
+      setNote(saved.is_active
+        ? "Collection is available for the next publish."
+        : "Collection is hidden from the next publish.");
+    } catch {
+      setNote("Network error. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removeCollection(id: string) {
     setBusy(true);
     try {
@@ -262,9 +287,11 @@ export function ShopCollectionsPanel({ projectId, showStorefrontAisles }: {
               <p className="font-semibold">{c.name}</p>
               <p className="text-xs font-mono opacity-50">/{c.slug}</p>
               {c.description ? <p className="text-sm mt-1 opacity-70">{c.description}</p> : null}
-              <p className="text-xs mt-2 opacity-60">{c.productIds.length} product(s)</p>
+              <p className="text-xs mt-2 text-black/70">
+                {c.productIds.length} product(s) · {c.is_active ? "Available for publishing" : "Hidden from storefront"}
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => startEdit(c)}
@@ -272,6 +299,15 @@ export function ShopCollectionsPanel({ projectId, showStorefrontAisles }: {
                 style={{ borderColor: KEBU.border }}
               >
                 Edit
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void changeCollectionVisibility(c)}
+                className="rounded-full px-3 py-1 text-[10px] font-bold border"
+                style={{ borderColor: KEBU.border }}
+              >
+                {c.is_active ? "Hide" : "Make available"}
               </button>
               <button
                 type="button"

@@ -89,7 +89,7 @@ test("merchant collection persists and rejects products from another shop", asyn
   await expect(row).toHaveCount(0);
 });
 
-test("an opted-in store publishes active aisles that shoppers can browse", async ({ browser, page, baseURL }) => {
+test("an opted-in store publishes browsable aisles and can hide them at the next publish", async ({ browser, page, baseURL }) => {
   test.setTimeout(300_000);
   expect(baseURL).toBeTruthy();
   const shop = `/shop/${fixture.shop}?tab=collections`;
@@ -151,6 +151,23 @@ test("an opted-in store publishes active aisles that shoppers can browse", async
     await storefront.getByRole("button", { name: "Clear search" }).click();
     await expect(search).toHaveValue("");
     await expect(storefront.getByRole("heading", { name: "QA Apples" })).toBeVisible();
+
+    const collectionRow = page.getByRole("listitem").filter({ hasText: name });
+    await collectionRow.getByRole("button", { name: "Hide", exact: true }).click();
+    await expect(collectionRow).toContainText("Hidden from storefront");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(collectionRow).toContainText("Hidden from storefront", { timeout: 55_000 });
+    await storefront.reload({ waitUntil: "domcontentloaded" });
+    await expect(fruit).toBeVisible();
+
+    const republish = await page.request.post(`${project}/publish`, { data: { subdomain } });
+    expect(republish.ok(), await republish.text()).toBe(true);
+    await storefront.reload({ waitUntil: "domcontentloaded" });
+    await expect(fruit).toHaveCount(0);
+    await expect(storefront.getByRole("heading", { name: "QA Apples" })).toBeVisible();
+
+    await collectionRow.getByRole("button", { name: "Make available" }).click();
+    await expect(collectionRow).toContainText("Available for publishing");
   } finally {
     await shopper.close();
   }
