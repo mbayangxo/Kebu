@@ -800,6 +800,7 @@ input:focus, select:focus, textarea:focus {
   .shop-sidenav[data-collapsed] .shop-sidenav-nav { display: none; }
   .shop-panel-area { padding: 20px 16px 40px; }
   .shop-topbar { padding: 14px 16px 12px; }
+  .shop-topbar-actions { max-width: 100%; }
   .shop-topbar-title { font-size: 1.125rem; }
   .shop-panel-card { padding: 18px 16px; }
 }

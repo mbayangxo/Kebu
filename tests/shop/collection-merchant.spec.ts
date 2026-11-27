@@ -54,8 +54,11 @@ test("merchant collection persists and rejects products from another shop", asyn
   await page.getByRole("checkbox", { name: "QA Pears" }).check();
   await page.getByRole("button", { name: "Update", exact: true }).click();
   await expect(row).toContainText("2 product(s)");
+  const layout = page.locator(".shop-layout");
+  await expect.poll(() => layout.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("merchant-collection-mobile.png"), fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.getByRole("complementary", { name: "Shop navigation" })).toHaveCSS("width", "232px");
   await page.screenshot({ path: testInfo.outputPath("merchant-collection-desktop.png"), fullPage: true });
 
   const { collections } = await (await page.request.get(api)).json();
