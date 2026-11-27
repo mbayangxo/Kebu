@@ -5,6 +5,7 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import { siteSeoSchema } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 
@@ -31,6 +32,7 @@ const settingsSchema = z.object({
     .max(48)
     .optional(),
   seo: siteSeoSchema.partial().optional(),
+  showStorefrontAisles: z.boolean().optional(),
   theme: themeSchema.partial().optional(),
   /** Set a site password (empty string = remove password). */
   sitePassword: z.string().max(128).optional(),
@@ -40,6 +42,9 @@ const settingsSchema = z.object({
 
 /** Update publish subdomain + SEO/favicon settings for an owned project. */
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -138,6 +143,14 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     const merged = siteSeoSchema.parse({ ...currentSeo, ...nextSeo });
     patch.seo = merged;
+  }
+
+  if (parsed.data.showStorefrontAisles !== undefined) {
+    const seo = patch.seo ?? project.seo;
+    patch.seo = {
+      ...(seo && typeof seo === "object" ? seo : {}),
+      showStorefrontAisles: parsed.data.showStorefrontAisles,
+    };
   }
 
   if (parsed.data.theme) {

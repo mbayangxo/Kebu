@@ -46,6 +46,7 @@ export const siteSeoSchema = z.object({
   /** Social / profile URLs, one per line or comma-separated */
   sameAs: socialUrlList,
   commerce: siteCommerceSchema.optional(),
+  showStorefrontAisles: z.boolean().optional(),
 });
 
 export type SiteSeo = z.infer<typeof siteSeoSchema>;

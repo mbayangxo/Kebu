@@ -249,7 +249,7 @@ export default function ShopAdminPage() {
                   <ShopPurchaseOrdersPanel projectId={projectId} />
                 )}
 
-                {tab === "collections" && <ShopCollectionsPanel projectId={projectId} />}
+                {tab === "collections" && <ShopCollectionsPanel projectId={projectId} showStorefrontAisles={Boolean(seo.showStorefrontAisles)} />}
                 {tab === "pages"       && <ShopPagesPanel projectId={projectId} />}
 
                 {tab === "orders" && sub !== "drafts" && sub !== "shipping" && (

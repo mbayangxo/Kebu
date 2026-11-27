@@ -88,3 +88,60 @@ test("merchant collection persists and rejects products from another shop", asyn
   await expect(page.getByRole("button", { name: "Create collection" })).toBeVisible();
   await expect(row).toHaveCount(0);
 });
+
+test("an opted-in store publishes active aisles that shoppers can browse", async ({ browser, page, baseURL }) => {
+  test.setTimeout(180_000);
+  expect(baseURL).toBeTruthy();
+  const shop = `/shop/${fixture.shop}?tab=collections`;
+  const project = `/api/projects/${fixture.shop}`;
+  const subdomain = `qa-ker-${crypto.randomUUID().slice(0, 8)}`;
+  const store = `/sites/${subdomain}`;
+  await signIn(page.context(), fixture.owner!, baseURL!);
+  await page.goto(shop);
+  const toggle = page.getByRole("checkbox", { name: "Show collections as storefront aisles" });
+  if (await toggle.isChecked()) {
+    await toggle.click();
+    await expect(toggle).not.toBeChecked();
+  }
+  await toggle.click();
+  await expect(page.getByRole("status").filter({ hasText: "Aisle setting saved." })).toBeVisible();
+  await page.reload();
+  await expect(toggle).toBeChecked();
+
+  const name = `Fresh Fruit ${subdomain}`;
+  await page.getByRole("textbox", { name: "Collection name" }).fill(name);
+  await page.getByRole("textbox", { name: "Description" }).fill("Fresh from the orchard");
+  await page.getByRole("checkbox", { name: "QA Apples" }).check();
+  await page.getByRole("button", { name: "Create collection" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Collection created." })).toBeVisible();
+
+  const { collections } = await (await page.request.get(`${project}/collections`)).json();
+  const visible = collections.find((collection: { name: string }) => collection.name === name);
+  const draft = await page.request.post(`${project}/collections`, {
+    data: { name: `Unpublished ${subdomain}`, isActive: false, productIds: visible.productIds },
+  });
+  expect(draft.ok()).toBe(true);
+
+  const shopper = await browser.newContext({ baseURL });
+  try {
+    const storefront = await shopper.newPage();
+    await storefront.goto(store);
+    await expect(storefront.getByRole("navigation", { name: "Storefront aisles" })).toHaveCount(0);
+
+    const publish = await page.request.post(`${project}/publish`, { data: { subdomain } });
+    expect(publish.ok(), await publish.text()).toBe(true);
+    await storefront.goto(store);
+    const aisles = storefront.getByRole("navigation", { name: "Storefront aisles" });
+    await expect(aisles.getByRole("button", { name: `Unpublished ${subdomain}` })).toHaveCount(0);
+    const fruit = aisles.getByRole("button", { name });
+    await fruit.click();
+    await expect(fruit).toHaveAttribute("aria-pressed", "true");
+    await expect(storefront.getByRole("heading", { name: "QA Apples" }).first()).toBeVisible();
+    await expect(storefront.getByRole("heading", { name: "QA Pears" })).toHaveCount(0);
+    await expect(storefront.getByText("Fresh from the orchard")).toBeVisible();
+    await aisles.getByRole("button", { name: "All products" }).click();
+    await expect(storefront.getByRole("heading", { name: "QA Pears" }).first()).toBeVisible();
+  } finally {
+    await shopper.close();
+  }
+});

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { readStorefrontAisles } from "@/lib/shop/storefront-aisles";
 import type { WebsiteDefinition } from "./website-schema";
-import { sectionPropsSchemas, type ThemeTokens } from "./website-schema";
+import { sectionPropsSchemas, websiteDefinitionSchema, type ThemeTokens } from "./website-schema";
 import {
   applySiteChromeToDefinition,
   loadOrBootstrapSiteChrome,
@@ -316,6 +317,12 @@ export async function buildSnapshotFromDb(
   }
 
   const withProducts = await mergeCatalogProductsIntoSnapshot(supabase, projectId, base);
+  if (base.seo?.showStorefrontAisles) {
+    const storefrontAisles = await readStorefrontAisles(supabase, projectId);
+    const parsed = websiteDefinitionSchema.shape.storefrontAisles.safeParse(storefrontAisles);
+    if (!parsed.success) return null;
+    withProducts.storefrontAisles = parsed.data;
+  }
   return applySiteChromeToDefinition(withProducts, chrome);
 }
 
@@ -333,7 +340,8 @@ async function mergeCatalogProductsIntoSnapshot(
 
   if (!productRows?.length) return def;
 
-  const items = productRows.map((r) => ({
+  const gridRows = def.seo?.showStorefrontAisles ? productRows.slice(0, 24) : productRows;
+  const items = gridRows.map((r) => ({
     name: r.name,
     description: r.description ?? "",
     priceLabel: r.price_label ?? "",

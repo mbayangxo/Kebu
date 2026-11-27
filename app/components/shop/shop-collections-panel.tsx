@@ -7,7 +7,12 @@ import { KEBU } from "@/lib/kebu-brand";
 
 type CollectionWithProducts = CollectionRow & { productIds: string[] };
 
-export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
+export function ShopCollectionsPanel({ projectId, showStorefrontAisles }: {
+  projectId: string;
+  showStorefrontAisles: boolean;
+}) {
+  const [aislesEnabled, setAislesEnabled] = useState(showStorefrontAisles);
+  const [savingAisles, setSavingAisles] = useState(false);
   const [collections, setCollections] = useState<CollectionWithProducts[]>([]);
   const [products, setProducts] = useState<ProjectProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +129,28 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
     }
   }
 
+  async function saveAisleSetting(enabled: boolean) {
+    setSavingAisles(true);
+    setNote(null);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showStorefrontAisles: enabled }),
+      });
+      if (!response.ok) {
+        setNote("Could not update storefront aisles.");
+        return;
+      }
+      setAislesEnabled(enabled);
+      setNote("Aisle setting saved. Publish your site to update the storefront.");
+    } catch {
+      setNote("Network error. Try again.");
+    } finally {
+      setSavingAisles(false);
+    }
+  }
+
   if (loading) {
     return (
       <p className="text-sm" style={{ color: KEBU.muted }}>
@@ -151,6 +178,21 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
           {note}
         </p>
       ) : null}
+
+      <div className="rounded-2xl border p-4" style={{ borderColor: KEBU.border }}>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={aislesEnabled}
+            disabled={savingAisles}
+            onChange={(event) => void saveAisleSetting(event.target.checked)}
+          />
+          Show collections as storefront aisles
+        </label>
+        <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>
+          Shoppers can browse active collections after you publish your site.
+        </p>
+      </div>
 
       <form onSubmit={(e) => void save(e)} className="space-y-3 rounded-2xl border p-4" style={{ borderColor: KEBU.border }}>
         <p className="text-xs font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>

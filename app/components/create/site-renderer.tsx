@@ -796,6 +796,7 @@ export function SiteRenderer({
   /** Africa low-data mode from DataModeProvider / public site. */
   dataMode?: DataMode;
 }) {
+  const [selectedAisles, setSelectedAisles] = useState<Record<string, string>>({});
   const theme = definition.theme;
   /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
   const motionExpressive = theme.motion === "expressive";
@@ -1588,7 +1589,16 @@ export function SiteRenderer({
               mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : null;
             const layout = p.layout ?? "grid";
             const columns = p.columns ?? 3;
-            const items = p.items ?? [];
+            const storefront = definition.seo?.showStorefrontAisles ? definition.storefrontAisles : undefined;
+            const aisles = storefront?.aisles ?? [];
+            const selectedAisle = aisles.find((aisle) => aisle.slug === selectedAisles[sectionId]);
+            const catalog = new Map(storefront?.items.map((item) => [item.productId, item]));
+            const items = selectedAisle
+              ? selectedAisle.productIds.flatMap((id) => {
+                  const item = catalog.get(id);
+                  return item ? [item] : [];
+                })
+              : p.items ?? [];
             const gridClass =
               layout === "list"
                 ? "flex flex-col gap-4"
@@ -1730,6 +1740,33 @@ export function SiteRenderer({
                     <strong>PayPal:</strong> {shopCommerce.paypalHandle.trim()}
                   </p>
                 ) : null}
+                {aisles.length > 0 && (
+                  <div className="mb-5">
+                    <nav aria-label="Storefront aisles" className="flex flex-wrap gap-2">
+                      {[{ slug: "", name: "All products" }, ...aisles].map((aisle) => {
+                        const active = (selectedAisle?.slug ?? "") === aisle.slug;
+                        return (
+                          <button
+                            key={aisle.slug}
+                            type="button"
+                            aria-pressed={active}
+                            className="rounded-full border px-4 py-2 text-sm"
+                            style={{
+                              background: active ? theme.accent : "transparent",
+                              color: active ? theme.background : undefined,
+                            }}
+                            onClick={() => setSelectedAisles((current) => ({ ...current, [sectionId]: aisle.slug }))}
+                          >
+                            {aisle.name}
+                          </button>
+                        );
+                      })}
+                    </nav>
+                    {selectedAisle?.description && (
+                      <p className="mt-3 text-sm opacity-80">{selectedAisle.description}</p>
+                    )}
+                  </div>
+                )}
                 <div className={gridClass}>
                   {featuredFirst
                     ? [

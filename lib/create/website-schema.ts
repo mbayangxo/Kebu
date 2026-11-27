@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { siteSeoSchema, containsUnsafeSiteContent } from "./site-seo";
+import { storefrontAisleSchema } from "@/lib/shop/storefront-aisles";
 import { navLinksArraySchema } from "./maylecor-nav";
 
 export const SECTION_TYPES = [
@@ -141,6 +142,54 @@ const deviceOverridesSchema = z
     mobile: z.record(z.string(), z.unknown()).optional(),
   })
   .optional();
+
+const storefrontProductSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).default(""),
+  priceLabel: z.string().trim().max(60).default(""),
+  imageUrl: imageUrl.default(""),
+  whatsappMessage: z.string().trim().max(300).optional(),
+  productId: z.string().uuid().optional(),
+  isSubscription: z.boolean().optional(),
+  subscriptionInterval: z
+    .enum(["weekly", "monthly", "quarterly", "yearly"])
+    .optional(),
+  hasVariants: z.boolean().optional(),
+  variants: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string().trim().max(120),
+        option1: z.string().trim().max(60).default(""),
+        option2: z.string().trim().max(60).default(""),
+        option3: z.string().trim().max(60).default(""),
+        priceLabel: z.string().trim().max(60).default(""),
+        imageUrl: imageUrl.default(""),
+      }),
+    )
+    .max(48)
+    .optional(),
+  /** ISO date string YYYY-MM-DD — displayed as freshness indicator on food/pharma product cards. */
+  expiryDate: z.string().trim().max(10).optional(),
+  /** Internal batch/lot reference for traceability. */
+  batchCode: z.string().trim().max(40).optional(),
+  /** Positive use cases — shown as ✓ checklist on product detail. E.g. "peaux grasses", "KP". */
+  goodFor: z.array(z.string().trim().max(80)).max(8).optional().default([]),
+  /** Contraindications — shown as ✗ list on product detail. */
+  notGoodFor: z.array(z.string().trim().max(80)).max(6).optional().default([]),
+  /** Icon+label attribute badges shown under the product (e.g. "🌿 Sans conservateurs"). */
+  attributes: z.array(z.object({ icon: z.string().trim().max(4).optional(), label: z.string().trim().max(60) })).max(8).optional().default([]),
+  /** Discount % shown when subscription is chosen. E.g. 10 → "Abonnement — économisez 10%". */
+  subscriptionDiscount: z.number().int().min(1).max(50).optional(),
+  /** "You might also like" — product names to surface as cross-sells (display only). */
+  crossSells: z.array(z.string().trim().max(120)).max(4).optional().default([]),
+  /** Short badge shown on the product card corner. E.g. "NOUVEAU", "PROMO", "EXCLUSIF EN LIGNE". */
+  badge: z.string().trim().max(40).optional(),
+  /** Comparison/original price shown struck-through beside current price. E.g. "24 000 FCFA". */
+  valuePriceLabel: z.string().trim().max(60).optional(),
+  /** Category tags used by client-side filter chips. E.g. ["visage", "hydratation"]. */
+  filterTags: z.array(z.string().trim().max(40)).max(6).optional().default([]),
+});
 
 export const sectionPropsSchemas = {
   navigation: z.object({
@@ -466,59 +515,8 @@ export const sectionPropsSchemas = {
     orderStyle: z.enum(["inline", "sheet", "card", "minimal"]).optional().default("inline"),
     orderCtaLabel: z.string().trim().max(40).optional().default("Place order"),
     items: z.preprocess(
-      (v) => (Array.isArray(v) ? v : []),
-      z
-      .array(
-        z.object({
-          name: z.string().trim().min(1).max(120),
-          description: z.string().trim().max(500).default(""),
-          priceLabel: z.string().trim().max(60).default(""),
-          imageUrl: imageUrl.default(""),
-          whatsappMessage: z.string().trim().max(300).optional(),
-          productId: z.string().uuid().optional(),
-          isSubscription: z.boolean().optional(),
-          subscriptionInterval: z
-            .enum(["weekly", "monthly", "quarterly", "yearly"])
-            .optional(),
-          hasVariants: z.boolean().optional(),
-          variants: z
-            .array(
-              z.object({
-                id: z.string().uuid(),
-                name: z.string().trim().max(120),
-                option1: z.string().trim().max(60).default(""),
-                option2: z.string().trim().max(60).default(""),
-                option3: z.string().trim().max(60).default(""),
-                priceLabel: z.string().trim().max(60).default(""),
-                imageUrl: imageUrl.default(""),
-              }),
-            )
-            .max(48)
-            .optional(),
-          /** ISO date string YYYY-MM-DD — displayed as freshness indicator on food/pharma product cards. */
-          expiryDate: z.string().trim().max(10).optional(),
-          /** Internal batch/lot reference for traceability. */
-          batchCode: z.string().trim().max(40).optional(),
-          /** Positive use cases — shown as ✓ checklist on product detail. E.g. "peaux grasses", "KP". */
-          goodFor: z.array(z.string().trim().max(80)).max(8).optional().default([]),
-          /** Contraindications — shown as ✗ list on product detail. */
-          notGoodFor: z.array(z.string().trim().max(80)).max(6).optional().default([]),
-          /** Icon+label attribute badges shown under the product (e.g. "🌿 Sans conservateurs"). */
-          attributes: z.array(z.object({ icon: z.string().trim().max(4).optional(), label: z.string().trim().max(60) })).max(8).optional().default([]),
-          /** Discount % shown when subscription is chosen. E.g. 10 → "Abonnement — économisez 10%". */
-          subscriptionDiscount: z.number().int().min(1).max(50).optional(),
-          /** "You might also like" — product names to surface as cross-sells (display only). */
-          crossSells: z.array(z.string().trim().max(120)).max(4).optional().default([]),
-          /** Short badge shown on the product card corner. E.g. "NOUVEAU", "PROMO", "EXCLUSIF EN LIGNE". */
-          badge: z.string().trim().max(40).optional(),
-          /** Comparison/original price shown struck-through beside current price. E.g. "24 000 FCFA". */
-          valuePriceLabel: z.string().trim().max(60).optional(),
-          /** Category tags used by client-side filter chips. E.g. ["visage", "hydratation"]. */
-          filterTags: z.array(z.string().trim().max(40)).max(6).optional().default([]),
-        }),
-      )
-      .max(24)
-      .default([]),
+      (value) => (Array.isArray(value) ? value : []),
+      z.array(storefrontProductSchema).max(24).default([]),
     ),
     /** Label above the filter chip bar. E.g. "Filtrer par gamme". Shown only when items have filterTags. */
     filterLabel: z.string().trim().max(80).optional(),
@@ -1190,6 +1188,10 @@ export const websiteDefinitionSchema = z.object({
   theme: themeSchema,
   seo: siteSeoSchema.optional(),
   pages: z.array(websitePageSchema).min(1).max(20),
+  storefrontAisles: z.object({
+    aisles: z.array(storefrontAisleSchema).max(100),
+    items: z.array(storefrontProductSchema).max(4800),
+  }).optional(),
 });
 
 export type WebsiteDefinition = z.infer<typeof websiteDefinitionSchema>;
