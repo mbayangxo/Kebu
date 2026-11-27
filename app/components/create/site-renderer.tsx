@@ -1,5 +1,6 @@
 "use client";
 
+import { filterStorefrontProducts } from "@/lib/shop/storefront-aisles";
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion as fx } from "motion/react";
@@ -797,6 +798,7 @@ export function SiteRenderer({
   dataMode?: DataMode;
 }) {
   const [selectedAisles, setSelectedAisles] = useState<Record<string, string>>({});
+  const [productQueries, setProductQueries] = useState<Record<string, string>>({});
   const theme = definition.theme;
   /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
   const motionExpressive = theme.motion === "expressive";
@@ -1593,12 +1595,13 @@ export function SiteRenderer({
             const aisles = storefront?.aisles ?? [];
             const selectedAisle = aisles.find((aisle) => aisle.slug === selectedAisles[sectionId]);
             const catalog = new Map(storefront?.items.map((item) => [item.productId, item]));
-            const items = selectedAisle
-              ? selectedAisle.productIds.flatMap((id) => {
-                  const item = catalog.get(id);
-                  return item ? [item] : [];
-                })
-              : p.items ?? [];
+            const aisleItems = selectedAisle?.productIds.flatMap((id) => {
+              const item = catalog.get(id);
+              return item ? [item] : [];
+            });
+            const query = productQueries[sectionId] ?? "";
+            const searchableItems = aisleItems ?? p.items ?? [];
+            const items = aisles.length ? filterStorefrontProducts(searchableItems, query) : searchableItems;
             const gridClass =
               layout === "list"
                 ? "flex flex-col gap-4"
@@ -1752,8 +1755,9 @@ export function SiteRenderer({
                             aria-pressed={active}
                             className="rounded-full border px-4 py-2 text-sm"
                             style={{
-                              background: active ? theme.accent : "transparent",
-                              color: active ? theme.background : undefined,
+                              background: active ? `color-mix(in srgb, ${theme.accent} 20%, transparent)` : "transparent",
+                              fontWeight: active ? 700 : undefined,
+                              borderColor: active ? theme.accent : undefined,
                             }}
                             onClick={() => setSelectedAisles((current) => ({ ...current, [sectionId]: aisle.slug }))}
                           >
@@ -1764,6 +1768,36 @@ export function SiteRenderer({
                     </nav>
                     {selectedAisle?.description && (
                       <p className="mt-3 text-sm opacity-80">{selectedAisle.description}</p>
+                    )}
+                    <div className="mt-4 flex flex-wrap items-end gap-2">
+                      <label className="grid w-full max-w-sm gap-1 text-sm font-semibold">
+                        Search products
+                        <input
+                          type="search"
+                          maxLength={100}
+                          value={query}
+                          placeholder="Product name or description"
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setProductQueries((current) => ({ ...current, [sectionId]: value }));
+                          }}
+                          className="w-full rounded-xl border bg-transparent px-3 py-2 text-sm"
+                        />
+                      </label>
+                      {query && (
+                        <button
+                          type="button"
+                          className="rounded-xl border px-3 py-2 text-sm"
+                          onClick={() => setProductQueries((current) => ({ ...current, [sectionId]: "" }))}
+                        >
+                          Clear search
+                        </button>
+                      )}
+                    </div>
+                    {query.trim() && (
+                      <p role="status" className="mt-2 text-sm opacity-80">
+                        {items.length === 1 ? "1 product found" : `${items.length} products found`}
+                      </p>
                     )}
                   </div>
                 )}
@@ -1776,8 +1810,10 @@ export function SiteRenderer({
                     : items.map((item) => renderItem(item))}
                 </div>
                 {items.length === 0 ? (
-                  <p className="text-sm opacity-60">
-                    Add products in Kebu Shop (Products tab), then publish this site.
+                  <p className="text-sm opacity-80">
+                    {aisles.length && query.trim()
+                      ? "No products match this search. Clear the search or choose a different aisle."
+                      : "Add products in Kebu Shop (Products tab), then publish this site."}
                   </p>
                 ) : null}
               </section>,

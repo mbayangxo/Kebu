@@ -80,3 +80,19 @@ export async function readStorefrontAisles(db: SupabaseClient, projectId: string
     items,
   };
 }
+
+function normalizeSearchText(value: string): string {
+  return value.normalize("NFD").replace(/\p{Mark}/gu, "").toLowerCase();
+}
+
+export function filterStorefrontProducts<T extends { name: string; description?: string }>(
+  products: T[],
+  query: string,
+): T[] {
+  const terms = normalizeSearchText(query).trim().split(/\s+/).filter(Boolean);
+  if (!terms.length) return products;
+  return products.filter((product) => {
+    const searchable = normalizeSearchText(`${product.name} ${product.description ?? ""}`);
+    return terms.every((term) => searchable.includes(term));
+  });
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assembleStorefrontAisles } from "@/lib/shop/storefront-aisles";
+import { assembleStorefrontAisles, filterStorefrontProducts } from "@/lib/shop/storefront-aisles";
 
 describe("storefront aisles", () => {
   it("drops unavailable products and empty aisles while preserving placement order", () => {
@@ -10,5 +10,16 @@ describe("storefront aisles", () => {
     ], new Set(["apple", "pear"]))).toEqual([
       { slug: "fruit", name: "Fruit", description: "Fresh", productIds: ["pear", "apple"] },
     ]);
+  });
+  it("matches multiple terms across names and descriptions without case or accent differences", () => {
+    const products = [
+      { name: "Café Touba", description: "Dark roast" },
+      { name: "Café glacé" },
+      { name: "Thiakry", description: "Millet dessert" },
+    ];
+    expect(filterStorefrontProducts(products, "DARK   cafe ")).toEqual([products[0]]);
+    expect(filterStorefrontProducts(products, "millet")).toEqual([products[2]]);
+    expect(filterStorefrontProducts(products, "missing")).toEqual([]);
+    expect(filterStorefrontProducts(products, "   ")).toEqual(products);
   });
 });

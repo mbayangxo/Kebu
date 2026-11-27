@@ -141,6 +141,16 @@ test("an opted-in store publishes active aisles that shoppers can browse", async
     await expect(storefront.getByText("Fresh from the orchard")).toBeVisible();
     await aisles.getByRole("button", { name: "All products" }).click();
     await expect(storefront.getByRole("heading", { name: "QA Pears" }).first()).toBeVisible();
+    const search = storefront.getByRole("searchbox", { name: "Search products" });
+    await search.fill("PEARS");
+    await expect(storefront.getByRole("heading", { name: "QA Pears" })).toBeVisible();
+    await expect(storefront.getByRole("heading", { name: "QA Apples" })).toHaveCount(0);
+
+    await fruit.click();
+    await expect(storefront.getByText("No products match this search.", { exact: false })).toBeVisible();
+    await storefront.getByRole("button", { name: "Clear search" }).click();
+    await expect(search).toHaveValue("");
+    await expect(storefront.getByRole("heading", { name: "QA Apples" })).toBeVisible();
   } finally {
     await shopper.close();
   }
