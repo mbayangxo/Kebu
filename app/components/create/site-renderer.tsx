@@ -1,5 +1,6 @@
 "use client";
 
+import { selectStorefrontAisle, useStorefrontAisle } from "./use-storefront-aisle";
 import { filterStorefrontProducts } from "@/lib/shop/storefront-aisles";
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useEffect, useRef, useState } from "react";
@@ -797,6 +798,7 @@ export function SiteRenderer({
   /** Africa low-data mode from DataModeProvider / public site. */
   dataMode?: DataMode;
 }) {
+  const linkedAisle = useStorefrontAisle(mode === "live" && Boolean(definition.storefrontAisles?.aisles.length));
   const [selectedAisles, setSelectedAisles] = useState<Record<string, string>>({});
   const [productQueries, setProductQueries] = useState<Record<string, string>>({});
   const theme = definition.theme;
@@ -1593,7 +1595,8 @@ export function SiteRenderer({
             const columns = p.columns ?? 3;
             const storefront = definition.seo?.showStorefrontAisles ? definition.storefrontAisles : undefined;
             const aisles = storefront?.aisles ?? [];
-            const selectedAisle = aisles.find((aisle) => aisle.slug === selectedAisles[sectionId]);
+            const selectedSlug = mode === "live" ? linkedAisle : selectedAisles[sectionId];
+            const selectedAisle = aisles.find((aisle) => aisle.slug === selectedSlug);
             const catalog = new Map(storefront?.items.map((item) => [item.productId, item]));
             const aisleItems = selectedAisle?.productIds.flatMap((id) => {
               const item = catalog.get(id);
@@ -1759,7 +1762,13 @@ export function SiteRenderer({
                               fontWeight: active ? 700 : undefined,
                               borderColor: active ? theme.accent : undefined,
                             }}
-                            onClick={() => setSelectedAisles((current) => ({ ...current, [sectionId]: aisle.slug }))}
+                            onClick={() => {
+                              if (mode === "live") {
+                                selectStorefrontAisle(aisle.slug);
+                              } else {
+                                setSelectedAisles((current) => ({ ...current, [sectionId]: aisle.slug }));
+                              }
+                            }}
                           >
                             {aisle.name}
                           </button>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readAisleFromUrl, writeAisleToUrl } from "@/lib/shop/storefront-aisle-location";
 import { assembleStorefrontAisles, filterStorefrontProducts } from "@/lib/shop/storefront-aisles";
 
 describe("storefront aisles", () => {
@@ -21,5 +22,12 @@ describe("storefront aisles", () => {
     expect(filterStorefrontProducts(products, "millet")).toEqual([products[2]]);
     expect(filterStorefrontProducts(products, "missing")).toEqual([]);
     expect(filterStorefrontProducts(products, "   ")).toEqual(products);
+  });
+  it("updates only the aisle parameter and preserves the storefront path and fragment", () => {
+    const url = new URL("https://shop.example/sites/grocery?ref=newsletter#products");
+    const aisle = writeAisleToUrl(url, "fresh-fruit");
+    expect(readAisleFromUrl(aisle)).toBe("fresh-fruit");
+    expect(aisle.toString()).toBe("https://shop.example/sites/grocery?ref=newsletter&aisle=fresh-fruit#products");
+    expect(writeAisleToUrl(aisle, "").toString()).toBe(url.toString());
   });
 });

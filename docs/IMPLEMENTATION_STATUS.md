@@ -127,6 +127,8 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Abandoned cart recovery | **IMPLEMENTED** | `shop_cart_drafts` · live draft POST · Shop → Abandoned (idle ≥30m) · WhatsApp / Resend recovery · mark recovered · never marks paid |
 | Shop collection integrity | **TESTED** | Chromium on Kebu QA verified owner create, selection update, reload and deletion. SQL verified rejected writes preserve the selection and tenant boundaries hold. [Issue #25](https://github.com/mbayangxo/Kebu/issues/25). |
 | Published storefront aisles | **TESTED** | Owner opt-in and publish in Kebu QA, published snapshot excludes inactive collections, anonymous Chromium verified aisle navigation and product filtering. [Issue #25](https://github.com/mbayangxo/Kebu/issues/25). |
+| Storefront product search | **TESTED** | Anonymous Chromium on Kebu QA covered overview and aisle-scoped matches, no results and clearing the search. [Issue #25](https://github.com/mbayangxo/Kebu/issues/25). |
+| Shop collection visibility | **TESTED** | Owner hide and restore persisted in Kebu QA. Two publishes verified the correct visibility for anonymous shoppers in Chromium. [Issue #25](https://github.com/mbayangxo/Kebu/issues/25). |
 | Product stock / inventory | **IMPLEMENTED** | Optional `track_stock` + `stock_qty`; decrement on order/cart; restore on cancel; Shop Products UI |
 | Product UPC + order numbers | **IMPLEMENTED** | `upc`/`sku` on products (unique per shop); `order_number` + snapshots on orders; WhatsApp + Shop Orders UI |
 | Shopper accounts + purchase history | **IMPLEMENTED** | Kebu auth on live shop `/sites/{sub}/account` · `customer_user_id` on orders (`048`) · profile per store · history (status ≠ paid from browser) |
