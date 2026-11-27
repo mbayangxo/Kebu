@@ -59,6 +59,16 @@ describe("site seo", () => {
     ]);
   });
 
+  it("keeps relative storefront links when the app origin is unconfigured", () => {
+    const metadata = siteMetadataFromDefinition({
+      title: "QA Grocery",
+      canonicalBase: "/sites/qa-grocery",
+      pageSlug: "shop",
+    });
+    expect(metadata.metadataBase).toBeUndefined();
+    expect(metadata.alternates?.canonical).toBe("/sites/qa-grocery/shop");
+  });
+
   it("merges partial seo safely", () => {
     const merged = mergeSiteSeo({ metaDescription: "Handmade in Dakar" }, "Atelier");
     expect(merged.metaTitle).toBe("Atelier");

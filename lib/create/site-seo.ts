@@ -153,7 +153,8 @@ export function siteMetadataFromDefinition(input: {
 }) {
   const seo = mergeSiteSeo(input.seo, input.title);
   const pagePath = input.pageSlug && input.pageSlug === "home" ? "" : input.pageSlug ? `/${input.pageSlug}` : "";
-  const canonical = `${input.canonicalBase.replace(/\/$/, "")}${pagePath}`;
+  const base = input.canonicalBase.replace(/\/$/, "");
+  const canonical = `${base}${pagePath}`;
   const siteName = seo.siteName || input.title;
   const pageTitle =
     input.pageSlug && input.pageSlug !== "home" && input.title !== siteName
@@ -170,7 +171,7 @@ export function siteMetadataFromDefinition(input: {
   const twitter = seo.twitterHandle.replace(/^@/, "").trim();
 
   return {
-    metadataBase: new URL(input.canonicalBase.replace(/\/$/, "") + "/"),
+    metadataBase: URL.canParse(base) ? new URL(`${base}/`) : undefined,
     title: pageTitle,
     description,
     keywords: keywords || undefined,
